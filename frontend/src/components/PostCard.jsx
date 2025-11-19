@@ -102,7 +102,9 @@ export default function PostCard({
         </div>
 
         {/* Share */}
-        <div className="
+        <div
+        onClick={navigate('/')}
+         className="
           flex items-center gap-1 
           bg-reddit-hover dark:bg-reddit-hover_dark 
           px-3 py-[6px] 
@@ -113,7 +115,7 @@ export default function PostCard({
           hover:bg-reddit-hover dark:hover:bg-reddit-hover_dark
         ">
           <ShareIcon className="h-4 w-4 text-reddit-icon" />
-          <span>Share</span>
+          <span >Share</span>
         </div>
       </div>
     </div>

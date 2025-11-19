@@ -22,7 +22,7 @@ export default function MainLayout({ children }) {
           <div className="min-h-screen w-px bg-reddit-divider"></div>
 
           {/* place button floating near top (adjust top spacing if needed) */}
-          <div className="absolute -left-3 top-6 lg:-left-2 ">
+          <div className="absolute -left-3 top-6 lg:-left-2 hidden lg:block">
             <MenuButton open={sidebarOpen} onClick={() => setSidebarOpen((s) => !s)} />
           </div>
         </div>
