@@ -69,16 +69,16 @@ export default function VoteButtons({ initial }) {
     }
   };
 
-  const containerClass = `flex items-center px-3 py-[6px] rounded-full gap-1 ` +
+  const containerClass = `flex items-center px-3 py-[6px] rounded-full gap-1 transition-colors duration-150 ` +
     (state === "up"
-      ? "bg-reddit-upvote"
+      ? "bg-reddit-upvote dark:bg-reddit-dark_upvote"
       : state === "down"
-      ? "bg-reddit-downvote"
-      : "bg-reddit-hover dark:bg-reddit-hover_dark");
+      ? "bg-reddit-downvote dark:bg-reddit-dark_downvote"
+      : "bg-reddit-hover dark:bg-reddit-dark_hover");
 
-  const iconUpClass = `h-4 w-4 cursor-pointer ` + (state === "up" ? "text-reddit-card" : "text-reddit-icon dark:text-reddit-icon");
-  const iconDownClass = `h-4 w-4 cursor-pointer ` + (state === "down" ? "text-reddit-card" : "text-reddit-icon dark:text-reddit-icon");
-  const countClass = state === "up" || state === "down" ? "text-reddit-card font-medium" : "text-reddit-text_secondary dark:text-reddit-text_secondary font-medium";
+  const iconUpClass = `h-4 w-4 cursor-pointer ` + (state === "up" ? "text-reddit-card" : "text-reddit-icon dark:text-reddit-dark_icon");
+  const iconDownClass = `h-4 w-4 cursor-pointer ` + (state === "down" ? "text-reddit-card" : "text-reddit-icon dark:text-reddit-dark_icon");
+  const countClass = state === "up" || state === "down" ? "text-reddit-card font-medium" : "text-reddit-text_secondary dark:text-reddit-dark_text_secondary font-medium";
 
   return (
     <div className={containerClass}>

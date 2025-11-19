@@ -5,14 +5,16 @@ import {
   PlusIcon,
   Bars3Icon,
 } from "@heroicons/react/24/outline";
+import { useState } from "react";
 import logo from "../assets/reddit-logo.png";
-
+import ProfileMenu from "./ProfileMenu";  
 // props: onToggleSidebar
 export default function Navbar({ onToggleSidebar }) {
+  const [open, setOpen] = useState(false);
+
   return (
     <>
-      <nav className="w-full h-14 bg-reddit-card dark:bg-reddit-card border-b border-reddit-border dark:border-reddit-divider px-4 flex items-center justify-between sticky top-0 z-50">
-
+      <nav className="w-full h-14 bg-reddit-card dark:bg-reddit-dark_card border-b border-reddit-border dark:border-reddit-dark_divider px-4 flex items-center justify-between sticky top-0 z-50">
         {/* Left Section */}
         <div className="flex items-center gap-3">
           {/* Mobile menu button (visible < lg) */}
@@ -28,7 +30,7 @@ export default function Navbar({ onToggleSidebar }) {
           {/* Logo + text */}
           <div className="flex items-center gap-1 cursor-pointer select-none">
             <img src={logo} alt="Reddit" className="h-7" />
-            <span className="font-bold text-xl text-reddit-text dark:text-reddit-text">
+            <span className="font-bold text-xl text-reddit-text dark:text-reddit-dark_text">
               reddit
             </span>
           </div>
@@ -37,21 +39,20 @@ export default function Navbar({ onToggleSidebar }) {
         {/* Search Bar */}
         <div className="flex-1 flex justify-center px-4">
           <div className="w-full max-w-xl relative">
-            <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-5 w-5 text-reddit-icon" />
+            <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-5 w-5 text-reddit-icon dark:text-reddit-dark_icon" />
             <input
               type="text"
               placeholder="Search Reddit"
-              className="w-full bg-reddit-hover dark:bg-reddit-hover_dark border border-reddit-border dark:border-reddit-divider rounded-full pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-reddit-upvote"
+              className="w-full bg-reddit-hover dark:bg-reddit-dark_hover border border-reddit-border dark:border-reddit-dark_divider rounded-full pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-reddit-upvote"
             />
           </div>
         </div>
 
         {/* Right Section */}
         <div className="flex items-center gap-4">
-
           {/* Chat */}
           <div className="relative group">
-            <ChatBubbleOvalLeftIcon className="h-6 w-6 text-reddit-icon p-1 rounded-full cursor-pointer transition hover:bg-reddit-hover dark:hover:bg-reddit-hover_dark" />
+            <ChatBubbleOvalLeftIcon className="h-6 w-6 text-reddit-icon dark:text-reddit-dark_icon p-1 rounded-full cursor-pointer transition hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover" />
             <span className="tooltip">Chat</span>
           </div>
 
@@ -64,14 +65,20 @@ export default function Navbar({ onToggleSidebar }) {
 
           {/* Notifications */}
           <div className="relative group">
-            <BellIcon className="h-6 w-6 text-reddit-icon p-1 rounded-full cursor-pointer transition hover:bg-reddit-hover dark:hover:bg-reddit-hover_dark" />
+            <BellIcon className="h-6 w-6 text-reddit-icon dark:text-reddit-dark_icon p-1 rounded-full cursor-pointer transition hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover" />
             <span className="tooltip">Notifications</span>
           </div>
 
           {/* Profile */}
-          <div className="relative group">
-            <div className="w-8 h-8 rounded-full bg-reddit-hover cursor-pointer" />
-            <span className="tooltip">Profile</span>
+          <div className="relative">
+            <img
+              src="https://www.redditstatic.com/avatars/avatar_default_07_FF66AC.png"
+              alt="user"
+              className="h-8 w-8 rounded-full cursor-pointer"
+              onClick={() => setOpen(!open)}
+            />
+
+            {open && <ProfileMenu onClose={() => setOpen(false)} />}
           </div>
         </div>
       </nav>

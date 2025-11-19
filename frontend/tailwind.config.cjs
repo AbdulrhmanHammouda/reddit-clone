@@ -22,15 +22,16 @@ module.exports = {
           dark_hover: "#161718",     // hover surface in dark mode
 
           // Borders
-          border: "#EDEFF1",          // card border
-          divider: "#E5E5E5",         // subtle light border
+          border: "#dcdedfff",          // card border
+          divider: "#f2f0f0ff",         // subtle light border
           // Dark mode borders
           dark_border: "#27292B",
+          
           dark_divider: "#2B2D2F",
 
           // Text
           text: "#1A1A1B",            // primary text
-          text_secondary: "#7C7C7C",  // gray text
+          text_secondary: "#131313ff",  // gray text
           text_light: "#4C4C4C",      // slightly darker gray
           // Dark mode text
           dark_text: "#E6E7E8",

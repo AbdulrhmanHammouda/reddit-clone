@@ -20,12 +20,12 @@ export default function PostCardFull({ postId }) {
   };
 
   return (
-    <article className="w-full bg-reddit-card dark:bg-reddit-card rounded-xl p-4 border border-reddit-border dark:border-reddit-divider shadow-sm">
+    <article className="w-full bg-reddit-card dark:bg-reddit-dark_card rounded-xl p-4 border border-reddit-border dark:border-reddit-dark_divider shadow-sm">
       <header className="flex items-start gap-3">
         <div className="h-10 w-10 rounded-full bg-reddit-hover flex items-center justify-center text-reddit-text font-bold">{post.subreddit.replace(/[^A-Z]/gi, '').slice(0,2) || 'R'}</div>
         <div className="flex-1">
-          <div className="text-sm text-reddit-text_secondary">{post.subreddit} • Posted by <span className="font-semibold text-reddit-text">{post.author}</span> • {post.time}</div>
-          <h1 className="mt-2 text-2xl font-bold text-reddit-text leading-7">{post.title}</h1>
+          <div className="text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary">{post.subreddit} • Posted by <span className="font-semibold text-reddit-text dark:text-reddit-dark_text">{post.author}</span> • {post.time}</div>
+          <h1 className="mt-2 text-2xl font-bold text-reddit-text dark:text-reddit-dark_text leading-7">{post.title}</h1>
         </div>
 
         <div className="ml-2">
@@ -35,7 +35,7 @@ export default function PostCardFull({ postId }) {
         </div>
       </header>
 
-      <div className="mt-4 text-reddit-text_light leading-relaxed">
+      <div className="mt-4 text-reddit-text_light dark:text-reddit-dark_text_light leading-relaxed">
         {post.body}
       </div>
 

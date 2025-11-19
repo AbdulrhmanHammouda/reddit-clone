@@ -8,7 +8,7 @@ export default function CommentReplyBox({ onReply, onCancel }) {
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
-        className="w-full min-h-[80px] p-2 rounded resize-vertical bg-white border border-reddit-border focus:outline-none focus:ring-1 focus:ring-reddit-upvote text-reddit-text"
+        className="w-full min-h-[80px] p-2 rounded resize-vertical bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_border focus:outline-none focus:ring-1 focus:ring-reddit-upvote text-reddit-text dark:text-reddit-dark_text"
         placeholder="Reply to this comment"
       />
 

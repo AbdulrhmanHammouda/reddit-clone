@@ -47,11 +47,25 @@ export default function PostsFeed() {
     loadData();
   }, []);
 
-  if (loading) return <p className="text-center text-reddit-text_light">Loading...</p>;
+  if (loading)
+    return (
+      <p className="text-center text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
+        Loading…
+      </p>
+    );
 
   return (
-    <div className="w-full max-w-[740px] flex flex-col gap-4">
-      {posts.map(post => (
+    <div
+      className="
+        w-full 
+        max-w-[740px] 
+        flex flex-col gap-4 
+        bg-reddit-page 
+        dark:bg-reddit-dark_bg 
+        transition-colors duration-200
+      "
+    >
+      {posts.map((post) => (
         <PostCard key={post.id} {...post} />
       ))}
     </div>

@@ -32,12 +32,12 @@ export default function Sidebar({ sidebarOpen = true, onClose }) {
       {/* Mobile overlay sidebar (visible on < lg) */}
       {/* Backdrop - starts below navbar (top-14) so navbar remains above overlay */}
       <div
-        className={`${sidebarOpen ? 'block' : 'hidden'} lg:hidden fixed left-0 right-0 top-14 bottom-0 z-30 bg-black/40 transition-opacity`}
+        className={`${sidebarOpen ? 'block' : 'hidden'} lg:hidden fixed left-0 right-0 top-14 bottom-0 z-30 bg-reddit-page/60 dark:bg-reddit-dark_bg/60 transition-opacity`}
         onClick={onClose}
         aria-hidden={!sidebarOpen}
       />
 
-      <div className={`lg:hidden fixed left-0 top-14 bottom-0 z-40 w-[250px] transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-all duration-300 bg-reddit-card border-r border-reddit-border overflow-auto`}>
+      <div className={`lg:hidden fixed left-0 top-14 bottom-0 z-40 w-[250px] transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-all duration-300 bg-reddit-card dark:bg-reddit-dark_card border-r border-reddit-border dark:border-reddit-dark_border overflow-auto`}>
         <div className="p-3 pt-6">
           <div className="flex flex-col gap-1">
             <SidebarItem Icon={HomeIcon} label="Home" sidebarOpen={true} />

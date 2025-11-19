@@ -10,12 +10,12 @@ export default function MenuButton({ onClick, open = false }) {
         onClick={onClick}
         aria-expanded={open}
         aria-label={open ? "Collapse Navigation" : "Expand Navigation"}
-        className="group relative z-10 -ml-3 flex items-center justify-center h-10 w-10 rounded-full bg-reddit-card border border-reddit-border shadow-sm hover:bg-reddit-hover transition focus:outline-none focus:ring-2 focus:ring-reddit-blue"
+        className="group relative z-10 -ml-3 flex items-center justify-center h-10 w-10 rounded-full bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_border shadow-sm hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover transition focus:outline-none focus:ring-2 focus:ring-reddit-blue"
       >
         {open ? (
-          <XMarkIcon className="h-5 w-5 text-reddit-icon group-hover:text-reddit-text" />
+          <XMarkIcon className="h-5 w-5 text-reddit-icon dark:text-reddit-dark_icon group-hover:text-reddit-text" />
         ) : (
-          <Bars3Icon className="h-5 w-5 text-reddit-icon group-hover:text-reddit-text" />
+          <Bars3Icon className="h-5 w-5 text-reddit-icon dark:text-reddit-dark_icon group-hover:text-reddit-text" />
         )}
       </button>
 
