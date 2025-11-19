@@ -1,0 +1,62 @@
+import {
+  EllipsisHorizontalIcon,
+  ShareIcon,
+  BookmarkIcon,
+  ChatBubbleBottomCenterTextIcon,
+} from "@heroicons/react/24/outline";
+import VoteButtons from "./VoteButtons";
+
+export default function PostCardFull({ postId }) {
+  // mocked post data for now
+  const post = {
+    id: postId,
+    subreddit: "r/example",
+    author: "user123",
+    time: "2 hours ago",
+    title: `Example full post title (#${postId})`,
+    body:
+      "This is the full post body. It supports multi-line text and will render as regular content in the full-post view.",
+    upvotes: 128,
+  };
+
+  return (
+    <article className="w-full bg-reddit-card dark:bg-reddit-card rounded-xl p-4 border border-reddit-border dark:border-reddit-divider shadow-sm">
+      <header className="flex items-start gap-3">
+        <div className="h-10 w-10 rounded-full bg-reddit-hover flex items-center justify-center text-reddit-text font-bold">{post.subreddit.replace(/[^A-Z]/gi, '').slice(0,2) || 'R'}</div>
+        <div className="flex-1">
+          <div className="text-sm text-reddit-text_secondary">{post.subreddit} • Posted by <span className="font-semibold text-reddit-text">{post.author}</span> • {post.time}</div>
+          <h1 className="mt-2 text-2xl font-bold text-reddit-text leading-7">{post.title}</h1>
+        </div>
+
+        <div className="ml-2">
+          <button className="p-2 rounded-full hover:bg-reddit-hover text-reddit-icon">
+            <EllipsisHorizontalIcon className="h-5 w-5" />
+          </button>
+        </div>
+      </header>
+
+      <div className="mt-4 text-reddit-text_light leading-relaxed">
+        {post.body}
+      </div>
+
+      <div className="mt-4 flex items-center gap-4">
+        <VoteButtons initial={post.upvotes} />
+
+        <div className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-reddit-hover text-reddit-text_secondary cursor-pointer">
+          <ChatBubbleBottomCenterTextIcon className="h-4 w-4 text-reddit-icon" />
+          <span className="text-sm">Comments</span>
+        </div>
+
+        <div className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-reddit-hover text-reddit-text_secondary cursor-pointer">
+          <ShareIcon className="h-4 w-4 text-reddit-icon" />
+          <span className="text-sm">Share</span>
+        </div>
+
+        <div className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-reddit-hover text-reddit-text_secondary cursor-pointer">
+          <BookmarkIcon className="h-4 w-4 text-reddit-icon" />
+          <span className="text-sm">Save</span>
+        </div>
+      </div>
+    </article>
+  );
+}
