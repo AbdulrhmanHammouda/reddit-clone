@@ -36,7 +36,7 @@ module.exports = {
           // Dark mode text
           dark_text: "#E6E7E8",
           dark_text_secondary: "#A0A3A5",
-          dark_text_light: "#C3C5C6",
+          dark_text_light: "#ffffffff",
 
           // Icons
           icon: "#7C7C7C",            // default icon color

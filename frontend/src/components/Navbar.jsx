@@ -7,14 +7,15 @@ import {
 } from "@heroicons/react/24/outline";
 import { useState } from "react";
 import logo from "../assets/reddit-logo.png";
-import ProfileMenu from "./ProfileMenu";  
-// props: onToggleSidebar
+import ProfileMenu from "./ProfileMenu";
+import { Link } from "react-router-dom";
+
 export default function Navbar({ onToggleSidebar }) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
-      <nav className="w-full h-14 bg-reddit-card dark:bg-reddit-dark_card border-b border-reddit-border dark:border-reddit-dark_divider px-4 flex items-center justify-between sticky top-0 z-50">
+      <nav className="w-full h-16 bg-reddit-card dark:bg-reddit-dark_card border-b border-reddit-border dark:border-reddit-dark_divider px-5 flex items-center justify-between sticky top-0 z-50">
         {/* Left Section */}
         <div className="flex items-center gap-3">
           {/* Mobile menu button (visible < lg) */}
@@ -28,22 +29,22 @@ export default function Navbar({ onToggleSidebar }) {
           </button>
 
           {/* Logo + text */}
-          <div className="flex items-center gap-1 cursor-pointer select-none">
-            <img src={logo} alt="Reddit" className="h-7" />
-            <span className="font-bold text-xl text-reddit-text dark:text-reddit-dark_text">
+          <Link to="/" className="flex items-center gap-2 cursor-pointer select-none">
+            <img src={logo} alt="Reddit" className="h-8" />
+            <span className="font-bold text-3xl text-reddit-text dark:text-reddit-dark_text">
               reddit
             </span>
-          </div>
+          </Link>
         </div>
 
         {/* Search Bar */}
         <div className="flex-1 flex justify-center px-4">
           <div className="w-full max-w-xl relative">
-            <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-5 w-5 text-reddit-icon dark:text-reddit-dark_icon" />
+            <MagnifyingGlassIcon className="absolute left-3 top-2 h-5 w-5 text-reddit-icon dark:text-reddit-dark_icon" />
             <input
               type="text"
               placeholder="Search Reddit"
-              className="w-full bg-reddit-hover dark:bg-reddit-dark_hover border border-reddit-border dark:border-reddit-dark_divider rounded-full pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-reddit-upvote"
+              className="w-full bg-reddit-hover dark:bg-reddit-dark_hover border border-reddit-border dark:border-reddit-dark_divider rounded-full pl-12 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-reddit-upvote"
             />
           </div>
         </div>
@@ -52,20 +53,26 @@ export default function Navbar({ onToggleSidebar }) {
         <div className="flex items-center gap-4">
           {/* Chat */}
           <div className="relative group">
-            <ChatBubbleOvalLeftIcon className="h-6 w-6 text-reddit-icon dark:text-reddit-dark_icon p-1 rounded-full cursor-pointer transition hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover" />
+            <ChatBubbleOvalLeftIcon className="h-7 w-7 text-reddit-icon dark:text-reddit-dark_icon p-1 rounded-full cursor-pointer transition hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover" />
             <span className="tooltip">Chat</span>
           </div>
 
-          {/* Create Button */}
-          <div className="relative group flex items-center gap-1 bg-reddit-blue hover:bg-reddit-blue_hover px-3 py-1 rounded-full cursor-pointer transition">
-            <PlusIcon className="h-5 w-5 text-reddit-card" />
-            <span className="text-sm text-reddit-card">Create</span>
-            {/* <span className="tooltip">Create post</span> */}
-          </div>
-
+        {/* Create Button */}
+        <div
+          className="
+            group relative flex items-center gap-2
+            px-3 py-1.5 rounded-full cursor-pointer transition
+            hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover
+          "
+        >
+          <PlusIcon className="h-5 w-5 text-reddit-icon dark:text-reddit-dark_icon" />
+          <span className="text-sm font-medium text-reddit-text dark:text-reddit-dark_text">
+            Create
+          </span>
+        </div>
           {/* Notifications */}
           <div className="relative group">
-            <BellIcon className="h-6 w-6 text-reddit-icon dark:text-reddit-dark_icon p-1 rounded-full cursor-pointer transition hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover" />
+            <BellIcon className="h-7 w-7 text-reddit-icon dark:text-reddit-dark_icon p-1 rounded-full cursor-pointer transition hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover" />
             <span className="tooltip">Notifications</span>
           </div>
 

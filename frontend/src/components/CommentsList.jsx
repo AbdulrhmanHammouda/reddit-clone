@@ -32,8 +32,19 @@ export default function CommentsList({ postId }) {
 
   return (
     <section className="mt-2">
-      <div className="text-sm text-reddit-text_secondary font-semibold mb-3">{comments.length} Comments</div>
 
+      {/* Comments title */}
+      <div className="
+        text-sm 
+        text-reddit-text_secondary 
+        dark:text-reddit-dark_text_secondary
+        font-semibold 
+        mb-3
+      ">
+        {comments.length} Comments
+      </div>
+
+      {/* List */}
       <div className="flex flex-col gap-3">
         {comments.map((c) => (
           <Comment key={c.id} comment={c} />

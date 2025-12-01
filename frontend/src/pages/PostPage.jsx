@@ -6,8 +6,17 @@ export default function PostPage() {
   const { id } = useParams();
 
   return (
-    <div className="w-full flex justify-center bg-reddit-page dark:bg-reddit-page min-h-screen pt-6">
-      <div className="w-full max-w-[740px] flex flex-col gap-4">
+    <div className="
+      w-full 
+      min-h-screen 
+      flex 
+      flex-col 
+      items-center 
+      bg-reddit-page 
+      dark:bg-reddit-dark_bg 
+      transition-colors duration-200
+    ">
+      <div className="w-full max-w-[740px] mt-6 flex flex-col gap-6">
         <PostCardFull postId={id} />
         <CommentsList postId={id} />
       </div>

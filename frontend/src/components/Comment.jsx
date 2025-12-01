@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { ArrowUpIcon, ArrowDownIcon, EllipsisHorizontalIcon } from "@heroicons/react/24/outline";
+import {
+  ArrowUpIcon,
+  ArrowDownIcon,
+  EllipsisHorizontalIcon,
+} from "@heroicons/react/24/outline";
 import CommentReplyBox from "./CommentReplyBox";
 
 export default function Comment({ comment }) {
@@ -21,35 +25,84 @@ export default function Comment({ comment }) {
 
   return (
     <div>
-      <div className="bg-reddit-card border border-reddit-border rounded-lg p-3 shadow-sm">
+      {/* MAIN COMMENT BOX */}
+      <div className="
+        bg-reddit-card dark:bg-reddit-dark_card
+        border border-reddit-border dark:border-reddit-dark_divider
+        rounded-lg p-3 shadow-sm
+      ">
         <div className="flex items-start gap-3">
-          <div className="h-8 w-8 rounded-full bg-reddit-hover flex items-center justify-center text-reddit-text font-semibold">{comment.author?.[0]?.toUpperCase() || 'U'}</div>
 
+          {/* Avatar */}
+          <div className="
+            h-8 w-8 rounded-full 
+            bg-reddit-hover dark:bg-reddit-dark_hover
+            flex items-center justify-center
+            text-reddit-text dark:text-reddit-dark_text 
+            font-semibold
+          ">
+            {comment.author?.[0]?.toUpperCase() || "U"}
+          </div>
+
+          {/* Content */}
           <div className="flex-1">
+
+            {/* Header row */}
             <div className="text-sm">
-              <span className="font-semibold text-reddit-text mr-2">{comment.author}</span>
-              <span className="text-reddit-text_secondary text-xs">{comment.time}</span>
+              <span className="font-semibold text-reddit-text dark:text-reddit-dark_text mr-2">
+                {comment.author}
+              </span>
+              <span className="text-reddit-text_secondary dark:text-reddit-dark_text_secondary text-xs">
+                {comment.time}
+              </span>
             </div>
 
-            <div className="mt-2 text-reddit-text_light">{comment.text}</div>
+            {/* Text */}
+            <div className="mt-2 text-reddit-text_light dark:text-reddit-dark_text_light">
+              {comment.text}
+            </div>
 
-            <div className="mt-3 flex items-center gap-3 text-sm text-reddit-text_secondary">
-              <button className="flex items-center gap-1 px-2 py-1 rounded hover:bg-reddit-hover">
-                <ArrowUpIcon className="h-4 w-4 text-reddit-icon" />
+            {/* Action bar */}
+            <div className="
+              mt-3 flex items-center gap-3 text-sm 
+              text-reddit-text_secondary dark:text-reddit-dark_text_secondary
+            ">
+              {/* upvote */}
+              <button className="
+                flex items-center gap-1 px-2 py-1 rounded
+                hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover
+              ">
+                <ArrowUpIcon className="h-4 w-4 text-reddit-icon dark:text-reddit-dark_icon" />
               </button>
-              <span className="text-reddit-text_secondary">{comment.score}</span>
-              <button className="flex items-center gap-1 px-2 py-1 rounded hover:bg-reddit-hover" onClick={() => setShowReply((s) => !s)}>
+
+              <span className="text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
+                {comment.score}
+              </span>
+
+              {/* reply button */}
+              <button
+                onClick={() => setShowReply((s) => !s)}
+                className="
+                  flex items-center gap-1 px-2 py-1 rounded
+                  hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover
+                "
+              >
                 Reply
               </button>
-              <button className="flex items-center gap-1 px-2 py-1 rounded hover:bg-reddit-hover">
-                <EllipsisHorizontalIcon className="h-4 w-4 text-reddit-icon" />
+
+              {/* options */}
+              <button className="
+                flex items-center gap-1 px-2 py-1 rounded
+                hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover
+              ">
+                <EllipsisHorizontalIcon className="h-4 w-4 text-reddit-icon dark:text-reddit-dark_icon" />
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Reply box */}
+      {/* Reply Box */}
       {showReply && (
         <div className="mt-2">
           <CommentReplyBox
@@ -60,8 +113,11 @@ export default function Comment({ comment }) {
       )}
 
       {/* Nested replies */}
-      {replies && replies.length > 0 && (
-        <div className="ml-6 pl-4 border-l border-reddit-border mt-3 flex flex-col gap-3">
+      {replies?.length > 0 && (
+        <div className="
+          ml-6 pl-4 mt-3 flex flex-col gap-3
+          border-l border-reddit-border dark:border-reddit-dark_divider
+        ">
           {replies.map((r) => (
             <Comment key={r.id} comment={r} />
           ))}
