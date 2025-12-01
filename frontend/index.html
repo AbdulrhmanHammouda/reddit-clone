@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="light">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     
@@ -11,6 +11,21 @@
 
     <!-- Dark Mode Support -->
     <meta name="color-scheme" content="light dark" />
+    <!-- Pre-mount theme script: read saved theme and apply immediately to <html> -->
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('theme');
+          if (saved === 'dark') {
+            document.documentElement.classList.add('dark');
+          } else if (saved === 'light') {
+            document.documentElement.classList.remove('dark');
+          }
+        } catch (e) {
+          // ignore (e.g., cookies/localStorage disabled)
+        }
+      })();
+    </script>
   </head>
 
   <body class="bg-reddit-light_bg dark:bg-reddit-dark_bg transition-colors duration-300">

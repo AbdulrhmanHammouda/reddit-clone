@@ -2,17 +2,25 @@ import { useEffect, useState } from "react";
 import { MoonIcon } from "@heroicons/react/24/outline";
 
 export default function DarkModeToggle() {
-  const [enabled, setEnabled] = useState(
-    localStorage.getItem("theme") === "dark"
-  );
+  const [enabled, setEnabled] = useState(() => {
+    try {
+      return localStorage.getItem("theme") === "dark";
+    } catch (e) {
+      return false;
+    }
+  });
 
   useEffect(() => {
-    if (enabled) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
+    try {
+      if (enabled) {
+        document.documentElement.classList.add("dark");
+        localStorage.setItem("theme", "dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+        localStorage.setItem("theme", "light");
+      }
+    } catch (e) {
+      // ignore storage errors
     }
   }, [enabled]);
 
