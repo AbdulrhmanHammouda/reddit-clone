@@ -5,8 +5,8 @@ export default function MenuButton({ onClick, open = false }) {
   return (
     <div className="relative">
       {/* circular menu button */}
-      <button
-        type="button"
+      <div
+        // type="button"
         onClick={onClick}
         aria-expanded={open}
         aria-label={open ? "Collapse Navigation" : "Expand Navigation"}
@@ -17,7 +17,7 @@ export default function MenuButton({ onClick, open = false }) {
         ) : (
           <Bars3Icon className="h-5 w-5 text-reddit-icon dark:text-reddit-dark_icon group-hover:text-reddit-text" />
         )}
-      </button>
+      </div>
 
       {/* tooltip placed to the right of the button, using theme tokens */}
       <div className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 opacity-0 group-hover:opacity-100 transition-opacity">

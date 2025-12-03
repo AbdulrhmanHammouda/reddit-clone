@@ -7,47 +7,105 @@ import {
   Squares2X2Icon,
   PlusIcon,
 } from "@heroicons/react/24/outline";
+import { useNavigate } from "react-router-dom";
 
-export default function Sidebar({ sidebarOpen = true, onClose }) {
-  // sidebarOpen controls width on desktop and visibility on mobile overlay
+export default function Sidebar({ sidebarOpen = true, onClose = () => {} }) {
+  const navigate = useNavigate();
   const widthClass = sidebarOpen ? "w-[250px]" : "w-[68px]";
 
   return (
     <>
-      {/* Desktop collapsible sidebar (visible on lg+) */}
-      <aside className={`hidden lg:block ${widthClass} shrink-0 px-2 transition-all duration-300 overflow-hidden`}>
-        <div className="sticky top-16">
-          <div className="flex flex-col gap-1">
-            <SidebarItem Icon={HomeIcon} label="Home" sidebarOpen={sidebarOpen} />
-            <SidebarItem Icon={ArrowTopRightOnSquareIcon} label="Popular" sidebarOpen={sidebarOpen} />
-            <SidebarItem Icon={Squares2X2Icon} label="All" sidebarOpen={sidebarOpen} />
-            <SidebarItem Icon={GlobeAltIcon} label="Explore" sidebarOpen={sidebarOpen} />
-            <SidebarItem Icon={PlusIcon} label="Start a community" sidebarOpen={sidebarOpen} />
-          </div>
+      {/* DESKTOP SIDEBAR - FIXED */}
+      <aside
+         className={`
+    hidden lg:block
+    fixed
+    top-16
+    left-0
+    ${widthClass}
+    h-[calc(100vh-64px)]
+    px-2
+    bg-reddit-card dark:bg-reddit-dark_card
+    border-r border-reddit-border dark:border-reddit-dark_border
+    transition-all duration-300
+    overflow-y-auto
+    pointer-events-auto
+    z-1001
+  `}
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
+        <div className="flex flex-col gap-1 py-3">
+          <SidebarItem
+            Icon={HomeIcon}
+            label="Home"
+            sidebarOpen={sidebarOpen}
+            onClick={() => navigate("/")}
+          />
 
-          <div className={`my-4 border-t border-reddit-divider ${sidebarOpen ? '' : 'opacity-0 h-0'}`}></div>
+          <SidebarItem
+            Icon={ArrowTopRightOnSquareIcon}
+            label="Popular"
+            sidebarOpen={sidebarOpen}
+            onClick={() => navigate("/popular")}
+          />
+
+          <SidebarItem
+            Icon={Squares2X2Icon}
+            label="All"
+            sidebarOpen={sidebarOpen}
+            onClick={() => navigate("/all")}
+          />
+
+          <SidebarItem
+            Icon={GlobeAltIcon}
+            label="Explore"
+            sidebarOpen={sidebarOpen}
+            onClick={() => navigate("/explore")}
+          />
+
+          <SidebarItem
+            Icon={PlusIcon}
+            label="Start a community"
+            sidebarOpen={sidebarOpen}
+            onClick={() => navigate("/create-community")}
+          />
         </div>
+
+        {/* divider */}
+        <div className={`my-4 border-t border-reddit-divider ${sidebarOpen ? "" : "opacity-0 h-0"}`} />
       </aside>
 
-      {/* Mobile overlay sidebar (visible on < lg) */}
-      {/* Backdrop - starts below navbar (top-14) so navbar remains above overlay */}
+      {/* MOBILE OVERLAY BACKDROP */}
       <div
-        className={`${sidebarOpen ? 'block' : 'hidden'} lg:hidden fixed left-0 right-0 top-14 bottom-0 z-30 bg-reddit-page/60 dark:bg-reddit-dark_bg/60 transition-opacity`}
+        className={`
+          fixed inset-0 top-14 z-30 bg-black/40 lg:hidden
+          ${sidebarOpen ? "block" : "hidden"}
+        `}
         onClick={onClose}
-        aria-hidden={!sidebarOpen}
+        aria-hidden="true"
       />
 
-      <div className={`lg:hidden fixed left-0 top-14 bottom-0 z-40 w-[250px] transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-all duration-300 bg-reddit-card dark:bg-reddit-dark_card border-r border-reddit-border dark:border-reddit-dark_border overflow-auto`}>
-        <div className="p-3 pt-6">
-          <div className="flex flex-col gap-1">
-            <SidebarItem Icon={HomeIcon} label="Home" sidebarOpen={true} />
-            <SidebarItem Icon={ArrowTopRightOnSquareIcon} label="Popular" sidebarOpen={true} />
-            <SidebarItem Icon={Squares2X2Icon} label="All" sidebarOpen={true} />
-            <SidebarItem Icon={GlobeAltIcon} label="Explore" sidebarOpen={true} />
-            <SidebarItem Icon={PlusIcon} label="Start a community" sidebarOpen={true} />
-          </div>
-
-          <div className="my-4 border-t border-reddit-divider"></div>
+      {/* MOBILE SIDEBAR (slides in) */}
+      <div
+        className={`
+          lg:hidden
+          fixed left-0 top-14 bottom-0
+          z-40
+          w-[250px]
+          bg-reddit-card dark:bg-reddit-dark_card
+          border-r border-reddit-border dark:border-reddit-dark_border
+          transition-transform duration-300
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+          overflow-y-auto
+        `}
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
+        <div className="p-3 pt-6 flex flex-col gap-1">
+          <SidebarItem Icon={HomeIcon} label="Home" onClick={() => { navigate("/"); onClose(); }} />
+          <SidebarItem Icon={ArrowTopRightOnSquareIcon} label="Popular" onClick={() => { navigate("/popular"); onClose(); }} />
+          <SidebarItem Icon={Squares2X2Icon} label="All" onClick={() => { navigate("/all"); onClose(); }} />
+          <SidebarItem Icon={GlobeAltIcon} label="Explore" onClick={() => { navigate("/explore"); onClose(); }} />
+          <SidebarItem Icon={PlusIcon} label="Start a community" onClick={() => { navigate("/create-community"); onClose(); }} />
         </div>
       </div>
     </>

@@ -6,7 +6,7 @@ import {
   FireIcon,
   ClockIcon,
   ArrowUpIcon,
-  TrendingUpIcon,
+  ArrowTrendingUpIcon,
 } from "@heroicons/react/24/outline";
 
 /**
@@ -39,7 +39,7 @@ export default function SortMenu({ value = "best", onChange = () => {} }) {
     { key: "hot", label: "Hot", Icon: FireIcon },
     { key: "new", label: "New", Icon: ClockIcon },
     { key: "top", label: "Top", Icon: ArrowUpIcon },
-    { key: "rising", label: "Rising", Icon: TrendingUpIcon },
+    { key: "rising", label: "Rising", Icon: ArrowTrendingUpIcon },
   ];
 
   const containerRef = useRef(null);
@@ -100,7 +100,7 @@ export default function SortMenu({ value = "best", onChange = () => {} }) {
         }
       }
     },
-    [open, focusedIndex, onChange]
+    [open, focusedIndex, onChange, OPTIONS]
   );
 
   useEffect(() => {
