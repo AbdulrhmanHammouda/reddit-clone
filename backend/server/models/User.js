@@ -7,7 +7,7 @@ username: { type: String, required: true, unique: true, index: true },
 email: { type: String, required: true, unique: true, index: true },
 passwordHash: { type: String, required: true },
 bio: { type: String, default: '' },
-avatarUrl: { type: String },
+avatar: { type: String },
 createdAt: { type: Date, default: Date.now }
 });
 
