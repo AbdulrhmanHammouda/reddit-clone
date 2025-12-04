@@ -1,12 +1,15 @@
-const mongoose = require("mongoose");
 
-const communitySchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true, unique: true },
-    description: { type: String },
-    members: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-  },
-  { timestamps: true }
-);
+const mongoose = require('mongoose');
 
-module.exports = mongoose.model("Community", communitySchema);
+
+const CommunitySchema = new mongoose.Schema({
+name: { type: String, required: true, unique: true, index: true },
+title: { type: String, required: true },
+description: { type: String, default: '' },
+createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+membersCount: { type: Number, default: 0 },
+createdAt: { type: Date, default: Date.now }
+});
+
+
+module.exports = mongoose.model('Community', CommunitySchema);

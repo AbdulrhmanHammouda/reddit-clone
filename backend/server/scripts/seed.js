@@ -1,60 +1,42 @@
-const mongoose = require("mongoose");
-const dotenv = require("dotenv");
-dotenv.config();
+// backend/scripts/seed.js
+require('dotenv').config();
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
+const connectDB = require('../config/db');
+const User = require('../models/User');
+const Community = require('../models/Community');
+const Post = require('../models/post');
 
-const User = require("../models/User");
-const Community = require("../models/Community");
-const Post = require("../models/Post");
-const Comment = require("../models/Comment");
-const Vote = require("../models/Vote");
-const connectDB = require("../config/db");
 
-connectDB();
+(async () => {
+try {
+const uri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/reddit_clone';
+await connectDB(uri);
 
-const seedData = async () => {
-  try {
-    console.log("Clearing old data...");
-    await User.deleteMany();
-    await Community.deleteMany();
-    await Post.deleteMany();
-    await Comment.deleteMany();
-    await Vote.deleteMany();
 
-    console.log("Creating sample user...");
-    const user = await User.create({
-      username: "testuser",
-      email: "test@example.com",
-      password: "password123",
-    });
+await User.deleteMany({});
+await Community.deleteMany({});
+await Post.deleteMany({});
 
-    console.log("Creating sample community...");
-    const community = await Community.create({
-      name: "webdev",
-      description: "Web Development Community",
-      members: [user._id],
-    });
 
-    console.log("Creating sample post...");
-    const post = await Post.create({
-      title: "Hello Reddit Clone!",
-      body: "This is our first post 🎉",
-      community: community._id,
-      author: user._id,
-    });
+const salt = await bcrypt.genSalt(10);
+const pw = await bcrypt.hash('password123', salt);
+const user = await User.create({ username: 'testuser', email: 'test@example.com', passwordHash: pw });
 
-    console.log("Adding sample comment...");
-    await Comment.create({
-      text: "Nice project!",
-      post: post._id,
-      author: user._id,
-    });
 
-    console.log("Database seeded successfully 🎉");
-    process.exit();
-  } catch (err) {
-    console.error(err);
-    process.exit(1);
-  }
-};
+const comm = await Community.create({ name: 'javascript', title: 'JavaScript', description: 'All about JS', createdBy: user._id, membersCount: 10 });
 
-seedData();
+
+await Post.create([
+{ title: 'Welcome to r/javascript', body: 'first post body', author: user._id, community: comm._id },
+{ title: 'How to learn React', body: 'use hooks...', author: user._id, community: comm._id }
+]);
+
+
+console.log('Seed done');
+process.exit(0);
+} catch (err) {
+console.error(err);
+process.exit(1);
+}
+})();

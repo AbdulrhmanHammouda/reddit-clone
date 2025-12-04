@@ -1,59 +1,55 @@
-const express = require("express");
+// backend/routes/auth.js
+const express = require('express');
 const router = express.Router();
-const User = require("../models/User");
-const jwt = require("jsonwebtoken");
-const { protect } = require("../middleware/authMiddleware");
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
 
-// Generate JWT Token
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "30d" });
-};
 
-// REGISTER
-router.post("/register", async (req, res) => {
-  const { username, email, password } = req.body;
+// signup
+router.post('/signup', async (req, res) => {
+try {
+const { username, email, password } = req.body;
+if (!username || !email || !password) return res.status(400).json({ message: 'Missing fields' });
 
-  try {
-    const userExists = await User.findOne({ email });
-    if (userExists)
-      return res.status(400).json({ message: "User already exists" });
 
-    const user = await User.create({ username, email, password });
+const exists = await User.findOne({ $or: [{ email }, { username }] });
+if (exists) return res.status(400).json({ message: 'User already exists' });
 
-    res.status(201).json({
-      _id: user._id,
-      username: user.username,
-      email: user.email,
-      token: generateToken(user._id),
-    });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+
+const salt = await bcrypt.genSalt(10);
+const passwordHash = await bcrypt.hash(password, salt);
+
+
+const user = await User.create({ username, email, passwordHash });
+const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'dev_secret', { expiresIn: '7d' });
+
+
+res.json({ token, user: { id: user._id, username: user.username, email: user.email } });
+} catch (err) {
+res.status(500).json({ message: err.message });
+}
 });
 
-// LOGIN
-router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
 
-  try {
-    const user = await User.findOne({ email });
-    if (!user || !(await user.matchPassword(password)))
-      return res.status(400).json({ message: "Invalid credentials" });
+// login
+router.post('/login', async (req, res) => {
+try {
+const { emailOrUsername, password } = req.body;
+const user = await User.findOne({ $or: [{ email: emailOrUsername }, { username: emailOrUsername }] });
+if (!user) return res.status(400).json({ message: 'Invalid credentials' });
 
-    res.json({
-      _id: user._id,
-      username: user.username,
-      email: user.email,
-      token: generateToken(user._id),
-    });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+
+const isMatch = await bcrypt.compare(password, user.passwordHash);
+if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
+
+
+const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'dev_secret', { expiresIn: '7d' });
+res.json({ token, user: { id: user._id, username: user.username, email: user.email } });
+} catch (err) {
+res.status(500).json({ message: err.message });
+}
 });
 
-// GET USER PROFILE
-router.get("/me", protect, async (req, res) => {
-  res.json(req.user);
-});
 
 module.exports = router;

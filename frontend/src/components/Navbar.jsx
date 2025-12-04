@@ -9,9 +9,10 @@ import { useState } from "react";
 import logo from "../assets/reddit-logo.png";
 import ProfileMenu from "./ProfileMenu";
 import { Link } from "react-router-dom";
-
+import ChatSidebar from "./ChatSidebar";
 export default function Navbar({ onToggleSidebar }) {
   const [open, setOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
   return (
     <>
@@ -53,8 +54,10 @@ export default function Navbar({ onToggleSidebar }) {
         <div className="flex items-center gap-4">
           {/* Chat */}
           <div className="relative group">
-            <ChatBubbleOvalLeftIcon className="h-7 w-7 text-reddit-icon dark:text-reddit-dark_icon p-1 rounded-full cursor-pointer transition hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover" />
+            <ChatBubbleOvalLeftIcon className="h-7 w-7 text-reddit-icon dark:text-reddit-dark_icon p-1 rounded-full cursor-pointer transition hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
+            onClick={() => setChatOpen(true)} />
             <span className="tooltip">Chat</span>
+            <ChatSidebar open={chatOpen} onClose={() => setChatOpen(false)} />
           </div>
 
         {/* Create Button */}
