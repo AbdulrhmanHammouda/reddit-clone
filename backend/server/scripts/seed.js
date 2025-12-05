@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 const connectDB = require('../config/db');
 const User = require('../models/User');
 const Community = require('../models/Community');
-const Post = require('../models/post');
+const Post = require('../models/Post');
 
 
 (async () => {
