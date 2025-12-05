@@ -27,20 +27,48 @@ router.post('/', auth, async (req, res) => {
 
 router.get('/', async (req, res) => {
 	try {
-		const page = parseInt(req.query.page || '1');
-		const limit = 20;
+		const page = Math.max(1, parseInt(req.query.page || '1'));
+		const limit = 10;
 		const { community, sort } = req.query;
 		const filter = {};
 		if (community) {
 			const comm = await Community.findOne({ name: community });
-			if (!comm) return res.json([]);
+			if (!comm) return res.json({ posts: [], page, totalPages: 0 });
 			filter.community = comm._id;
 		}
 
-		// sort: 'best' = by score desc, 'new' = by createdAt desc (default)
+		// count total
+		const total = await Post.countDocuments(filter);
+		const totalPages = Math.max(1, Math.ceil(total / limit));
+
+		const sortParam = (sort || 'new').toLowerCase();
+
+		// new = newest first; top = highest score; hot = score + age decay
+		if (sortParam === 'hot') {
+			// fetch candidates, compute hot score in JS, sort and paginate
+			const candidates = await Post.find(filter)
+				.populate('author', 'username')
+				.populate('community', 'name title')
+				.lean();
+
+			const now = Date.now();
+			candidates.forEach((p) => {
+				const created = new Date(p.createdAt).getTime();
+				const hours = Math.max(0, (now - created) / 36e5);
+				// simple decay: score / (hours + 2)^1.5
+				p.hotScore = (p.score || 0) / Math.pow(hours + 2, 1.5);
+			});
+
+			candidates.sort((a, b) => (b.hotScore || 0) - (a.hotScore || 0));
+			const start = (page - 1) * limit;
+			const pageItems = candidates.slice(start, start + limit);
+			return res.json({ posts: pageItems, page, totalPages });
+		}
+
+		// top or new
 		let sortCriteria = { createdAt: -1 };
-		if (sort === 'best') sortCriteria = { score: -1, createdAt: -1 };
-		if (sort === 'new') sortCriteria = { createdAt: -1 };
+		if (sortParam === 'top' || sortParam === 'best') sortCriteria = { score: -1, createdAt: -1 };
+		if (sortParam === 'new') sortCriteria = { createdAt: -1 };
 
 		const posts = await Post.find(filter)
 			.sort(sortCriteria)
@@ -49,7 +77,7 @@ router.get('/', async (req, res) => {
 			.populate('author', 'username')
 			.populate('community', 'name title');
 
-		res.json(posts);
+		res.json({ posts, page, totalPages });
 	} catch (err) {
 		res.status(500).json({ error: err.message });
 	}

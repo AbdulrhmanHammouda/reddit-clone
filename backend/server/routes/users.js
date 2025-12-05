@@ -32,4 +32,40 @@ router.post('/upload-avatar', auth, upload.single('image'), async (req, res) => 
   }
 });
 
+// GET /api/users/me
+router.get('/me', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('-passwordHash');
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/users/me
+router.patch('/me', auth, async (req, res) => {
+  try {
+    const updates = {};
+    const allowed = ['bio', 'avatar', 'displayName'];
+    allowed.forEach((k) => {
+      if (req.body[k] !== undefined) updates[k] = req.body[k];
+    });
+    const user = await User.findByIdAndUpdate(req.user._id, updates, { new: true }).select('-passwordHash');
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/users/:username (public profile)
+router.get('/:username', async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.params.username }).select('username displayName bio avatar createdAt');
+    if (!user) return res.status(404).json({ error: 'Not found' });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

@@ -8,6 +8,7 @@ email: { type: String, required: true, unique: true, index: true },
 passwordHash: { type: String, required: true },
 bio: { type: String, default: '' },
 avatar: { type: String },
+displayName: { type: String },
 createdAt: { type: Date, default: Date.now }
 });
 

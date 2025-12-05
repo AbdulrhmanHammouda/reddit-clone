@@ -14,7 +14,7 @@ router.post('/', auth, async (req, res) => {
 		const exists = await Community.findOne({ name });
 		if (exists) return res.status(400).json({ error: 'Community already exists' });
 
-		const community = await Community.create({ name, title, description, createdBy: req.user._id });
+		const community = await Community.create({ name, title, description, createdBy: req.user._id, members: [req.user._id], membersCount: 1 });
 		res.json(community);
 	} catch (err) {
 		res.status(500).json({ error: err.message });
@@ -50,9 +50,16 @@ router.post('/:name/join', auth, async (req, res) => {
 	try {
 		const community = await Community.findOne({ name: req.params.name });
 		if (!community) return res.status(404).json({ error: 'Not found' });
-		community.membersCount = (community.membersCount || 0) + 1;
+		// prevent double join
+		const uid = req.user._id;
+		if (community.members && community.members.find((m) => String(m) === String(uid))) {
+			return res.status(400).json({ error: 'Already a member' });
+		}
+		community.members = community.members || [];
+		community.members.push(uid);
+		community.membersCount = community.members.length;
 		await community.save();
-		res.json({ success: true, membersCount: community.membersCount });
+		res.json(community);
 	} catch (err) {
 		res.status(500).json({ error: err.message });
 	}
@@ -63,9 +70,11 @@ router.post('/:name/leave', auth, async (req, res) => {
 	try {
 		const community = await Community.findOne({ name: req.params.name });
 		if (!community) return res.status(404).json({ error: 'Not found' });
-		community.membersCount = Math.max(0, (community.membersCount || 0) - 1);
+		const uid = String(req.user._id);
+		community.members = (community.members || []).filter((m) => String(m) !== uid);
+		community.membersCount = community.members.length;
 		await community.save();
-		res.json({ success: true, membersCount: community.membersCount });
+		res.json(community);
 	} catch (err) {
 		res.status(500).json({ error: err.message });
 	}
