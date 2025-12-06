@@ -1,11 +1,34 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import api from "../api/axios"
 import logo from "../assets/reddit-logo.png";
 
 export default function LoginPage() {
-    const handleLogin = (e) => {
+    const navigate = useNavigate();
+
+    const [emailOrUsername, setEmailOrUsername] = useState("");
+    const [password, setPassword] = useState("");
+    const [error, setError] = useState("");
+
+    const handleLogin = async (e) => {
         e.preventDefault();
-        // TODO: replace with real login API call
-        console.log("handleLogin placeholder");
+        setError("");
+
+        try {
+            const res = await api.post("/auth/login", {
+                emailOrUsername,
+                password,
+            });
+
+            const token = res.data.data.token;
+            const user = res.data.data.user;
+            localStorage.setItem("token", token);
+            localStorage.setItem("user", JSON.stringify(user));
+            navigate("/"); // redirect to home
+        } catch (err) {
+            console.error(err);
+            setError(err.response?.data?.error || "Login failed");
+        }
     };
 
     return (
@@ -16,17 +39,23 @@ export default function LoginPage() {
                         <img src={logo} alt="logo" className="h-8 w-8" />
                         <div>
                             <h1 className="text-lg font-semibold text-reddit-text dark:text-reddit-dark_text">Log In</h1>
-                            <p className="text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary">Welcome back — please enter your details.</p>
+                            <p className="text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
+                                Welcome back — please enter your details.
+                            </p>
                         </div>
                     </div>
 
                     <form onSubmit={handleLogin} className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-reddit-text_secondary dark:text-reddit-dark_text_secondary mb-1">Email</label>
+                            <label className="block text-sm font-medium text-reddit-text_secondary dark:text-reddit-dark_text_secondary mb-1">
+                                Email or Username
+                            </label>
                             <input
-                                type="email"
+                                type="text"
                                 required
                                 placeholder="name@example.com"
+                                value={emailOrUsername}
+                                onChange={(e) => setEmailOrUsername(e.target.value)}
                                 className="w-full px-3 py-2 rounded-md bg-white dark:bg-reddit-dark_input border border-reddit-border dark:border-reddit-dark_divider text-reddit-text dark:text-reddit-dark_text placeholder-gray-400 dark:placeholder-reddit-dark_text_secondary focus:outline-none focus:ring-2 focus:ring-reddit-blue/30"
                             />
                         </div>
@@ -40,9 +69,15 @@ export default function LoginPage() {
                                 type="password"
                                 required
                                 placeholder="Your password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
                                 className="w-full px-3 py-2 rounded-md bg-white dark:bg-reddit-dark_input border border-reddit-border dark:border-reddit-dark_divider text-reddit-text dark:text-reddit-dark_text placeholder-gray-400 dark:placeholder-reddit-dark_text_secondary focus:outline-none focus:ring-2 focus:ring-reddit-blue/30"
                             />
                         </div>
+
+                        {error && (
+                            <p className="text-red-500 text-sm text-center">{error}</p>
+                        )}
 
                         <div>
                             <button
@@ -54,9 +89,11 @@ export default function LoginPage() {
                         </div>
                     </form>
 
-                    <p className="mt-4 text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
-                        Don't have an account?{' '}
-                        <Link to="/signup" className="text-reddit-blue dark:text-reddit-dark_blue font-semibold">Sign up</Link>
+                    <p className="mt-4 text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary text-center">
+                        Don't have an account?{" "}
+                        <Link to="/signup" className="text-reddit-blue dark:text-reddit-dark_blue font-semibold">
+                            Sign up
+                        </Link>
                     </p>
                 </div>
             </div>

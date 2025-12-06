@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
-  UserIcon,
   Cog6ToothIcon,
   ArrowLeftStartOnRectangleIcon,
   DocumentTextIcon,
@@ -9,8 +9,12 @@ import DarkModeToggle from "./DarkModeToggle";
 
 export default function ProfileMenu({ onClose }) {
   const menuRef = useRef();
+  const navigate = useNavigate();
 
-  // close menu when clicking outside
+  // ✔ Real user from localStorage
+  const user = JSON.parse(localStorage.getItem("user"));
+
+  // Close menu when clicking outside
   useEffect(() => {
     function handleClickOutside(e) {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
@@ -21,10 +25,11 @@ export default function ProfileMenu({ onClose }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [onClose]);
 
-  // mock user
-  const user = {
-    username: "SignificanceSad7142",
-    avatar: "https://www.redditstatic.com/avatars/avatar_default_07_FF66AC.png",
+  // ✔ Log Out handler
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
   };
 
   return (
@@ -37,22 +42,28 @@ export default function ProfileMenu({ onClose }) {
         overflow-hidden animate-fadeIn z-50
       "
     >
+
       {/* Top user header */}
-      <div className="flex items-center gap-3 p-4 border-b border-reddit-border dark:border-reddit-dark_border">
+      <button
+        onClick={() => navigate(`/u/${user?.username}`)} // 👈 navigate to profile
+        className="flex items-center gap-3 p-4 w-full text-left
+                   hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
+      >
         <img
-          src={user.avatar}
+          src={user?.avatar ||
+            "https://www.redditstatic.com/avatars/avatar_default_07_FF66AC.png"}
           className="h-10 w-10 rounded-full"
           alt="avatar"
         />
         <div>
-          <p className="text-sm font-semibold text-reddit-text dark:text-reddit-dark_text">
+          <p className="text-sm font-semibold">
             View Profile
           </p>
-          <p className="text-xs text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
-            u/{user.username}
+          <p className="text-xs text-reddit-text_secondary">
+            u/{user?.username}
           </p>
         </div>
-      </div>
+      </button>
 
       {/* Menu options */}
       <div className="flex flex-col py-2">
@@ -67,21 +78,23 @@ export default function ProfileMenu({ onClose }) {
           label="Settings"
         />
 
-        {/* Dark Mode Toggle */}
         <DarkModeToggle />
 
+        {/* ✔ Log Out button */}
         <MenuItem
           icon={<ArrowLeftStartOnRectangleIcon className="h-5 w-5" />}
           label="Log Out"
+          onClick={handleLogout}
         />
       </div>
     </div>
   );
 }
 
-function MenuItem({ icon, label }) {
+function MenuItem({ icon, label, onClick }) {
   return (
     <button
+      onClick={onClick}
       className="
         flex items-center gap-3 px-4 py-3 text-sm 
         text-reddit-text dark:text-reddit-dark_text 
