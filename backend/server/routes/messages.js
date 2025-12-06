@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/authMiddleware');
+const validateObjectId = require('../middleware/validateObjectId');
 const Message = require('../models/Message');
 const User = require('../models/User');
-const  validateObjectId  = require('../middleware/validateObjectId');
+const createNotification = require('../utils/createNotification'); // 👈 added for notifications
 
 // POST /api/messages - Send a new message
 router.post('/', auth, async (req, res) => {
@@ -24,19 +25,26 @@ router.post('/', auth, async (req, res) => {
       content,
     });
 
+    // 🔔 Create notification for receiver
+    await createNotification({
+      user: receiverId,
+      type: 'message',
+      sourceUser: req.user._id
+    });
+
     res.status(201).json({ success: true, data: message, error: null });
   } catch (err) {
     res.status(500).json({ success: false, data: null, error: err.message });
   }
 });
 
-// GET /api/messages/:receiverId - Get messages between the authenticated user and another user
+// GET /api/messages/:receiverId - Get messages in a conversation
 router.get('/:receiverId', auth, validateObjectId('receiverId'), async (req, res) => {
   try {
     const { receiverId } = req.params;
     const userId = req.user._id;
 
-    // Mark messages from the receiver to the current user as read
+    // Mark messages as read
     await Message.updateMany(
       { sender: receiverId, receiver: userId, read: false },
       { read: true }
@@ -48,9 +56,9 @@ router.get('/:receiverId', auth, validateObjectId('receiverId'), async (req, res
         { sender: receiverId, receiver: userId },
       ],
     })
-    .sort({ createdAt: 1 })
-    .populate('sender', 'username')
-    .populate('receiver', 'username');
+      .sort({ createdAt: 1 })
+      .populate('sender', 'username')
+      .populate('receiver', 'username');
 
     res.status(200).json({ success: true, data: messages, error: null });
   } catch (err) {
@@ -58,7 +66,7 @@ router.get('/:receiverId', auth, validateObjectId('receiverId'), async (req, res
   }
 });
 
-// GET /api/messages - Get all conversations for the authenticated user
+// GET /api/messages - List conversations for logged-in user
 router.get('/', auth, async (req, res) => {
   try {
     const userId = req.user._id;
@@ -69,9 +77,7 @@ router.get('/', auth, async (req, res) => {
           $or: [{ sender: userId }, { receiver: userId }],
         },
       },
-      {
-        $sort: { createdAt: -1 },
-      },
+      { $sort: { createdAt: -1 } },
       {
         $group: {
           _id: {
@@ -92,29 +98,33 @@ router.get('/', auth, async (req, res) => {
           as: 'participant',
         },
       },
-      {
-        $unwind: '$participant',
-      },
+      { $unwind: '$participant' },
       {
         $project: {
           _id: 0,
-          participant: { _id: '$participant._id', username: '$participant.username', avatar: '$participant.avatar' },
-          lastMessage: { content: '$lastMessage.content', createdAt: '$lastMessage.createdAt', sender: '$lastMessage.sender', read: '$lastMessage.read' },
+          participant: {
+            _id: '$participant._id',
+            username: '$participant.username',
+            avatar: '$participant.avatar',
+          },
+          lastMessage: {
+            content: '$lastMessage.content',
+            createdAt: '$lastMessage.createdAt',
+            sender: '$lastMessage.sender',
+            read: '$lastMessage.read',
+          },
         },
       },
-      {
-        $sort: { 'lastMessage.createdAt': -1 },
-      },
+      { $sort: { 'lastMessage.createdAt': -1 } },
     ]);
 
-    // Add unread count to each conversation
+    // Add unread count
     for (let convo of conversations) {
-      const unreadCount = await Message.countDocuments({
+      convo.unreadCount = await Message.countDocuments({
         sender: convo.participant._id,
         receiver: userId,
         read: false,
       });
-      convo.unreadCount = unreadCount;
     }
 
     res.status(200).json({ success: true, data: conversations, error: null });
