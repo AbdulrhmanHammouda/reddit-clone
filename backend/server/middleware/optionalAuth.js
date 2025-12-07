@@ -1,21 +1,24 @@
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
 
-const optionalAuth = (req, res, next) => {
-  const token = req.header('x-auth-token');
-
-  if (!token) {
-    req.user = null; // No token, so no user
+module.exports = async (req, res, next) => {
+  const authHeader = req.headers.authorization || req.headers.Authorization;
+  if (!authHeader?.startsWith("Bearer ")) {
+    req.user = null;
     return next();
   }
 
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev_secret');
-    req.user = decoded;
-    next();
-  } catch (err) {
-    req.user = null; // Invalid token, so no user
-    next();
-  }
-};
+  const token = authHeader.split(" ")[1];
 
-module.exports = optionalAuth;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "dev_secret");
+
+    req.user = {
+      id: decoded.id,
+      _id: decoded.id // 👈 same fix
+    };
+  } catch (err) {
+    req.user = null;
+  }
+
+  next();
+};

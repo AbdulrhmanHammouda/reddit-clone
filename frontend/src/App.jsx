@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import MainLayout from "./layout/MainLayout";
-
+import EditCommunityPage from "./pages/EditCommunityPage";
 // Pages
 import Home from "./pages/Home";
 import PostPage from "./pages/PostPage";
@@ -26,7 +26,6 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-
         {/* Public */}
         <Route
           path="/login"
@@ -36,26 +35,27 @@ export default function App() {
           path="/signup"
           element={!token ? <SignupPage /> : <Navigate to="/" replace />}
         />
-
         {/* Protected */}
         <Route
           path="/"
           element={
             <ProtectedRoute>
-              <MainLayout><Home /></MainLayout>
+              <MainLayout>
+                <Home />
+              </MainLayout>
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/post/:id"
           element={
             <ProtectedRoute>
-              <MainLayout><PostPage /></MainLayout>
+              <MainLayout>
+                <PostPage />
+              </MainLayout>
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/r/:name"
           element={
@@ -66,7 +66,6 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/u/:username"
           element={
@@ -77,7 +76,6 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/popular"
           element={
@@ -88,7 +86,6 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/chat"
           element={
@@ -99,7 +96,6 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/all"
           element={
@@ -110,7 +106,6 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/explore"
           element={
@@ -121,7 +116,6 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/create-community"
           element={
@@ -132,6 +126,19 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+       
+        
+        <Route path="/r/:name/edit" element={
+          <ProtectedRoute>
+              <MainLayout noRightSidebar={true}>
+          <EditCommunityPage />
+          
+          </MainLayout>
+          </ProtectedRoute>
+          } />
+
+
+
 
         <Route
           path="/createpost"
@@ -143,10 +150,8 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
-
       </Routes>
     </BrowserRouter>
   );

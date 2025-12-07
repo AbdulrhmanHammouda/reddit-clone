@@ -1,10 +1,12 @@
 // src/pages/CreateCommunityPage.jsx
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../api/axios";
+import useAuth from "../hooks/useAuth";
 
 /*
  CreateCommunityPage
- - Accessible form to create a community (mock)
- - Client-side validation and live preview
+ - Create real community using backend POST /communities
 */
 
 function validateName(name) {
@@ -16,45 +18,64 @@ function validateName(name) {
 }
 
 export default function CreateCommunityPage() {
+  const navigate = useNavigate();
+  const { token } = useAuth();
+
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
   const [rules, setRules] = useState("");
   const [loading, setLoading] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
   const [errors, setErrors] = useState({});
+  const [successMessage, setSuccessMessage] = useState("");
 
   const vanity = useMemo(() => `/r/${name || "your_community"}`, [name]);
 
-  const onSubmit = async (e) => {
-    e.preventDefault();
+const onSubmit = async (e) => {
+  e.preventDefault();
 
-    const nameErr = validateName(name);
-    const descErr = description.length > 500 ? "Description is too long (max 500 characters)." : "";
-    const rulesArr = rules.split("\n").map((r) => r.trim()).filter(Boolean);
-    const newErrors = {};
-    if (nameErr) newErrors.name = nameErr;
-    if (descErr) newErrors.description = descErr;
-    if (rulesArr.length === 0) newErrors.rules = "At least one rule is recommended.";
+  const nameErr = validateName(name);
+  const descErr = description.length > 500 ? "Description too long" : "";
+  const rulesArr = rules.split("\n").map(r => r.trim()).filter(Boolean);
 
-    setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) return;
+  const newErrors = {};
+  if (nameErr) newErrors.name = nameErr;
+  if (descErr) newErrors.description = descErr;
+  if (rulesArr.length === 0) newErrors.rules = "At least one rule is required.";
+  setErrors(newErrors);
+  if (Object.keys(newErrors).length > 0) return;
 
-    // Mock submit
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setSuccessMessage(`Community ${vanity} created (mock)!`);
-      // reset
-      setName("");
-      setDescription("");
-      setIsPrivate(false);
-      setRules("");
-      setErrors({});
-      // hide message after a bit
-      setTimeout(() => setSuccessMessage(""), 4000);
-    }, 900);
-  };
+  // ✔️ Accept token from context OR localStorage
+  const effectiveToken = token || localStorage.getItem("token");
+  if (!effectiveToken) return navigate("/login");
+
+  setLoading(true);
+  setErrors({});
+  setSuccessMessage("");
+
+  try {
+    const res = await api.post("/communities", {
+      name: name.trim().toLowerCase(),
+      title: name.trim(),
+      description: description.trim(),
+      isPrivate,
+      rules: rulesArr,
+    });
+
+    if (res.data?.success) {
+      const newCommunity = res.data.data;
+      setSuccessMessage("Community created!");
+      navigate(`/r/${newCommunity.name}`);
+    }
+  } catch (err) {
+    setErrors({
+      name: err.response?.data?.error || "Failed to create community",
+    });
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <main className="w-full max-w-[740px] px-4" aria-labelledby="create-community-heading">
@@ -75,80 +96,83 @@ export default function CreateCommunityPage() {
               {name ? name[0].toUpperCase() : "R"}
             </div>
             <div>
-              <div className="text-lg font-semibold text-reddit-text dark:text-reddit-dark_text">{name ? `r/${name}` : "r/your_community"}</div>
-              <div className="text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary">{description || "Community description preview"}</div>
+              <div className="text-lg font-semibold text-reddit-text dark:text-reddit-dark_text">
+                {name ? `r/${name}` : "r/your_community"}
+              </div>
+              <div className="text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
+                {description || "Community description preview"}
+              </div>
             </div>
-            <div className="ml-auto text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary">{isPrivate ? "Private" : "Public"}</div>
+            <div className="ml-auto text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
+              {isPrivate ? "Private" : "Public"}
+            </div>
           </div>
         </div>
       </section>
 
       <form onSubmit={onSubmit} noValidate>
         <div className="space-y-4">
+          {/* Name */}
           <div>
-            <label htmlFor="community-name" className="block text-sm font-medium text-reddit-text dark:text-reddit-dark_text">
-              Community Name
-            </label>
+            <label className="block text-sm font-medium">Community Name</label>
             <div className="mt-1 flex items-center gap-3">
               <input
-                id="community-name"
-                name="communityName"
-                type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                aria-describedby={errors.name ? "community-name-error" : undefined}
-                className={`w-full px-3 py-2 rounded-md bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider text-reddit-text dark:text-reddit-dark_text focus:outline-none focus:ring-2 focus:ring-reddit-blue/30`}
+                className="w-full px-3 py-2 rounded-md bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider"
               />
-              <div className="text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary select-none">{`Preview: ${vanity}`}</div>
+              <div className="text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary select-none">
+                Preview: {vanity}
+              </div>
             </div>
-            {errors.name && <p id="community-name-error" className="mt-1 text-sm text-red-500">{errors.name}</p>}
+            {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
           </div>
 
+          {/* Description */}
           <div>
-            <label htmlFor="community-desc" className="block text-sm font-medium text-reddit-text dark:text-reddit-dark_text">Description</label>
+            <label className="block text-sm font-medium">Description</label>
             <textarea
-              id="community-desc"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full mt-1 px-3 py-2 rounded-md bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider text-reddit-text dark:text-reddit-dark_text focus:outline-none focus:ring-2 focus:ring-reddit-blue/30"
-              aria-describedby={errors.description ? "community-desc-error" : undefined}
+              className="w-full mt-1 px-3 py-2 rounded-md bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider"
             />
-            {errors.description && <p id="community-desc-error" className="mt-1 text-sm text-red-500">{errors.description}</p>}
+            {errors.description && <p className="mt-1 text-sm text-red-500">{errors.description}</p>}
           </div>
 
+          {/* Type */}
           <div>
-            <label className="block text-sm font-medium text-reddit-text dark:text-reddit-dark_text">Type</label>
+            <label className="block text-sm font-medium">Type</label>
             <div className="mt-1 flex gap-2">
-              <label className="inline-flex items-center gap-2 text-sm">
-                <input type="radio" name="type" checked={!isPrivate} onChange={() => setIsPrivate(false)} />
-                <span className="ml-1 text-reddit-text dark:text-reddit-dark_text">Public</span>
+              <label className="inline-flex gap-2 text-sm">
+                <input type="radio" checked={!isPrivate} onChange={() => setIsPrivate(false)} />
+                Public
               </label>
-              <label className="inline-flex items-center gap-2 text-sm">
-                <input type="radio" name="type" checked={isPrivate} onChange={() => setIsPrivate(true)} />
-                <span className="ml-1 text-reddit-text dark:text-reddit-dark_text">Private</span>
+              <label className="inline-flex gap-2 text-sm">
+                <input type="radio" checked={isPrivate} onChange={() => setIsPrivate(true)} />
+                Private
               </label>
             </div>
           </div>
 
+          {/* Rules */}
           <div>
-            <label htmlFor="community-rules" className="block text-sm font-medium text-reddit-text dark:text-reddit-dark_text">Rules (one per line)</label>
+            <label className="block text-sm font-medium">Rules (one per line)</label>
             <textarea
-              id="community-rules"
               value={rules}
               onChange={(e) => setRules(e.target.value)}
               rows={4}
-              className="w-full mt-1 px-3 py-2 rounded-md bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider text-reddit-text dark:text-reddit-dark_text focus:outline-none focus:ring-2 focus:ring-reddit-blue/30"
-              aria-describedby={errors.rules ? "community-rules-error" : undefined}
+              className="w-full mt-1 px-3 py-2 rounded-md bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider"
             />
-            {errors.rules && <p id="community-rules-error" className="mt-1 text-sm text-red-500">{errors.rules}</p>}
+            {errors.rules && <p className="mt-1 text-sm text-red-500">{errors.rules}</p>}
           </div>
 
+          {/* Buttons */}
           <div className="flex items-center gap-3">
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 rounded-md bg-reddit-blue text-reddit-card font-semibold hover:bg-reddit-blue_hover transition disabled:opacity-60"
+              className="px-4 py-2 rounded-md bg-reddit-blue text-white font-semibold disabled:opacity-60"
             >
               {loading ? "Creating…" : "Create Community"}
             </button>
@@ -162,15 +186,13 @@ export default function CreateCommunityPage() {
                 setRules("");
                 setErrors({});
               }}
-              className="px-4 py-2 rounded-md bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider text-sm hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover transition"
+              className="px-4 py-2 rounded-md bg-reddit-card dark:bg-reddit-dark_card border text-sm"
             >
               Reset
             </button>
 
             {successMessage && (
-              <div role="status" aria-live="polite" className="ml-4 text-sm text-green-600">
-                {successMessage}
-              </div>
+              <div className="ml-4 text-sm text-green-600">{successMessage}</div>
             )}
           </div>
         </div>

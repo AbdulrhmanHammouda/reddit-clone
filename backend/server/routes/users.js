@@ -4,7 +4,6 @@ const auth = require('../middleware/authMiddleware');
 const { writeLimiter } = require('../middleware/rateLimiter');
 const multer = require('multer');
 const { storage } = require('../utils/cloudinary');
-
 const User = require('../models/User');
 const CommunityMember = require('../models/CommunityMember');
 const SavedPost = require('../models/SavedPost');
@@ -12,7 +11,7 @@ const Post = require('../models/Post');
 const Comment = require('../models/Comment');
 const Vote = require('../models/Vote');
 const CommentVote = require('../models/CommentVote');
-const Follow = require('../models/Follow'); // 🔥 Required for followers
+const Follow = require('../models/Follow'); 
 
 // Multer config for avatar uploads
 const upload = multer({

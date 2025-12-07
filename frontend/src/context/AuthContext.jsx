@@ -37,14 +37,21 @@ export default function AuthProvider({ children }) {
     }
   }, []);
 
-  const login = (newToken, newUser) => {
-    setToken(newToken);
-    setUser(newUser || null);
+ const login = (newToken, newUser) => {
+  // Normalize ID field for Mongo comparisons
+  if (newUser) {
+    if (newUser.id && !newUser._id) newUser._id = newUser.id;
+    if (newUser._id && !newUser.id) newUser.id = newUser._id;
+  }
 
-    localStorage.setItem("token", newToken);
-    if (newUser) localStorage.setItem("user", JSON.stringify(newUser));
-    else localStorage.removeItem("user");
-  };
+  setToken(newToken);
+  setUser(newUser || null);
+
+  localStorage.setItem("token", newToken);
+  if (newUser) localStorage.setItem("user", JSON.stringify(newUser));
+  else localStorage.removeItem("user");
+};
+
 
   const logout = () => {
     setToken(null);

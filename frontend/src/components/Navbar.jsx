@@ -24,7 +24,8 @@ export default function Navbar({ onToggleSidebar }) {
 
   // ⬅️ CORRECT: Fetch avatar after component renders
   useEffect(() => {
-    if (!username) return;
+    const token = localStorage.getItem("token");
+    if (!token || !username) return;
 
     api
       .get(`/users/${username}`)
