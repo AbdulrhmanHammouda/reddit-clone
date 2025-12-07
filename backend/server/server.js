@@ -17,6 +17,7 @@ const postsImageRoutes = require('./routes/postsImage');
 const notificationsRoutes = require('./routes/notifications');
 const searchRoutes = require('./routes/search');
 const messagesRoutes = require('./routes/messages'); // New import
+const requireAuth = require('./middleware/authMiddleware');
 
 
 const app = express();
@@ -40,6 +41,33 @@ app.use('/api/posts', postsImageRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/messages', messagesRoutes); // New route
+
+// app.use('/api/auth', authLimiter, authRoutes); // only public routes
+
+// app.use(requireAuth); // apply middleware to everything below
+// app.use('/api/communities', communityRoutes);
+// app.use('/api/posts', postRoutes);
+// app.use('/api/posts', voteRoutes);
+// app.use('/api/comments', commentRoutes);
+// app.use('/api/comments', commentVoteRoutes);
+// app.use('/api/users', userRoutes);
+// app.use('/api/posts', postsImageRoutes);
+// app.use('/api/notifications', notificationsRoutes);
+// app.use('/api/search', searchRoutes);
+// app.use('/api/messages', messagesRoutes);
+// ========================
+// Rate limiting for write operations
+// ========================
+// const { writeLimiter } = require('./middleware/rateLimiter');
+// const requireAuth = require('./middleware/authMiddleware');
+
+// // Routes that modify data
+// app.use('/api/posts', requireAuth, writeLimiter, postRoutes);
+// app.use('/api/comments', requireAuth, writeLimiter, commentRoutes);
+// app.use('/api/messages', requireAuth, writeLimiter, messagesRoutes);
+// app.use('/api/posts', requireAuth, writeLimiter, voteRoutes);
+// app.use('/api/comments', requireAuth, writeLimiter, commentVoteRoutes);
+
 
 
 app.get('/', (req, res) => res.json({ message: 'API running' }));
