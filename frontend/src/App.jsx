@@ -126,19 +126,6 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-       
-        
-        <Route path="/r/:name/edit" element={
-          <ProtectedRoute>
-              <MainLayout noRightSidebar={true}>
-          <EditCommunityPage />
-          
-          </MainLayout>
-          </ProtectedRoute>
-          } />
-
-
-
 
         <Route
           path="/createpost"

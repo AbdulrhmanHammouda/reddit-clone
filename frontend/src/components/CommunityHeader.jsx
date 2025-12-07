@@ -1,32 +1,24 @@
-import React, { useMemo } from "react";
+// src/components/CommunityHeader.jsx
+import React from "react";
 import { useNavigate } from "react-router-dom";
-import useAuth from "../hooks/useAuth";
 
-export default function CommunityHeader({ community = {}, onJoin, onCreatePost }) {
+export default function CommunityHeader({
+  community = {},
+  onJoin,
+  onCreatePost,
+  joinLoading,
+  onEditCommunity,
+}) {
   const navigate = useNavigate();
-  const { user } = useAuth();
 
-  // owner detection: check memberRole first, then createdBy vs logged-in user id
-  const isOwner = useMemo(() => {
-    if (!community) return false;
-    if (community.memberRole === "owner") return true;
-    if (!user || !community.createdBy) return false;
-    const createdBy = community.createdBy;
-    // createdBy might be an ObjectId or string; user may have id or _id
-    const createdByStr = createdBy?.toString ? createdBy.toString() : createdBy;
-    const userId = user?.id ?? user?._id ?? null;
-    return userId && createdByStr === userId.toString();
-  }, [community, user]);
-
-const isMember = community?.isOwner || community?.isMember;
+  const isOwner = !!community.isOwner;
+  const isMember = !!community.isMember;
 
   return (
     <div className="mt-6">
       {/* banner area */}
-      <div
-        className={`w-full h-36 rounded-md overflow-hidden bg-reddit-hover dark:bg-reddit-dark_hover border border-reddit-border dark:border-reddit-dark_divider`}
-      >
-        {community?.banner ? (
+      <div className="w-full h-36 rounded-md overflow-hidden bg-reddit-hover dark:bg-reddit-dark_hover border border-reddit-border dark:border-reddit-dark_divider">
+        {community.banner ? (
           <img
             src={community.banner}
             alt="community banner"
@@ -42,24 +34,24 @@ const isMember = community?.isOwner || community?.isMember;
         <div className="flex items-center gap-4">
           <div className="bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider rounded-full p-1 shadow-sm">
             <img
-              src={community?.icon}
-              alt={community?.name}
+              src={community.icon}
+              alt={community.name}
               className="h-20 w-20 rounded-full object-cover"
             />
           </div>
 
           <div>
             <h2 className="text-3xl font-extrabold text-reddit-text dark:text-reddit-dark_text leading-tight">
-              {community?.title}
+              {community.title}
             </h2>
             <p className="text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary mt-1">
-              {community?.description}
+              {community.description}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Create Post always available */}
+          {/* Create Post */}
           <button
             onClick={onCreatePost}
             className="bg-transparent border border-reddit-border dark:border-reddit-dark_divider rounded-full px-4 py-2 text-sm hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover transition"
@@ -67,17 +59,18 @@ const isMember = community?.isOwner || community?.isMember;
             Create Post
           </button>
 
-          {/* Show Join / Joined only if NOT owner */}
-          {!isOwner && (
+          {/* Join / Joined (hidden for owner) */}
+          {!isOwner && onJoin && (
             <button
               onClick={onJoin}
+              disabled={joinLoading}
               className={
                 isMember
                   ? "bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider rounded-full px-4 py-2 text-sm hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover transition"
                   : "bg-reddit-blue hover:bg-reddit-blue_hover text-reddit-card font-semibold px-4 py-2 rounded-full text-sm transition"
               }
             >
-              {isMember ? "Joined" : "Join"}
+              {joinLoading ? "..." : isMember ? "Joined" : "Join"}
             </button>
           )}
 
@@ -93,22 +86,26 @@ const isMember = community?.isOwner || community?.isMember;
               </button>
 
               <button
-                onClick={() => navigate(`/r/${community.name}/edit`)}
+                onClick={onEditCommunity}
                 className="h-10 w-10 rounded-full bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider flex items-center justify-center"
                 title="Edit community"
               >
-                <span className="text-reddit-icon dark:text-reddit-dark_icon">✏️</span>
+                <span className="text-reddit-icon dark:text-reddit-dark_icon">
+                  ✏️
+                </span>
               </button>
             </>
           )}
 
           <button className="h-10 w-10 rounded-full bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider flex items-center justify-center">
-            <span className="text-reddit-icon dark:text-reddit-dark_icon">⋯</span>
+            <span className="text-reddit-icon dark:text-reddit-dark_icon">
+              ⋯
+            </span>
           </button>
         </div>
       </div>
 
-      {/* small sort/view row (below header) */}
+      {/* sort row */}
       <div className="mt-4 border-t border-reddit-divider dark:border-reddit-dark_divider pt-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button className="px-3 py-1 rounded-md bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider text-sm">

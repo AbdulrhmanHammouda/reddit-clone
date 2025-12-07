@@ -10,7 +10,7 @@ import useAuth from "../hooks/useAuth";
 export default function CommunityPage() {
   const { name } = useParams();
   const navigate = useNavigate();
-  const { user, token } = useAuth();
+  const { token } = useAuth();
 
   const [community, setCommunity] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -29,26 +29,14 @@ export default function CommunityPage() {
   const [savingEdit, setSavingEdit] = useState(false);
   const [editError, setEditError] = useState("");
 
-  // compute owner flag (defensive: community.createdBy might be id or populated object)
-  const isOwner = useMemo(() => {
-    if (!community || !user) return false;
-    if (community.memberRole === "owner") return true;
-    if (!community.createdBy) return false;
-    const createdById =
-      typeof community.createdBy === "string"
-        ? community.createdBy
-        : community.createdBy?._id ?? community.createdBy;
-    const userId = user?.id ?? user?._id ?? user?.uid ?? null;
-    if (!userId) return false;
-    return createdById?.toString() === userId?.toString();
-  }, [community, user]);
+  // trust backend flag
+  const isOwner = !!community?.isOwner;
 
   // load community + posts
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      // backend expects community name (typically lowercase) — we pass route name
       const res = await api.get(
         `/communities/${encodeURIComponent(name)}/posts`
       );
@@ -79,7 +67,7 @@ export default function CommunityPage() {
   // ---------- join / leave ----------
   async function joinCommunity() {
     if (!community) return;
-    if (isOwner) return; // owner doesn't join/leave
+    if (isOwner) return;
     setJoinLoading(true);
     try {
       const res = await api.post(
@@ -95,7 +83,6 @@ export default function CommunityPage() {
       }
     } catch (err) {
       console.error("Join error", err);
-      // optionally show notification
     } finally {
       setJoinLoading(false);
     }
@@ -148,7 +135,6 @@ export default function CommunityPage() {
 
   // ---------- EDIT / UPLOAD ----------
 
-  // when starting editing, prefill the form
   function openEditModal() {
     if (!community) return;
     setEditTitle(community.title || "");
@@ -161,42 +147,38 @@ export default function CommunityPage() {
     setEditing(true);
   }
 
-  // generic upload helper: posts multipart to /communities/:name/icon or /banner
+  // upload to /communities/:name/icon or /banner
   async function uploadFile(fieldName, file) {
     if (!community || !file) return null;
     const fd = new FormData();
     fd.append(fieldName, file);
-    try {
-      const headers = {};
-      if (token) headers.Authorization = `Bearer ${token}`;
-      const res = await api.post(
-        `/communities/${encodeURIComponent(community.name)}/${fieldName}`,
-        fd,
-        { headers }
+    const headers = {};
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    const res = await api.post(
+      `/communities/${encodeURIComponent(community.name)}/${fieldName}`,
+      fd,
+      { headers }
+    );
+
+    if (!res?.data) throw new Error("Upload failed (no response)");
+
+    if (
+      res.data.data &&
+      (res.data.data[fieldName] || res.data.data.icon || res.data.data.banner)
+    ) {
+      return (
+        res.data.data[fieldName] || res.data.data.icon || res.data.data.banner
       );
-      // handle different possible response shapes
-      if (!res?.data) throw new Error("Upload failed (no response)");
-      // prefer res.data.data[fieldName]
-      if (
-        res.data.data &&
-        (res.data.data[fieldName] || res.data.data.icon || res.data.data.banner)
-      ) {
-        return (
-          res.data.data[fieldName] || res.data.data.icon || res.data.data.banner
-        );
-      }
-      // maybe returns { icon: url } or { banner: url }
-      if (res.data.icon || res.data.banner)
-        return res.data.icon || res.data.banner;
-      // fallback: return res.data.data or url string
-      return res.data.data ?? null;
-    } catch (err) {
-      console.error("uploadFile error", err);
-      throw err;
     }
+
+    if (res.data.icon || res.data.banner) {
+      return res.data.icon || res.data.banner;
+    }
+
+    return res.data.data ?? null;
   }
 
-  // submit edits
   async function saveEdits(e) {
     e?.preventDefault?.();
     if (!community || !isOwner) return;
@@ -230,6 +212,7 @@ export default function CommunityPage() {
 
       const headers = {};
       if (token) headers.Authorization = `Bearer ${token}`;
+
       const patchRes = await api.patch(
         `/communities/${encodeURIComponent(community.name)}`,
         body,
@@ -239,14 +222,13 @@ export default function CommunityPage() {
         throw new Error(patchRes?.data?.error || "Failed to save community");
       }
 
-      // update local community state with returned value (and preserve member flags if any)
       const updated = patchRes.data.data;
       setCommunity((prev) => ({
         ...prev,
         ...updated,
-        isOwner: true, // owner stays owner
-        isMember: true, // owner is always member
-        memberRole: "owner", // keep role
+        isOwner: true,
+        isMember: true,
+        memberRole: "owner",
       }));
 
       setEditing(false);
@@ -260,7 +242,7 @@ export default function CommunityPage() {
     }
   }
 
-  // headerOnJoin: if owner, undefined (header component should hide join). Otherwise choose based on membership.
+  // headerOnJoin: undefined when owner → header hides join
   const headerOnJoin = useMemo(() => {
     if (!community) return undefined;
     if (isOwner) return undefined;
@@ -305,13 +287,14 @@ export default function CommunityPage() {
             createPost({ title, body: "" });
           }}
           joinLoading={joinLoading}
+          onEditCommunity={isOwner ? openEditModal : undefined}
         />
 
-        {/* owner quick controls */}
+        {/* owner quick controls under header */}
         {isOwner && (
           <div className="mt-3 flex items-center gap-3">
             <button
-              onClick={() => openEditModal()}
+              onClick={openEditModal}
               className="bg-transparent border border-reddit-border dark:border-reddit-dark_divider rounded-full px-4 py-2 text-sm hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover transition"
             >
               Edit Community
@@ -341,116 +324,139 @@ export default function CommunityPage() {
       </div>
 
       {/* Edit modal */}
-      {editing && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-60 flex items-start justify-center pt-10 px-4"
+      {/* Edit modal */}
+{editing && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+    {/* backdrop */}
+    <div
+      className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+      onClick={() => !savingEdit && setEditing(false)}
+    />
+
+    {/* Modal card */}
+    <form
+      onSubmit={saveEdits}
+      className="relative z-60 w-full max-w-lg bg-reddit-card dark:bg-reddit-dark_card rounded-2xl p-6 border border-reddit-border dark:border-reddit-dark_divider shadow-xl"
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold text-reddit-text dark:text-reddit-dark_text">
+          Edit Community
+        </h2>
+        <button
+          type="button"
+          onClick={() => !savingEdit && setEditing(false)}
+          className="text-xl px-2 hover:text-reddit-blue"
         >
-          <div
-            className="fixed inset-0 bg-black/50"
-            onClick={() => !savingEdit && setEditing(false)}
+          ✕
+        </button>
+      </div>
+
+      {/* Form fields */}
+      <div className="space-y-5 max-h-[65vh] overflow-y-auto pr-2">
+        {/* Title */}
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider mb-1 opacity-70">
+            Display Title
+          </label>
+          <input
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            className="w-full px-3 py-2 rounded-md bg-reddit-hover dark:bg-reddit-dark_hover border border-reddit-border dark:border-reddit-dark_divider focus:outline-none focus:ring-2 focus:ring-reddit-blue"
           />
-          <form
-            onSubmit={saveEdits}
-            className="relative z-70 w-full max-w-2xl bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider rounded-lg p-6 shadow-lg"
-          >
-            <h2 className="text-lg font-semibold mb-3">Edit Community</h2>
-
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium">
-                  Display Title
-                </label>
-                <input
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  className="w-full px-3 py-2 rounded-md bg-transparent border border-reddit-border dark:border-reddit-dark_divider"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium">Description</label>
-                <textarea
-                  value={editDescription}
-                  onChange={(e) => setEditDescription(e.target.value)}
-                  rows={3}
-                  className="w-full mt-1 px-3 py-2 rounded-md bg-transparent border border-reddit-border dark:border-reddit-dark_divider"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium">
-                  Rules (one per line)
-                </label>
-                <textarea
-                  value={editRulesText}
-                  onChange={(e) => setEditRulesText(e.target.value)}
-                  rows={4}
-                  className="w-full mt-1 px-3 py-2 rounded-md bg-transparent border border-reddit-border dark:border-reddit-dark_divider"
-                />
-              </div>
-
-              <div className="flex items-center gap-3">
-                <label className="inline-flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={editIsPrivate}
-                    onChange={(e) => setEditIsPrivate(e.target.checked)}
-                  />
-                  <span className="text-sm">Private community</span>
-                </label>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium">Icon (logo)</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setIconFile(e.target.files?.[0] ?? null)}
-                />
-                {iconFile && (
-                  <div className="text-sm mt-1">{iconFile.name}</div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium">Banner</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setBannerFile(e.target.files?.[0] ?? null)}
-                />
-                {bannerFile && (
-                  <div className="text-sm mt-1">{bannerFile.name}</div>
-                )}
-              </div>
-
-              {editError && (
-                <div className="text-sm text-red-500">{editError}</div>
-              )}
-            </div>
-
-            <div className="mt-4 flex items-center gap-3">
-              <button
-                type="submit"
-                disabled={savingEdit}
-                className="px-4 py-2 rounded-md bg-reddit-blue text-white font-semibold disabled:opacity-60"
-              >
-                {savingEdit ? "Saving…" : "Save changes"}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => !savingEdit && setEditing(false)}
-                className="px-4 py-2 rounded-md bg-reddit-card dark:bg-reddit-dark_card border text-sm"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
         </div>
-      )}
+
+        {/* Description */}
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider mb-1 opacity-70">
+            Description
+          </label>
+          <textarea
+            value={editDescription}
+            onChange={(e) => setEditDescription(e.target.value)}
+            rows={3}
+            className="w-full px-3 py-2 rounded-md bg-reddit-hover dark:bg-reddit-dark_hover border border-reddit-border dark:border-reddit-dark_divider focus:outline-none focus:ring-2 focus:ring-reddit-blue"
+          />
+        </div>
+
+        {/* Rules */}
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider mb-1 opacity-70">
+            Rules (one per line)
+          </label>
+          <textarea
+            value={editRulesText}
+            onChange={(e) => setEditRulesText(e.target.value)}
+            rows={4}
+            className="w-full px-3 py-2 rounded-md bg-reddit-hover dark:bg-reddit-dark_hover border border-reddit-border dark:border-reddit-dark_divider focus:outline-none focus:ring-2 focus:ring-reddit-blue"
+          />
+        </div>
+
+        {/* Private */}
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input
+            type="checkbox"
+            checked={editIsPrivate}
+            onChange={(e) => setEditIsPrivate(e.target.checked)}
+            className="accent-reddit-blue"
+          />
+          Private community
+        </label>
+
+        {/* Uploads */}
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-1 opacity-70">
+              Icon (Logo)
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setIconFile(e.target.files?.[0] ?? null)}
+              className="text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-1 opacity-70">
+              Banner Image
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setBannerFile(e.target.files?.[0] ?? null)}
+              className="text-sm"
+            />
+          </div>
+        </div>
+
+        {editError && (
+          <div className="text-sm text-red-500 font-medium">{editError}</div>
+        )}
+      </div>
+
+      {/* Buttons */}
+      <div className="mt-5 flex justify-end gap-3">
+        <button
+          type="button"
+          onClick={() => !savingEdit && setEditing(false)}
+          className="px-4 py-2 rounded-full text-sm border border-reddit-border dark:border-reddit-dark_divider hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
+        >
+          Cancel
+        </button>
+
+        <button
+          type="submit"
+          disabled={savingEdit}
+          className="px-5 py-2 rounded-full text-sm font-semibold bg-reddit-blue hover:bg-reddit-blue_hover text-white disabled:opacity-50"
+        >
+          {savingEdit ? "Saving…" : "Save changes"}
+        </button>
+      </div>
+    </form>
+  </div>
+)}
+
     </div>
   );
 }

@@ -1,3 +1,4 @@
+// backend/routes/communities.js
 const express = require("express");
 const router = express.Router();
 const upload = require("../middleware/upload");
@@ -11,7 +12,7 @@ const { writeLimiter } = require("../middleware/rateLimiter");
 
 // 🛠 Utility to normalize community name
 function normalizeName(name) {
-  return name.toLowerCase();
+  return (name || "").toLowerCase();
 }
 
 // 🚀 Create Community (Owner)
@@ -35,14 +36,14 @@ router.post("/", auth, writeLimiter, async (req, res) => {
       name: finalName,
       title,
       description,
-      createdBy: req.user.id,
+      createdBy: req.user._id,
       isPrivate: !!isPrivate,
       rules: rules || [],
       membersCount: 1,
     });
 
     await CommunityMember.create({
-      user: req.user.id,
+      user: req.user._id,
       community: community._id,
       role: "owner",
     });
@@ -69,16 +70,16 @@ router.get("/:name", optionalAuth, async (req, res) => {
     let memberRole = null;
 
     if (req.user) {
-      const createdById = community.createdBy.toString();
-      const userId = req.user.id.toString();
+      const userId = req.user.id || req.user._id;
+      const createdById = community.createdBy?.toString?.();
 
-      if (createdById === userId) {
+      if (userId && createdById && createdById === userId.toString()) {
         isOwner = true;
         isMember = true;
         memberRole = "owner";
       } else {
         const m = await CommunityMember.findOne({
-          user: req.user.id,
+          user: userId,
           community: community._id,
         });
         if (m) {
@@ -122,13 +123,16 @@ router.post("/:name/join", auth, writeLimiter, async (req, res) => {
   try {
     const finalName = normalizeName(req.params.name);
     const community = await Community.findOne({ name: finalName });
-    if (!community)
+    if (!community) {
       return res
         .status(404)
         .json({ success: false, error: "Community not found" });
+    }
 
-    // Owner cannot join
-    if (community.createdBy.toString() === req.user.id.toString()) {
+    const userId = req.user._id;
+
+    // Owner cannot "join"
+    if (community.createdBy.toString() === userId.toString()) {
       return res.json({
         success: true,
         joined: true,
@@ -137,13 +141,13 @@ router.post("/:name/join", auth, writeLimiter, async (req, res) => {
     }
 
     const existing = await CommunityMember.findOne({
-      user: req.user.id,
+      user: userId,
       community: community._id,
     });
 
     if (!existing) {
       await CommunityMember.create({
-        user: req.user.id,
+        user: userId,
         community: community._id,
         role: "member",
       });
@@ -167,13 +171,16 @@ router.post("/:name/leave", auth, writeLimiter, async (req, res) => {
   try {
     const finalName = normalizeName(req.params.name);
     const community = await Community.findOne({ name: finalName });
-    if (!community)
+    if (!community) {
       return res
         .status(404)
         .json({ success: false, error: "Community not found" });
+    }
 
-    // Owner cannot leave own community
-    if (community.createdBy.toString() === req.user.id.toString()) {
+    const userId = req.user._id;
+
+    // Owner cannot leave their own community
+    if (community.createdBy.toString() === userId.toString()) {
       return res.json({
         success: true,
         joined: true,
@@ -182,7 +189,7 @@ router.post("/:name/leave", auth, writeLimiter, async (req, res) => {
     }
 
     const del = await CommunityMember.findOneAndDelete({
-      user: req.user.id,
+      user: userId,
       community: community._id,
     });
 
@@ -201,29 +208,32 @@ router.post("/:name/leave", auth, writeLimiter, async (req, res) => {
   }
 });
 
-// 📝 Get Community + Posts
+// 📝 Get Community + Posts (with owner/join info)
 router.get("/:name/posts", optionalAuth, async (req, res) => {
   try {
-    const community = await Community.findOne({
-      name: req.params.name.toLowerCase(),
-    });
-    if (!community)
+    const finalName = normalizeName(req.params.name);
+    const community = await Community.findOne({ name: finalName });
+    if (!community) {
       return res
         .status(404)
         .json({ success: false, data: null, error: "Community not found" });
+    }
 
     let isMember = false;
     let memberRole = null;
     let isOwner = false;
 
     if (req.user) {
-      if (community.createdBy.toString() === req.user.id.toString()) {
+      const userId = req.user.id || req.user._id;
+      const createdById = community.createdBy?.toString?.();
+
+      if (userId && createdById && createdById === userId.toString()) {
         isOwner = true;
         isMember = true;
         memberRole = "owner";
       } else {
         const membership = await CommunityMember.findOne({
-          user: req.user.id,
+          user: userId,
           community: community._id,
         });
         if (membership) {
@@ -261,14 +271,17 @@ router.patch("/:name", auth, writeLimiter, async (req, res) => {
     const finalName = normalizeName(req.params.name);
     const community = await Community.findOne({ name: finalName });
 
-    if (!community)
+    if (!community) {
       return res
         .status(404)
         .json({ success: false, error: "Community not found" });
-    if (community.createdBy.toString() !== req.user.id.toString())
+    }
+
+    if (community.createdBy.toString() !== req.user._id.toString()) {
       return res
         .status(403)
         .json({ success: false, error: "Only owner can edit" });
+    }
 
     const allowed = [
       "title",
@@ -294,11 +307,13 @@ router.post("/:name/icon", auth, upload.single("icon"), async (req, res) => {
   try {
     const name = normalizeName(req.params.name);
     const community = await Community.findOne({ name });
-    if (!community)
+    if (!community) {
       return res.status(404).json({ error: "Community not found" });
+    }
 
-    if (community.createdBy.toString() !== req.user.id.toString())
+    if (community.createdBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({ error: "Only owner can update icon" });
+    }
 
     community.icon = req.file.path;
     await community.save();
@@ -310,28 +325,25 @@ router.post("/:name/icon", auth, upload.single("icon"), async (req, res) => {
 });
 
 // Upload Banner
-router.post(
-  "/:name/banner",
-  auth,
-  upload.single("banner"),
-  async (req, res) => {
-    try {
-      const name = normalizeName(req.params.name);
-      const community = await Community.findOne({ name });
-      if (!community)
-        return res.status(404).json({ error: "Community not found" });
-
-      if (community.createdBy.toString() !== req.user.id.toString())
-        return res.status(403).json({ error: "Only owner can update banner" });
-
-      community.banner = req.file.path;
-      await community.save();
-
-      res.json({ success: true, data: { banner: community.banner } });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
+router.post("/:name/banner", auth, upload.single("banner"), async (req, res) => {
+  try {
+    const name = normalizeName(req.params.name);
+    const community = await Community.findOne({ name });
+    if (!community) {
+      return res.status(404).json({ error: "Community not found" });
     }
+
+    if (community.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: "Only owner can update banner" });
+    }
+
+    community.banner = req.file.path;
+    await community.save();
+
+    res.json({ success: true, data: { banner: community.banner } });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-);
+});
 
 module.exports = router;
