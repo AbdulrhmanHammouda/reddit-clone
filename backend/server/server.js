@@ -58,6 +58,7 @@ app.use('/api/messages', messagesRoutes); // New route
 // ========================
 // Rate limiting for write operations
 // ========================
+
 // const { writeLimiter } = require('./middleware/rateLimiter');
 // const requireAuth = require('./middleware/authMiddleware');
 
