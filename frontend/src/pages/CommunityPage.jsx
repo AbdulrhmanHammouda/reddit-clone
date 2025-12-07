@@ -278,35 +278,20 @@ export default function CommunityPage() {
   return (
     <div className="bg-reddit-page dark:bg-reddit-dark_bg text-reddit-text dark:text-reddit-dark_text min-h-screen">
       <div className="mx-auto w-full max-w-[1200px] px-4 lg:px-6">
-        <CommunityHeader
-          community={community}
-          onJoin={headerOnJoin}
-          onCreatePost={() => {
-            const title = prompt("Post title");
-            if (!title) return;
-            createPost({ title, body: "" });
-          }}
-          joinLoading={joinLoading}
-          onEditCommunity={isOwner ? openEditModal : undefined}
-        />
+      <CommunityHeader
+  community={community}
+  onJoin={headerOnJoin}
+  joinLoading={joinLoading}
+  onCreatePost={() =>
+    navigate(`/createpost?community=${encodeURIComponent(community.name)}`)
+  }
+  onEditCommunity={openEditModal}
+/>
+
+
 
         {/* owner quick controls under header */}
-        {isOwner && (
-          <div className="mt-3 flex items-center gap-3">
-            <button
-              onClick={openEditModal}
-              className="bg-transparent border border-reddit-border dark:border-reddit-dark_divider rounded-full px-4 py-2 text-sm hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover transition"
-            >
-              Edit Community
-            </button>
-            <button
-              onClick={() => navigate(`/r/${community.name}/moderation`)}
-              className="h-10 rounded-full bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider px-3 py-2 text-sm hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover transition"
-            >
-              Mod Tools
-            </button>
-          </div>
-        )}
+         
 
         <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 flex justify-center">

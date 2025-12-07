@@ -11,10 +11,12 @@ import ProfileMenu from "./ProfileMenu";
 import { Link } from "react-router-dom";
 import ChatSidebar from "./ChatSidebar";
 import api from "../api/axios";
+import { useNavigate } from "react-router-dom";
 
 export default function Navbar({ onToggleSidebar }) {
   const [open, setOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+const navigate = useNavigate();
 
   const userRaw = JSON.parse(localStorage.getItem("user"));
   const username = userRaw?.username;
@@ -41,7 +43,6 @@ export default function Navbar({ onToggleSidebar }) {
       <nav className="w-full h-16 bg-reddit-card dark:bg-reddit-dark_card border-b border-reddit-border dark:border-reddit-dark_divider px-5 flex items-center justify-between sticky top-0 z-50">
         {/* Left Section */}
         <div className="flex items-center gap-3">
-
           <button
             type="button"
             onClick={onToggleSidebar}
@@ -51,7 +52,10 @@ export default function Navbar({ onToggleSidebar }) {
             <Bars3Icon className="h-5 w-5" />
           </button>
 
-          <Link to="/" className="flex items-center gap-2 cursor-pointer select-none">
+          <Link
+            to="/"
+            className="flex items-center gap-2 cursor-pointer select-none"
+          >
             <img src={logo} alt="Reddit" className="h-8" />
             <span className="font-bold text-3xl text-reddit-text dark:text-reddit-dark_text">
               reddit
@@ -83,7 +87,10 @@ export default function Navbar({ onToggleSidebar }) {
           </div>
 
           {/* Create */}
-          <div className="group relative flex items-center gap-2 px-3 py-1.5 rounded-full cursor-pointer transition hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover">
+          <div
+            onClick={() => navigate("/createpost")}
+            className="group relative flex items-center gap-2 px-3 py-1.5 rounded-full cursor-pointer transition hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
+          >
             <PlusIcon className="h-5 w-5 text-reddit-icon dark:text-reddit-dark_icon" />
             <span className="text-sm font-medium text-reddit-text dark:text-reddit-dark_text">
               Create

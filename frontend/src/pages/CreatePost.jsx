@@ -1,442 +1,467 @@
-import { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { PhotoIcon } from "@heroicons/react/24/outline";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";  
-import {
-  faBold,
-  faItalic,
-  faStrikethrough,
-  faSuperscript,
-  faLink,
-  faImage,
-  faVideo,
-  faListUl,
-  faListOl,
-  faQuoteRight,
-  faCode,
-  faTable,
-  faEllipsisV
-} from "@fortawesome/free-solid-svg-icons";
+// src/pages/CreatePost.jsx
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import api from "../api/axios";
+import useAuth from "../hooks/useAuth";
+
+const TABS = ["text", "image", "link"];
 
 export default function CreatePost() {
   const navigate = useNavigate();
+  const { token } = useAuth();
+  const [searchParams] = useSearchParams();
+  const communityFromQuery = searchParams.get("community");
 
-  const [showMenu, setShowMenu] = useState(false);
+  // communities + selection
+  const [communities, setCommunities] = useState([]);
+  const [communitiesLoading, setCommunitiesLoading] = useState(true);
+  const [communitiesError, setCommunitiesError] = useState("");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [communitySearch, setCommunitySearch] = useState("");
+  const [selectedCommunity, setSelectedCommunity] = useState(null);
+
+  // post data
+  const [activeTab, setActiveTab] = useState("text");
   const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [selectedCommunity, setSelectedCommunity] = useState("");
-  const [activeTab, setActiveTab] = useState("Text");
-  const [files, setFiles] = useState([]);
-  const [titleTouched, setTitleTouched] = useState(false);
-  const [linkTouched, setLinkTouched] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
+  const [body, setBody] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
+  const [imageFile, setImageFile] = useState(null);
 
-  const textareaRef = useRef(null);
-  const imageInputRef = useRef(null);
-  const videoInputRef = useRef(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
-  const tabs = ["Text", "Images & Video", "Link", "Poll"];
+  const bodyRef = useRef(null);
 
-  const isFormValid =
-    title.trim() !== "" &&
-    (activeTab !== "Link" ? true : content.trim() !== "");
+  // ---------- load communities ----------
+  useEffect(() => {
+    (async () => {
+      setCommunitiesLoading(true);
+      setCommunitiesError("");
+      try {
+        const res = await api.get("/communities");
+        if (res.data?.success) {
+          setCommunities(res.data.data || []);
+        } else {
+          setCommunitiesError(res.data?.error || "Failed to load communities");
+        }
+      } catch (err) {
+        setCommunitiesError(
+          err.response?.data?.error || err.message || "Failed to load communities"
+        );
+      } finally {
+        setCommunitiesLoading(false);
+      }
+    })();
+  }, []);
 
-  // ------------------------------------
-  // FILE HANDLING WITH PREVIEW
-  // ------------------------------------
-  const handleFileChange = (e) => {
-    const selected = [...e.target.files];
-    const mapped = selected.map((f) => ({
-      file: f,
-      preview: URL.createObjectURL(f),
-      type: f.type.startsWith("video") ? "video" : "image",
-    }));
-    setFiles((prev) => [...prev, ...mapped]);
-  };
+  // pre-select from ?community= query
+  useEffect(() => {
+    if (!communityFromQuery || communities.length === 0) return;
+    if (selectedCommunity) return;
+    const found = communities.find((c) => c.name === communityFromQuery);
+    if (found) setSelectedCommunity(found);
+  }, [communityFromQuery, communities, selectedCommunity]);
 
-  // ------------------------------------
-  // SUBMIT HANDLER
-  // ------------------------------------
-  const handleSubmit = async () => {
-    setErrorMsg("");
+  const filteredCommunities = useMemo(() => {
+    const q = communitySearch.toLowerCase();
+    if (!q) return communities;
+    return communities.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        (c.title && c.title.toLowerCase().includes(q))
+    );
+  }, [communities, communitySearch]);
 
-    if (!isFormValid) {
-      setErrorMsg("Please complete the required fields.");
+  // ---------- formatting helpers (bold / italic / etc) ----------
+
+  function applyFormatting(type) {
+    if (!bodyRef.current) return;
+    const textarea = bodyRef.current;
+    const start = textarea.selectionStart ?? 0;
+    const end = textarea.selectionEnd ?? 0;
+    const text = body || "";
+    const selected = text.slice(start, end) || "";
+
+    let before = "";
+    let after = "";
+    let replacement = selected;
+
+    switch (type) {
+      case "bold":
+        before = "**";
+        after = "**";
+        if (!replacement) replacement = "bold text";
+        break;
+      case "italic":
+        before = "*";
+        after = "*";
+        if (!replacement) replacement = "italic text";
+        break;
+      case "underline":
+        before = "__";
+        after = "__";
+        if (!replacement) replacement = "underlined";
+        break;
+      case "code":
+        before = "`";
+        after = "`";
+        if (!replacement) replacement = "code";
+        break;
+      case "bullet":
+        // put "- " at start of line(s)
+        if (!replacement) replacement = "list item";
+        replacement = replacement
+          .split("\n")
+          .map((line) => (line.startsWith("- ") ? line : `- ${line}`))
+          .join("\n");
+        break;
+      case "numbered":
+        if (!replacement) replacement = "list item";
+        replacement = replacement
+          .split("\n")
+          .map((line, i) =>
+            /^\d+\.\s/.test(line) ? line : `${i + 1}. ${line}`
+          )
+          .join("\n");
+        break;
+      default:
+        break;
+    }
+
+    const newBody =
+      text.slice(0, start) + before + replacement + after + text.slice(end);
+
+    setBody(newBody);
+
+    // move caret after the inserted text
+    const newPos = start + before.length + replacement.length + after.length;
+    requestAnimationFrame(() => {
+      textarea.focus();
+      textarea.setSelectionRange(newPos, newPos);
+    });
+  }
+
+  // ---------- submit ----------
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError("");
+
+    if (!selectedCommunity) {
+      setError("Please select a community.");
+      return;
+    }
+    if (!title.trim()) {
+      setError("Title is required.");
       return;
     }
 
-    const postData = {
-      community: selectedCommunity,
-      title,
-      type: activeTab,
-      content,
-      media: files.map((f) => f.file.name),
-      createdAt: new Date().toISOString(),
-    };
-
+    setSubmitting(true);
     try {
-      console.log("Sending post →", postData);
+      if (activeTab === "image" && imageFile) {
+        // If you already have a /posts/image endpoint, use it here.
+        // Example:
+        const fd = new FormData();
+        fd.append("title", title.trim());
+        fd.append("communityName", selectedCommunity.name);
+        fd.append("image", imageFile);
+        if (body.trim()) fd.append("body", body.trim());
 
-      await new Promise((resolve) => setTimeout(resolve, 700));
+        const res = await api.post("/posts/image", fd, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
 
-      setTitle("");
-      setContent("");
-      setFiles([]);
-      setSelectedCommunity("");
+        if (!res.data?.success) {
+          throw new Error(res.data?.error || "Failed to create image post");
+        }
+        navigate(`/r/${selectedCommunity.name}`);
+      } else {
+        // text or link post
+        const payload = {
+          title: title.trim(),
+          body: activeTab === "text" ? body : "",
+          communityName: selectedCommunity.name,
+          url: activeTab === "link" ? linkUrl.trim() || null : null,
+        };
 
-      navigate("/");
+        const res = await api.post("/posts", payload);
+        if (!res.data?.success) {
+          throw new Error(res.data?.error || "Failed to create post");
+        }
+        navigate(`/r/${selectedCommunity.name}`);
+      }
     } catch (err) {
-      setErrorMsg("Something went wrong while posting.");
+      console.error("create post error", err);
+      setError(
+        err.response?.data?.error || err.message || "Failed to create post"
+      );
+    } finally {
+      setSubmitting(false);
     }
-  };
+  }
 
-  // ------------------------------------
-  // UTILITY: INSERT LIST
-  // ------------------------------------
-  const insertList = (type) => {
-    const sel = window.getSelection();
-    if (!sel.rangeCount) return;
-    const range = sel.getRangeAt(0);
-    const selectedText = sel.toString();
+  // ---------- UI ----------
 
-    const list = document.createElement(type); // "ul" or "ol"
-
-    if (!selectedText) {
-      const li = document.createElement("li");
-      li.textContent = "List item";
-      list.appendChild(li);
-      range.insertNode(list);
-    } else {
-      const lines = selectedText.split("\n").filter((line) => line.trim() !== "");
-      lines.forEach((line) => {
-        const li = document.createElement("li");
-        li.textContent = line;
-        list.appendChild(li);
-      });
-      range.deleteContents();
-      range.insertNode(list);
-    }
-
-    sel.removeAllRanges();
-    const newRange = document.createRange();
-    newRange.setStartAfter(list);
-    newRange.collapse(true);
-    sel.addRange(newRange);
-
-    textareaRef.current.focus();
-  };
+  const titleChars = title.length;
+  const titleLimit = 300;
 
   return (
-    <div className="bg-white dark:bg-reddit-dark_bg min-h-screen py-10 px-6">
-      <div className="max-w-2xl">
+    <div className="bg-reddit-page dark:bg-reddit-dark_bg min-h-screen text-reddit-text dark:text-reddit-dark_text">
+      <div className="mx-auto max-w-[920px] px-4 py-6">
+        <h1 className="text-2xl font-semibold mb-4">Create post</h1>
 
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-reddit-dark_text">Create post</h1>
-          <span className="text-black dark:text-reddit-dark_text text-lg font-semibold cursor-pointer">Drafts</span>
-        </div>
-
-        {/* Community selector */}
-        <div className="mb-4 relative w-fit">
-          <button
-            onClick={() => setShowMenu(!showMenu)}
-            className="flex items-center justify-between px-4 py-2 border border-gray-300 dark:border-reddit-dark_border rounded-full bg-gray-200 dark:bg-reddit-dark_hover text-black dark:text-reddit-dark_text font-bold w-64"
-          >
-            <div className="flex items-center gap-2">
-              <div className="bg-black text-white rounded-full px-2 py-1 text-sm font-bold">r/</div>
-              <span className="text-sm font-bold">
-                {selectedCommunity || "Select a community"}
-              </span>
-            </div>
-            <svg
-              className="w-4 h-4 text-gray-700 dark:text-reddit-dark_text"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/>
-            </svg>
-          </button>
-
-          {showMenu && (
-            <ul className="absolute z-10 mt-2 w-64 bg-gray-200 dark:bg-reddit-dark_card border border-gray-300 dark:border-reddit-dark_border rounded-md shadow">
-              {["r/community1", "r/community2", "r/community3"].map((c) => (
-                <li
-                  key={c}
-                  onClick={() => {
-                    setSelectedCommunity(c);
-                    setShowMenu(false);
-                  }}
-                  className="px-4 py-2 hover:bg-gray-300 dark:hover:bg-reddit-dark_hover cursor-pointer text-sm font-bold text-black dark:text-reddit-dark_text"
-                >
-                  {c}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-7 border-b border-gray-200 dark:border-reddit-dark_border mb-4">
-          {tabs.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => tab !== "Poll" && setActiveTab(tab)}
-              className={`pb-2 text-sm font-medium ${
-                activeTab === tab
-                  ? "border-b-2 border-blue-500 dark:border-reddit-dark_blue text-black dark:text-reddit-dark_text"
-                  : tab === "Poll"
-                  ? "text-gray-400 dark:text-reddit-dark_text_secondary cursor-not-allowed"
-                  : "text-black dark:text-reddit-dark_text"
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-
-        {/* Title Input */}
-        <div className="mb-4 relative">
-          {!title && (
-            <div className="absolute top-2 left-4 text-gray-500 dark:text-reddit-dark_text_secondary pointer-events-none">
-              Title<span className="text-red-500">*</span>
-            </div>
-          )}
-          <input
-            maxLength={300}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onBlur={() => setTitleTouched(true)}
-            className={`w-full px-4 py-2 rounded-full bg-white dark:bg-reddit-dark_card text-gray-900 dark:text-reddit-dark_text border ${
-              !title && titleTouched
-                ? "border-red-500"
-                : "border-gray-300 dark:border-reddit-dark_border focus:ring-blue-500"
-            } focus:outline-none`}
-          />
-          <div className="text-right text-xs text-gray-400 dark:text-reddit-dark_text_secondary mt-1">{title.length}/300</div>
-        </div>
-
-        {/* Add Tags */}
-        {activeTab !== "Poll" && (
-          <button className="px-3 py-1 rounded-full bg-gray-100 dark:bg-reddit-dark_card text-gray-500 dark:text-reddit-dark_text_secondary text-sm cursor-not-allowed mb-4">
-            Add tags
-          </button>
-        )}
-
-        {/* Content */}
-        <div className="mb-4">
-
-          {/* TEXT TAB */}
-          {activeTab === "Text" && (
-            <div className="relative border border-gray-300 dark:border-reddit-dark_border rounded-3xl bg-white dark:bg-reddit-dark_card">
-              {/* Toolbar */}
-              <div className="flex justify-between items-center px-4 pt-2 overflow-x-auto">
-                <div className="flex gap-1 flex-nowrap">
-                  {[
-                    {icon: faBold, cmd: "bold"},
-                    {icon: faItalic, cmd: "italic"},
-                    {icon: faSuperscript, cmd: "superscript"},
-                    {icon: faStrikethrough, cmd: "strikeThrough"},
-                  ].map(({icon, cmd}, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => document.execCommand(cmd)}
-                      className="px-2 py-0.5 border border-gray-200 dark:border-reddit-dark_border rounded text-xs text-gray-700 dark:text-reddit-dark_text hover:bg-gray-200 dark:hover:bg-reddit-dark_hover"
-                    >
-                      <FontAwesomeIcon icon={icon} />
-                    </button>
-                  ))}
-
-                  {/* Link, Image, Video */}
-                  <button
-                    onClick={() => document.execCommand("createLink", false, prompt("Enter URL"))}
-                    className="px-2 py-0.5 border border-gray-200 dark:border-reddit-dark_border rounded text-xs text-gray-700 dark:text-reddit-dark_text hover:bg-gray-200 dark:hover:bg-reddit-dark_hover"
-                  >
-                    <FontAwesomeIcon icon={faLink} />
-                  </button>
-                  <button
-                    onClick={() => imageInputRef.current.click()}
-                    className="px-2 py-0.5 border border-gray-200 dark:border-reddit-dark_border rounded text-xs text-gray-700 dark:text-reddit-dark_text hover:bg-gray-200 dark:hover:bg-reddit-dark_hover"
-                  >
-                    <FontAwesomeIcon icon={faImage} />
-                  </button>
-                  <button
-                    onClick={() => videoInputRef.current.click()}
-                    className="px-2 py-0.5 border border-gray-200 dark:border-reddit-dark_border rounded text-xs text-gray-700 dark:text-reddit-dark_text hover:bg-gray-200 dark:hover:bg-reddit-dark_hover"
-                  >
-                    <FontAwesomeIcon icon={faVideo} />
-                  </button>
-
-                  {/* Lists */}
-                  <button
-                    onClick={() => insertList("ul")}
-                    className="px-2 py-0.5 border border-gray-200 dark:border-reddit-dark_border rounded text-xs text-gray-700 dark:text-reddit-dark_text hover:bg-gray-200 dark:hover:bg-reddit-dark_hover"
-                  >
-                    <FontAwesomeIcon icon={faListUl} />
-                  </button>
-                  <button
-                    onClick={() => insertList("ol")}
-                    className="px-2 py-0.5 border border-gray-200 dark:border-reddit-dark_border rounded text-xs text-gray-700 dark:text-reddit-dark_text hover:bg-gray-200 dark:hover:bg-reddit-dark_hover"
-                  >
-                    <FontAwesomeIcon icon={faListOl} />
-                  </button>
-
-                  <button
-                    onClick={() => document.execCommand("formatBlock", false, "blockquote")}
-                    className="px-2 py-0.5 border border-gray-200 dark:border-reddit-dark_border rounded text-xs text-gray-700 dark:text-reddit-dark_text hover:bg-gray-200 dark:hover:bg-reddit-dark_hover"
-                  >
-                    <FontAwesomeIcon icon={faQuoteRight} />
-                  </button>
-                  <button
-                    onClick={() => document.execCommand("insertHTML", false, `<code>${window.getSelection()}</code>`)}
-                    className="px-2 py-0.5 border border-gray-200 dark:border-reddit-dark_border rounded text-xs text-gray-700 dark:text-reddit-dark_text hover:bg-gray-200 dark:hover:bg-reddit-dark_hover"
-                  >
-                    <FontAwesomeIcon icon={faCode} />
-                  </button>
-                  <button
-  onClick={() => {
-    const rows = parseInt(prompt("Enter number of rows", "2"), 10);
-    const cols = parseInt(prompt("Enter number of columns", "2"), 10);
-
-    if (isNaN(rows) || isNaN(cols) || rows < 1 || cols < 1) {
-      alert("Invalid number of rows or columns!");
-      return;
-    }
-
-    let tableHTML = `<table class="w-full border border-gray-400 dark:border-gray-600 border-collapse">`;
-
-    for (let r = 0; r < rows; r++) {
-      tableHTML += "<tr>";
-      for (let c = 0; c < cols; c++) {
-        tableHTML += `<td class="border border-gray-400 dark:border-gray-600 px-2 py-1">&nbsp;</td>`;
-      }
-      tableHTML += "</tr>";
-    }
-
-    tableHTML += "</table><br/>";
-
-                  document.execCommand("insertHTML", false, tableHTML);
-          }}
-              className="px-2 py-0.5 border border-gray-200 dark:border-reddit-dark_border rounded text-xs text-gray-700 dark:text-reddit-dark_text hover:bg-gray-200 dark:hover:bg-reddit-dark_hover"
-            >
-              <FontAwesomeIcon icon={faTable} />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Community picker */}
+          <div>
+            <label className="block text-xs font-semibold uppercase mb-2">
+              Community
+            </label>
+            <div className="relative inline-block w-full max-w-md">
+              <button
+                type="button"
+                onClick={() => setDropdownOpen((o) => !o)}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-full bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider text-sm"
+              >
+                <span className="flex items-center gap-2">
+                  <span className="rounded-full bg-reddit-hover dark:bg-reddit-dark_hover h-7 w-7 flex items-center justify-center text-xs font-semibold">
+                    r/
+                  </span>
+                  {selectedCommunity
+                    ? `r/${selectedCommunity.name}`
+                    : "Select a community"}
+                </span>
+                <span className="text-xs opacity-70">▼</span>
               </button>
 
-                </div>
+              {dropdownOpen && (
+                <div className="absolute z-40 mt-2 w-full max-h-72 overflow-y-auto rounded-lg bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider shadow-lg">
+                  <div className="p-2 border-b border-reddit-border dark:border-reddit-dark_divider">
+                    <input
+                      type="text"
+                      value={communitySearch}
+                      onChange={(e) => setCommunitySearch(e.target.value)}
+                      placeholder="Search communities"
+                      className="w-full px-2 py-1 rounded-md bg-reddit-hover dark:bg-reddit-dark_hover text-sm outline-none"
+                    />
+                  </div>
 
-                <div className="text-gray-600 dark:text-reddit-dark_text text-xs cursor-pointer select-none">
-                  <FontAwesomeIcon icon={faEllipsisV} />
-                </div>
-              </div>
-
-              {/* ContentEditable div with placeholder */}
-              <div
-  ref={textareaRef}
-  contentEditable
-  onInput={(e) => setContent(e.currentTarget.innerHTML)}
-  className="w-full px-4 pt-12 pb-2 bg-white dark:bg-reddit-dark_card text-gray-900 dark:text-reddit-dark_text 
-             focus:outline-none rounded-3xl min-h-[150px]
-             pl-5
-             [&_ul]:list-disc [&_ul]:ml-6 [&_ol]:list-decimal [&_ol]:ml-6"
-  suppressContentEditableWarning={true}
->
-
-  {content === "" && (
-    <span className="text-gray-400 dark:text-reddit-dark_text_secondary pointer-events-none absolute top-12 left-4">
-      Body text (optional)
-    </span>
-  )}
-</div>
-
-            </div>
-          )}
-
-          {/* MEDIA TAB */}
-          {activeTab === "Images & Video" && (
-            <div>
-              <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-reddit-dark_border rounded-3xl bg-white dark:bg-reddit-dark_card h-40 cursor-pointer hover:border-blue-500 dark:hover:border-reddit-dark_blue">
-                <PhotoIcon className="h-8 w-8 text-gray-400 dark:text-reddit-dark_text mb-2" />
-                <span className="text-gray-500 dark:text-reddit-dark_text_secondary text-sm">Upload media</span>
-                <input type="file" accept="image/*,video/*" className="hidden" multiple onChange={handleFileChange} />
-              </label>
-
-              {files.length > 0 && (
-                <div className="grid grid-cols-3 gap-3 mt-4">
-                  {files.map((f, i) =>
-                    f.type === "image" ? (
-                      <img key={i} src={f.preview} alt="preview" className="rounded-xl h-24 object-cover" />
-                    ) : (
-                      <video key={i} src={f.preview} controls className="rounded-xl h-24 object-cover" />
-                    )
+                  {communitiesLoading ? (
+                    <div className="p-3 text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
+                      Loading communities…
+                    </div>
+                  ) : communitiesError ? (
+                    <div className="p-3 text-sm text-red-500">
+                      {communitiesError}
+                    </div>
+                  ) : filteredCommunities.length === 0 ? (
+                    <div className="p-3 text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
+                      No communities found.
+                    </div>
+                  ) : (
+                    filteredCommunities.map((c) => (
+                      <button
+                        key={c._id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedCommunity(c);
+                          setDropdownOpen(false);
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
+                      >
+                        <span className="h-7 w-7 rounded-full bg-reddit-hover dark:bg-reddit-dark_hover flex items-center justify-center text-xs font-semibold">
+                          r/
+                        </span>
+                        <div>
+                          <div className="font-semibold">r/{c.name}</div>
+                          {c.description && (
+                            <div className="text-xs text-reddit-text_secondary dark:text-reddit-dark_text_secondary line-clamp-1">
+                              {c.description}
+                            </div>
+                          )}
+                        </div>
+                      </button>
+                    ))
                   )}
                 </div>
               )}
             </div>
-          )}
+          </div>
 
-          {/* LINK TAB */}
-          {activeTab === "Link" && (
+          {/* Tabs */}
+          <div className="border-b border-reddit-border dark:border-reddit-dark_divider mb-2 flex gap-4 text-sm">
+            {TABS.map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={`pb-2 -mb-px border-b-2 ${
+                  activeTab === tab
+                    ? "border-reddit-blue text-reddit-blue font-semibold"
+                    : "border-transparent text-reddit-text_secondary dark:text-reddit-dark_text_secondary"
+                }`}
+              >
+                {tab === "text"
+                  ? "Text"
+                  : tab === "image"
+                  ? "Images & Video"
+                  : "Link"}
+              </button>
+            ))}
+          </div>
+
+          {/* Title */}
+          <div>
+            <label className="block text-xs font-semibold uppercase mb-1">
+              Title<span className="text-red-500">*</span>
+            </label>
             <div className="relative">
-              {!content && (
-                <div className="absolute top-2 left-4 text-gray-500 dark:text-reddit-dark_text_secondary pointer-events-none">
-                  Link URL<span className="text-red-500">*</span>
-                </div>
-              )}
               <input
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                onBlur={() => setLinkTouched(true)}
-                className={`w-full px-4 py-2 rounded-3xl bg-white dark:bg-reddit-dark_card text-gray-900 dark:text-reddit-dark_text border ${
-                  !content && linkTouched
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-reddit-dark_border focus:ring-blue-500"
-                } focus:outline-none`}
+                value={title}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v.length <= titleLimit) setTitle(v);
+                }}
+                className="w-full px-3 py-2 rounded-md bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider outline-none"
+                placeholder="Title"
+              />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
+                {titleChars}/{titleLimit}
+              </span>
+            </div>
+          </div>
+
+          {/* Body / link / image based on tab */}
+          {activeTab === "text" && (
+            <div>
+              <div className="flex items-center gap-1 mb-1 text-xs text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
+                <span>Body (optional)</span>
+              </div>
+
+              {/* toolbar */}
+              <div className="flex items-center gap-1 mb-1 text-xs">
+                <button
+                  type="button"
+                  onClick={() => applyFormatting("bold")}
+                  className="px-2 py-1 rounded bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover font-semibold"
+                  title="Bold"
+                >
+                  B
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyFormatting("italic")}
+                  className="px-2 py-1 rounded bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover italic"
+                  title="Italic"
+                >
+                  I
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyFormatting("underline")}
+                  className="px-2 py-1 rounded bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover underline"
+                  title="Underline"
+                >
+                  U
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyFormatting("code")}
+                  className="px-2 py-1 rounded bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover font-mono"
+                  title="Inline code"
+                >
+                  {"</>"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyFormatting("bullet")}
+                  className="px-2 py-1 rounded bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
+                  title="Bullet list"
+                >
+                  ••
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyFormatting("numbered")}
+                  className="px-2 py-1 rounded bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
+                  title="Numbered list"
+                >
+                  1.
+                </button>
+              </div>
+
+              <textarea
+                ref={bodyRef}
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                rows={8}
+                className="w-full px-3 py-2 rounded-md bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider outline-none resize-vertical"
+                placeholder="Text (supports simple markdown: **bold**, *italic*, `code`, lists…)"
               />
             </div>
           )}
 
-          {/* Hidden inputs */}
-          <input
-            type="file"
-            accept="image/*"
-            ref={imageInputRef}
-            style={{ display: "none" }}
-            multiple
-            onChange={handleFileChange}
-          />
-          <input
-            type="file"
-            accept="video/*"
-            ref={videoInputRef}
-            style={{ display: "none" }}
-            multiple
-            onChange={handleFileChange}
-          />
-        </div>
+          {activeTab === "link" && (
+            <div>
+              <label className="block text-xs font-semibold uppercase mb-1">
+                Link URL
+              </label>
+              <input
+                value={linkUrl}
+                onChange={(e) => setLinkUrl(e.target.value)}
+                placeholder="https://example.com"
+                className="w-full px-3 py-2 rounded-md bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider outline-none"
+              />
+            </div>
+          )}
 
-        {/* Error */}
-        {errorMsg && <p className="text-red-500 mb-4">{errorMsg}</p>}
+          {activeTab === "image" && (
+            <div>
+              <label className="block text-xs font-semibold uppercase mb-1">
+                Image / video
+              </label>
+              <input
+                type="file"
+                accept="image/*,video/*"
+                onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+              />
+              {imageFile && (
+                <div className="mt-1 text-xs text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
+                  Selected: {imageFile.name}
+                </div>
+              )}
 
-        {/* Buttons */}
-        <div className="flex justify-end gap-2 mb-10">
-          <button
-            disabled={!isFormValid}
-            className={`px-4 py-2 rounded-full text-white ${isFormValid ? "bg-[#0079D3] dark:bg-reddit-dark_blue" : "bg-gray-300 cursor-not-allowed"}`}
-          >
-            Save Draft
-          </button>
+              <label className="block text-xs font-semibold uppercase mt-4 mb-1">
+                Caption (optional)
+              </label>
+              <textarea
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                rows={4}
+                className="w-full px-3 py-2 rounded-md bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider outline-none resize-vertical"
+              />
+            </div>
+          )}
 
-          <button
-            onClick={handleSubmit}
-            disabled={!isFormValid}
-            className={`px-4 py-2 rounded-full text-white ${isFormValid ? "bg-[#0079D3] dark:bg-reddit-dark_blue" : "bg-gray-300 cursor-not-allowed"}`}
-          >
-            Post
-          </button>
-        </div>
+          {error && <div className="text-sm text-red-500">{error}</div>}
 
+          {/* actions */}
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="px-4 py-2 rounded-full border border-reddit-border dark:border-reddit-dark_divider bg-reddit-card dark:bg-reddit-dark_card text-sm hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="px-6 py-2 rounded-full bg-reddit-blue text-white font-semibold text-sm disabled:opacity-60"
+            >
+              {submitting ? "Posting…" : "Post"}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
 }
-
