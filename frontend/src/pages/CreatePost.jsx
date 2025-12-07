@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../api/axios";
 import useAuth from "../hooks/useAuth";
-
+import RichTextEditor from "../components/RichTextEditor";
 const TABS = ["text", "image", "link"];
 
 export default function CreatePost() {
@@ -74,72 +74,88 @@ export default function CreatePost() {
 
   // ---------- formatting helpers (bold / italic / etc) ----------
 
-  function applyFormatting(type) {
-    if (!bodyRef.current) return;
-    const textarea = bodyRef.current;
-    const start = textarea.selectionStart ?? 0;
-    const end = textarea.selectionEnd ?? 0;
-    const text = body || "";
-    const selected = text.slice(start, end) || "";
+ function applyFormatting(type) {
+  if (!bodyRef.current) return;
+  const textarea = bodyRef.current;
+  const start = textarea.selectionStart ?? 0;
+  const end = textarea.selectionEnd ?? 0;
+  const text = body || "";
+  const selected = text.slice(start, end);
 
-    let before = "";
-    let after = "";
-    let replacement = selected;
+  let before = "";
+  let after = "";
+  let replacement = selected || "";
 
-    switch (type) {
-      case "bold":
-        before = "**";
-        after = "**";
-        if (!replacement) replacement = "bold text";
-        break;
-      case "italic":
-        before = "*";
-        after = "*";
-        if (!replacement) replacement = "italic text";
-        break;
-      case "underline":
-        before = "__";
-        after = "__";
-        if (!replacement) replacement = "underlined";
-        break;
-      case "code":
-        before = "`";
-        after = "`";
-        if (!replacement) replacement = "code";
-        break;
-      case "bullet":
-        // put "- " at start of line(s)
-        if (!replacement) replacement = "list item";
-        replacement = replacement
-          .split("\n")
-          .map((line) => (line.startsWith("- ") ? line : `- ${line}`))
-          .join("\n");
-        break;
-      case "numbered":
-        if (!replacement) replacement = "list item";
-        replacement = replacement
-          .split("\n")
-          .map((line, i) =>
-            /^\d+\.\s/.test(line) ? line : `${i + 1}. ${line}`
-          )
-          .join("\n");
-        break;
-      default:
-        break;
-    }
-
-    const newBody =
-      text.slice(0, start) + before + replacement + after + text.slice(end);
-
-    setBody(newBody);
-
-    // move caret after the inserted text
-    const newPos = start + before.length + replacement.length + after.length;
-    requestAnimationFrame(() => {
-      textarea.focus();
-      textarea.setSelectionRange(newPos, newPos);
-    });
+  switch (type) {
+    case "bold":
+      before = "**";
+      after = "**";
+      if (!replacement) replacement = "bold text";
+      break;
+    case "italic":
+      before = "*";
+      after = "*";
+      if (!replacement) replacement = "italic text";
+      break;
+    case "underline":
+      before = "__";
+      after = "__";
+      if (!replacement) replacement = "underlined";
+      break;
+    case "code":
+      before = "`";
+      after = "`";
+      if (!replacement) replacement = "code";
+      break;
+    case "bullet":
+      if (!replacement) replacement = "list item";
+      replacement = replacement
+        .split("\n")
+        .map((line) => (line.startsWith("- ") ? line : `- ${line}`))
+        .join("\n");
+      break;
+    case "numbered":
+      if (!replacement) replacement = "list item";
+      replacement = replacement
+        .split("\n")
+        .map((line, i) =>
+          /^\d+\.\s/.test(line) ? line : `${i + 1}. ${line}`
+        )
+        .join("\n");
+      break;
   }
+
+  // Add space around formatting so markdown renders correctly
+  const needsSpaceBefore = start > 0 && text[start - 1] !== " ";
+  const needsSpaceAfter = end < text.length && text[end] !== " ";
+
+  const spaceBefore = needsSpaceBefore ? " " : "";
+  const spaceAfter = needsSpaceAfter ? " " : "";
+
+  const newBody =
+    text.slice(0, start) +
+    spaceBefore +
+    before +
+    replacement +
+    after +
+    spaceAfter +
+    text.slice(end);
+
+  setBody(newBody);
+
+  // Reposition cursor correctly
+  const newPos =
+    start +
+    spaceBefore.length +
+    before.length +
+    replacement.length +
+    after.length;
+  requestAnimationFrame(() => {
+    textarea.focus();
+    textarea.setSelectionRange(newPos, newPos);
+  });
+}
+
 
   // ---------- submit ----------
   async function handleSubmit(e) {
@@ -331,73 +347,15 @@ export default function CreatePost() {
 
           {/* Body / link / image based on tab */}
           {activeTab === "text" && (
-            <div>
-              <div className="flex items-center gap-1 mb-1 text-xs text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
-                <span>Body (optional)</span>
-              </div>
+  <div>
+    <label className="block text-xs font-semibold uppercase mb-1">
+      Body (optional)
+    </label>
 
-              {/* toolbar */}
-              <div className="flex items-center gap-1 mb-1 text-xs">
-                <button
-                  type="button"
-                  onClick={() => applyFormatting("bold")}
-                  className="px-2 py-1 rounded bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover font-semibold"
-                  title="Bold"
-                >
-                  B
-                </button>
-                <button
-                  type="button"
-                  onClick={() => applyFormatting("italic")}
-                  className="px-2 py-1 rounded bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover italic"
-                  title="Italic"
-                >
-                  I
-                </button>
-                <button
-                  type="button"
-                  onClick={() => applyFormatting("underline")}
-                  className="px-2 py-1 rounded bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover underline"
-                  title="Underline"
-                >
-                  U
-                </button>
-                <button
-                  type="button"
-                  onClick={() => applyFormatting("code")}
-                  className="px-2 py-1 rounded bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover font-mono"
-                  title="Inline code"
-                >
-                  {"</>"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => applyFormatting("bullet")}
-                  className="px-2 py-1 rounded bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
-                  title="Bullet list"
-                >
-                  ••
-                </button>
-                <button
-                  type="button"
-                  onClick={() => applyFormatting("numbered")}
-                  className="px-2 py-1 rounded bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
-                  title="Numbered list"
-                >
-                  1.
-                </button>
-              </div>
+    <RichTextEditor value={body} onChange={setBody} />
+  </div>
+)}
 
-              <textarea
-                ref={bodyRef}
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                rows={8}
-                className="w-full px-3 py-2 rounded-md bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider outline-none resize-vertical"
-                placeholder="Text (supports simple markdown: **bold**, *italic*, `code`, lists…)"
-              />
-            </div>
-          )}
 
           {activeTab === "link" && (
             <div>
