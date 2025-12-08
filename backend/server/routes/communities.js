@@ -249,7 +249,7 @@ router.get("/:name/posts", optionalAuth, async (req, res) => {
     const posts = await Post.find({ community: community._id })
       .sort({ createdAt: -1 })
       .populate("author", "username avatar")
-      .populate("community", "name title icon");
+      .populate("community", "name title icon membersCount");
 
 
     // Attach score + yourVote to each post (✔ fixed vote field)
@@ -375,5 +375,10 @@ router.post("/:name/banner", auth, upload.single("banner"), async (req, res) => 
     res.status(500).json({ error: err.message });
   }
 });
+
+
+ 
+
+
 
 module.exports = router;

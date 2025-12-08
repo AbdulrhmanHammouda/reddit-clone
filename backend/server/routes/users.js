@@ -91,22 +91,8 @@ router.patch('/me', auth, writeLimiter, async (req, res) => {
   }
 });
 
-// GET /api/users/me/communities → where I'm a member
-router.get('/me/communities', auth, async (req, res) => {
-  try {
-    const membership = await CommunityMember.find({ user: req.user._id })
-      .populate('community', 'name title avatar');
 
-    res.status(200).json({
-      success: true,
-      data: membership.map(m => m.community),
-      error: null,
-    });
 
-  } catch (err) {
-    res.status(500).json({ success: false, data: null, error: err.message });
-  }
-});
 
 // GET /api/users/me/saved → saved posts
 router.get('/me/saved', auth, async (req, res) => {
@@ -275,5 +261,44 @@ router.delete('/:username/follow', auth, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+
+ 
+
+// GET /api/users/me/communities → communities I own / moderate
+router.get("/me/communities", auth, async (req, res) => {
+  try {
+    const membership = await CommunityMember.find({
+      user: req.user._id,
+      role: { $in: ["owner", "moderator"] },     // only owner / mod
+    }).populate("community", "name title icon membersCount");
+
+    const data = membership
+      .map((m) =>
+        m.community && {
+          _id: m.community._id.toString(),
+          name: m.community.name,
+          title: m.community.title,
+          icon: m.community.icon,
+          membersCount: m.community.membersCount,
+          role: m.role,                           // 🔥 IMPORTANT
+        }
+      )
+      .filter(Boolean);
+
+    res.status(200).json({
+      success: true,
+      data,
+      error: null,
+    });
+  } catch (err) {
+    console.error("GET /users/me/communities error:", err);
+    res.status(500).json({ success: false, data: null, error: err.message });
+  }
+});
+
+
+
+
 
 module.exports = router;
