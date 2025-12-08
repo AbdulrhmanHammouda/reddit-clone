@@ -5,55 +5,70 @@ import {
   EllipsisHorizontalIcon,
 } from "@heroicons/react/24/outline";
 import { Link, useNavigate } from "react-router-dom";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import VoteButtons from "./VoteButtons";
+import React from "react";
 
-export default function PostCard({ post }) {
+/**
+ * PostCard
+ * - Accepts either: <PostCard post={post} />   OR   <PostCard {...postFields} />
+ * - Renders text/html body, images, videos and galleries.
+ * - Uses VoteButtons for voting.
+ */
+export default function PostCard(props) {
   const navigate = useNavigate();
 
-  if (!post || typeof post !== "object") return null;
+  // Support two calling styles:
+  // 1) <PostCard post={post} />
+  // 2) <PostCard {...post} />
+  const incoming = props.post ?? props;
 
-  // ---------- basic fields ----------
-  const id = post._id;
-  const title = post.title ?? "";
-  const body = post.body ?? "";
-  const score = Number(post.score ?? post.votes ?? 0);
-  const commentsCount = post.commentsCount ?? post.commentCount ?? 0;
+  // normalize fields
+  const id = incoming._id ?? incoming.id ?? null;
+  const title = incoming.title ?? "";
+  const body = incoming.body ?? "";
+  const score = Number(incoming.score ?? incoming.votes ?? incoming.upvotes ?? 0);
+  const commentsCount = incoming.commentsCount ?? incoming.commentCount ?? incoming.comments ?? 0;
 
-  const community = post.community?.name ?? "unknown";
-  const communityTitle = post.community?.title ?? community;
+  // community may be object or just name
+  const communityObj =
+    typeof incoming.community === "string"
+      ? { name: incoming.community }
+      : incoming.community ?? {};
+  const community = communityObj.name ?? communityObj.title ?? "unknown";
+
   const communityAvatar =
-    post.community?.icon ||
-    post.community?.avatar ||
+    communityObj.avatar ??
+    communityObj.icon ??
     "https://www.redditstatic.com/avatars/avatar_default_02_46D160.png";
 
-  const author = post.author?.username ?? "user";
+  // author may be object or string
+  const authorObj =
+    typeof incoming.author === "string" ? { username: incoming.author } : incoming.author ?? {};
+  const author = authorObj.username ?? authorObj.name ?? "user";
 
-  // ---------- dates ----------
-  const createdAgo = post.createdAt
-    ? new Intl.DateTimeFormat("en-US", {
-        month: "short",
-        day: "numeric",
-      }).format(new Date(post.createdAt))
+  // createdAt formatting
+  const createdAgo = incoming.createdAt
+    ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(
+        new Date(incoming.createdAt)
+      )
     : "recently";
 
-  // ---------- handlers ----------
-  const handleOpenPost = () => {
-    if (!id) return;
-    navigate(`/post/${id}`);
-  };
+  // Media: support imageUrl (string or array), images[], videoUrl, file type hints
+  const images =
+    incoming.imageUrl && Array.isArray(incoming.imageUrl)
+      ? incoming.imageUrl
+      : incoming.images && Array.isArray(incoming.images)
+      ? incoming.images
+      : incoming.imageUrl && typeof incoming.imageUrl === "string"
+      ? [incoming.imageUrl]
+      : [];
 
-  const handleShare = (e) => {
-    e.stopPropagation();
-    const url = `${window.location.origin}/post/${id}`;
-    if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText(url).catch(() => {});
-    } else {
-      // fallback: open in new tab
-      window.open(url, "_blank", "noopener,noreferrer");
-    }
-  };
+  const videoUrl = incoming.videoUrl ?? incoming.video ?? null;
+
+  const externalUrl = incoming.url ?? null;
+
+  // safe guard
+  if (!incoming || (typeof incoming !== "object")) return null;
 
   return (
     <div
@@ -67,22 +82,15 @@ export default function PostCard({ post }) {
     >
       {/* HEADER */}
       <div className="flex items-center justify-between text-[13px]">
-        {/* LEFT SIDE: community + author */}
         <div className="flex items-center gap-2 text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
-          {/* Community Icon */}
           <Link
             to={`/r/${community}`}
             onClick={(e) => e.stopPropagation()}
-            className="h-6 w-6 flex-shrink-0"
+            className="h-6 w-6"
           >
-            <img
-              src={communityAvatar}
-              alt={communityTitle}
-              className="h-full w-full rounded-full object-cover"
-            />
+            <img src={communityAvatar} className="h-full w-full rounded-full object-cover" />
           </Link>
 
-          {/* Community Name */}
           <Link
             to={`/r/${community}`}
             onClick={(e) => e.stopPropagation()}
@@ -93,7 +101,6 @@ export default function PostCard({ post }) {
 
           <span>•</span>
 
-          {/* Author */}
           <Link
             to={`/u/${author}`}
             onClick={(e) => e.stopPropagation()}
@@ -106,19 +113,14 @@ export default function PostCard({ post }) {
           <span>{createdAgo}</span>
         </div>
 
-        {/* RIGHT SIDE: menu (and optional join if you want for home feed) */}
         <div className="flex items-center gap-2">
-          {/* If you only show Join on home feed, you can pass a prop later; for now hide it in community page */}
-          {/* <button
+          <button
             onClick={(e) => e.stopPropagation()}
             className="bg-reddit-blue hover:bg-reddit-blue_hover text-white text-xs font-semibold px-3 py-1 rounded-full"
           >
             Join
-          </button> */}
-          <button
-            onClick={(e) => e.stopPropagation()}
-            className="p-1 rounded-full hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
-          >
+          </button>
+          <button onClick={(e) => e.stopPropagation()} className="p-1 rounded-full">
             <EllipsisHorizontalIcon className="h-5 w-5 text-reddit-icon dark:text-reddit-dark_icon" />
           </button>
         </div>
@@ -127,98 +129,118 @@ export default function PostCard({ post }) {
       {/* TITLE */}
       <h2
         className="mt-2 text-[18px] font-semibold text-reddit-text dark:text-reddit-dark_text leading-6 cursor-pointer hover:underline"
-        onClick={handleOpenPost}
+        onClick={() => navigate(`/post/${id}`)}
       >
         {title}
       </h2>
 
-      {/* BODY (Markdown) */}
+      {/* MEDIA (video first, then images) */}
+      {videoUrl ? (
+        <div
+          className="mt-3 w-full rounded-md overflow-hidden border border-reddit-border dark:border-reddit-dark_divider"
+          onClick={() => navigate(`/post/${id}`)}
+        >
+          <video
+            controls
+            src={videoUrl}
+            className="w-full max-h-[480px] object-contain bg-black"
+            playsInline
+          />
+        </div>
+      ) : images.length > 0 ? (
+        <div className="mt-3 grid gap-2">
+          {images.length === 1 ? (
+            <div
+              className="w-full rounded-md overflow-hidden border border-reddit-border dark:border-reddit-dark_divider"
+              onClick={() => navigate(`/post/${id}`)}
+            >
+              <img
+                src={images[0]}
+                alt={title || "post image"}
+                className="w-full max-h-[420px] object-cover"
+              />
+            </div>
+          ) : (
+            // simple grid for multiple images
+            <div className="grid grid-cols-2 gap-2">
+              {images.slice(0, 4).map((src, idx) => (
+                <div
+                  key={idx}
+                  className="rounded-md overflow-hidden border border-reddit-border dark:border-reddit-dark_divider cursor-pointer"
+                  onClick={() => navigate(`/post/${id}`)}
+                >
+                  <img src={src} alt={`img-${idx}`} className="w-full h-40 object-cover" />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      {/* BODY (HTML or plain text). If body looks like HTML we render it as HTML; otherwise plain text. */}
       {body && (
-        <div className="mt-2 text-[15px] leading-6 text-reddit-text_light dark:text-reddit-dark_text_light">
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            urlTransform={(url) => url || ""}
-            components={{
-              a: ({ node, ...props }) => (
-                <a
-                  {...props}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-500 hover:underline"
-                />
-              ),
-              strong: ({ node, ...props }) => (
-                <strong className="font-semibold" {...props} />
-              ),
-              em: ({ node, ...props }) => (
-                <em className="italic" {...props} />
-              ),
-              code: ({ node, inline, ...props }) =>
-                inline ? (
-                  <code
-                    className="px-1 py-[1px] rounded bg-reddit-hover dark:bg-reddit-dark_hover text-[13px]"
-                    {...props}
-                  />
-                ) : (
-                  <pre className="mt-2 p-2 rounded bg-reddit-hover dark:bg-reddit-dark_hover text-[13px] overflow-x-auto">
-                    <code {...props} />
-                  </pre>
-                ),
-              p: ({ node, ...props }) => <p className="mb-1" {...props} />,
-              ul: ({ node, ...props }) => (
-                <ul className="list-disc ml-5 mb-1" {...props} />
-              ),
-              ol: ({ node, ...props }) => (
-                <ol className="list-decimal ml-5 mb-1" {...props} />
-              ),
-            }}
-          >
-            {body}
-          </ReactMarkdown>
+        <div
+          className="
+            mt-3 text-[15px]
+            text-reddit-text_light dark:text-reddit-dark_text_light
+            leading-snug whitespace-pre-wrap
+          "
+          // If content is HTML (e.g. from Tiptap) we trust it because it was produced/escaped by our editor.
+          // If you are concerned, sanitize server-side or use a client sanitizer.
+          dangerouslySetInnerHTML={{ __html: body }}
+        />
+      )}
+
+      {/* External link preview (if no media and there's a URL) */}
+      {!videoUrl && images.length === 0 && externalUrl && (
+        <div
+          className="mt-3 p-3 rounded-md border border-reddit-border dark:border-reddit-dark_divider bg-reddit-hover dark:bg-reddit-dark_hover cursor-pointer"
+          onClick={() => window.open(externalUrl, "_blank")}
+        >
+          <div className="text-sm font-medium text-reddit-text break-all">{externalUrl}</div>
         </div>
       )}
 
       {/* ACTION BAR */}
       <div className="flex items-center gap-4 mt-3">
         {/* Votes */}
-        <div onClick={(e) => e.stopPropagation()}>
-          <VoteButtons initial={score} postId={id} />
-        </div>
+   
+<div onClick={(e) => e.stopPropagation()}>
+  <VoteButtons
+  postId={incoming._id ?? incoming.id}
+  initialScore={score}
+  initialVote={incoming.yourVote ?? 0}
+/>
+</div>
 
-        {/* Comments Button */}
-        <button
-          type="button"
-          className="
-            flex items-center gap-1
-            bg-reddit-hover dark:bg-reddit-dark_hover
-            px-3 py-[6px] rounded-full
-            text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary
-            hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover
-          "
+
+        {/* Comments */}
+        <div
+          className="flex items-center gap-1 bg-reddit-hover dark:bg-reddit-dark_hover px-3 py-[6px] rounded-full text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary cursor-pointer hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
           onClick={(e) => {
             e.stopPropagation();
-            handleOpenPost();
+            navigate(`/post/${id}`);
           }}
         >
-          <ChatBubbleBottomCenterTextIcon className="h-4 w-4 text-reddit-icon dark:text-reddit-dark_icon" />
+          <ChatBubbleBottomCenterTextIcon className="h-4 w-4 text-reddit-icon" />
           <span>{commentsCount}</span>
-        </button>
+        </div>
 
-        {/* Share Button */}
-        <button
-          type="button"
-          className="
-            flex items-center gap-1
-            bg-reddit-hover dark:bg-reddit-dark_hover
-            px-3 py-[6px] rounded-full
-            text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary
-            hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover
-          "
-          onClick={handleShare}
+        {/* Share */}
+        <div
+          className="flex items-center gap-1 bg-reddit-hover dark:bg-reddit-dark_hover px-3 py-[6px] rounded-full text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary cursor-pointer hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
+          onClick={(e) => {
+            e.stopPropagation();
+            try {
+              navigator.clipboard.writeText(`${window.location.origin}/post/${id}`);
+            } catch (err) {
+              console.warn("clipboard failed", err);
+            }
+          }}
         >
-          <ShareIcon className="h-4 w-4 text-reddit-icon dark:text-reddit-dark_icon" />
+          <ShareIcon className="h-4 w-4 text-reddit-icon" />
           <span>Share</span>
-        </button>
+        </div>
       </div>
     </div>
   );

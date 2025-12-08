@@ -1,92 +1,96 @@
+// src/components/VoteButtons.jsx
 import { useState } from "react";
+import api from "../api/axios";
+import useAuth from "../hooks/useAuth";
 
-// Reddit-style arrow components (outline when inactive, filled when active)
-function UpArrow({ className, onClick, filled = false }) {
-  return (
-    <svg
-      onClick={onClick}
-      className={className}
-      viewBox="0 0 24 24"
-      xmlns="http://www.w3.org/2000/svg"
-      role="img"
-      aria-hidden="true"
-    >
-      {filled ? (
-        <polygon points="12 4 20 18 4 18" fill="currentColor" />
-      ) : (
-        <polygon points="12 5 19 19 5 19" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-      )}
-    </svg>
+export default function VoteButtons({
+  postId,
+  initialScore = 0,
+  initialVote = 0,
+}) {
+  const { token } = useAuth();
+
+  const [count, setCount] = useState(initialScore);
+  const [state, setState] = useState(
+    initialVote === 1 ? "up" : initialVote === -1 ? "down" : "none"
   );
-}
 
-function DownArrow({ className, onClick, filled = false }) {
-  return (
-    <svg
-      onClick={onClick}
-      className={className}
-      viewBox="0 0 24 24"
-      xmlns="http://www.w3.org/2000/svg"
-      role="img"
-      aria-hidden="true"
-    >
-      {filled ? (
-        <polygon points="4 6 20 6 12 20" fill="currentColor" />
-      ) : (
-        <polygon points="5 5 19 5 12 19" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-      )}
-    </svg>
-  );
-}
+  async function sendVote(direction) {
+    if (!token) {
+      alert("You must login to vote");
+      return;
+    }
 
-export default function VoteButtons({ initial }) {
-  const [count, setCount] = useState(initial);
-  const [state, setState] = useState("none"); // "none" | "up" | "down"
+    try {
+      // axios interceptor already attaches Authorization header
+      const res = await api.post(`/posts/${postId}/vote`, { value:direction });
+
+      const { score, yourVote } = res.data.data;
+      setCount(score);
+      setState(
+        yourVote === 1 ? "up" : yourVote === -1 ? "down" : "none"
+      );
+    } catch (err) {
+      console.error("Vote error:", err?.response?.data || err);
+    }
+  }
 
   const upvote = () => {
-    if (state === "up") {
-      setCount(count - 1);
-      setState("none");
-    } else if (state === "down") {
-      setCount(count + 2);
-      setState("up");
-    } else {
-      setCount(count + 1);
-      setState("up");
-    }
+    if (state === "up") sendVote(0);
+    else sendVote(1);
   };
 
   const downvote = () => {
-    if (state === "down") {
-      setCount(count + 1);
-      setState("none");
-    } else if (state === "up") {
-      setCount(count - 2);
-      setState("down");
-    } else {
-      setCount(count - 1);
-      setState("down");
-    }
+    if (state === "down") sendVote(0);
+    else sendVote(-1);
   };
 
-  const containerClass = `flex items-center px-3 py-[6px] rounded-full gap-1 transition-colors duration-150 ` +
+  const containerClass =
+    `flex items-center px-3 py-[6px] rounded-full gap-1 transition-colors duration-150 ` +
     (state === "up"
       ? "bg-reddit-upvote dark:bg-reddit-dark_upvote"
       : state === "down"
       ? "bg-reddit-downvote dark:bg-reddit-dark_downvote"
       : "bg-reddit-hover dark:bg-reddit-dark_hover");
 
-  const iconUpClass = `h-4 w-4 cursor-pointer ` + (state === "up" ? "text-reddit-card" : "text-reddit-icon dark:text-reddit-dark_icon");
-  const iconDownClass = `h-4 w-4 cursor-pointer ` + (state === "down" ? "text-reddit-card" : "text-reddit-icon dark:text-reddit-dark_icon");
-  const countClass = state === "up" || state === "down" ? "text-reddit-card font-medium" : "text-reddit-text_secondary dark:text-reddit-dark_text_secondary font-medium";
+  const iconUpClass =
+    `h-4 w-4 cursor-pointer ` +
+    (state === "up"
+      ? "text-reddit-card"
+      : "text-reddit-icon dark:text-reddit-dark_icon");
+
+  const iconDownClass =
+    `h-4 w-4 cursor-pointer ` +
+    (state === "down"
+      ? "text-reddit-card"
+      : "text-reddit-icon dark:text-reddit-dark_icon");
+
+  const countClass =
+    state === "up" || state === "down"
+      ? "text-reddit-card font-medium"
+      : "text-reddit-text_secondary dark:text-reddit-dark_text_secondary font-medium";
 
   return (
     <div className={containerClass}>
-      <UpArrow onClick={upvote} filled={state === "up"} className={iconUpClass} />
+      <svg onClick={upvote} className={iconUpClass} viewBox="0 0 24 24">
+        <polygon
+          points="12 5 19 19 5 19"
+          fill={state === "up" ? "currentColor" : "none"}
+          stroke="currentColor"
+          strokeWidth="1.6"
+        />
+      </svg>
 
       <span className={countClass}>{count}</span>
 
-      <DownArrow onClick={downvote} filled={state === "down"} className={iconDownClass} />
+      <svg onClick={downvote} className={iconDownClass} viewBox="0 0 24 24">
+        <polygon
+          points="5 5 19 5 12 19"
+          fill={state === "down" ? "currentColor" : "none"}
+          stroke="currentColor"
+          strokeWidth="1.6"
+        />
+      </svg>
     </div>
   );
 }

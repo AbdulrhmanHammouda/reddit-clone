@@ -37,9 +37,15 @@ export default function CommunityPage() {
     setLoading(true);
     setError(null);
     try {
+      // include token in headers so backend returns yourVote & score
+      const headers = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+
       const res = await api.get(
-        `/communities/${encodeURIComponent(name)}/posts`
+        `/communities/${encodeURIComponent(name)}/posts`,
+        { headers }
       );
+
       if (!res?.data?.success) {
         setError(res?.data?.error || "Failed to load community");
         setCommunity(null);
@@ -57,12 +63,12 @@ export default function CommunityPage() {
     } finally {
       setLoading(false);
     }
-  }, [name]);
+  }, [name, token]);
 
   useEffect(() => {
     if (!name) return;
     load();
-  }, [name, load]);
+  }, [name, token, load]);
 
   // ---------- join / leave ----------
   async function joinCommunity() {
@@ -278,20 +284,17 @@ export default function CommunityPage() {
   return (
     <div className="bg-reddit-page dark:bg-reddit-dark_bg text-reddit-text dark:text-reddit-dark_text min-h-screen">
       <div className="mx-auto w-full max-w-[1200px] px-4 lg:px-6">
-      <CommunityHeader
-  community={community}
-  onJoin={headerOnJoin}
-  joinLoading={joinLoading}
-  onCreatePost={() =>
-    navigate(`/createpost?community=${encodeURIComponent(community.name)}`)
-  }
-  onEditCommunity={openEditModal}
-/>
-
-
+        <CommunityHeader
+          community={community}
+          onJoin={headerOnJoin}
+          joinLoading={joinLoading}
+          onCreatePost={() =>
+            navigate(`/createpost?community=${encodeURIComponent(community.name)}`)
+          }
+          onEditCommunity={openEditModal}
+        />
 
         {/* owner quick controls under header */}
-         
 
         <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 flex justify-center">
@@ -309,139 +312,137 @@ export default function CommunityPage() {
       </div>
 
       {/* Edit modal */}
-      {/* Edit modal */}
-{editing && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-    {/* backdrop */}
-    <div
-      className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-      onClick={() => !savingEdit && setEditing(false)}
-    />
-
-    {/* Modal card */}
-    <form
-      onSubmit={saveEdits}
-      className="relative z-60 w-full max-w-lg bg-reddit-card dark:bg-reddit-dark_card rounded-2xl p-6 border border-reddit-border dark:border-reddit-dark_divider shadow-xl"
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold text-reddit-text dark:text-reddit-dark_text">
-          Edit Community
-        </h2>
-        <button
-          type="button"
-          onClick={() => !savingEdit && setEditing(false)}
-          className="text-xl px-2 hover:text-reddit-blue"
-        >
-          ✕
-        </button>
-      </div>
-
-      {/* Form fields */}
-      <div className="space-y-5 max-h-[65vh] overflow-y-auto pr-2">
-        {/* Title */}
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider mb-1 opacity-70">
-            Display Title
-          </label>
-          <input
-            value={editTitle}
-            onChange={(e) => setEditTitle(e.target.value)}
-            className="w-full px-3 py-2 rounded-md bg-reddit-hover dark:bg-reddit-dark_hover border border-reddit-border dark:border-reddit-dark_divider focus:outline-none focus:ring-2 focus:ring-reddit-blue"
+      {editing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          {/* backdrop */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => !savingEdit && setEditing(false)}
           />
+
+          {/* Modal card */}
+          <form
+            onSubmit={saveEdits}
+            className="relative z-60 w-full max-w-lg bg-reddit-card dark:bg-reddit-dark_card rounded-2xl p-6 border border-reddit-border dark:border-reddit-dark_divider shadow-xl"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-reddit-text dark:text-reddit-dark_text">
+                Edit Community
+              </h2>
+              <button
+                type="button"
+                onClick={() => !savingEdit && setEditing(false)}
+                className="text-xl px-2 hover:text-reddit-blue"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Form fields */}
+            <div className="space-y-5 max-h-[65vh] overflow-y-auto pr-2">
+              {/* Title */}
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider mb-1 opacity-70">
+                  Display Title
+                </label>
+                <input
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full px-3 py-2 rounded-md bg-reddit-hover dark:bg-reddit-dark_hover border border-reddit-border dark:border-reddit-dark_divider focus:outline-none focus:ring-2 focus:ring-reddit-blue"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider mb-1 opacity-70">
+                  Description
+                </label>
+                <textarea
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 rounded-md bg-reddit-hover dark:bg-reddit-dark_hover border border-reddit-border dark:border-reddit-dark_divider focus:outline-none focus:ring-2 focus:ring-reddit-blue"
+                />
+              </div>
+
+              {/* Rules */}
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider mb-1 opacity-70">
+                  Rules (one per line)
+                </label>
+                <textarea
+                  value={editRulesText}
+                  onChange={(e) => setEditRulesText(e.target.value)}
+                  rows={4}
+                  className="w-full px-3 py-2 rounded-md bg-reddit-hover dark:bg-reddit-dark_hover border border-reddit-border dark:border-reddit-dark_divider focus:outline-none focus:ring-2 focus:ring-reddit-blue"
+                />
+              </div>
+
+              {/* Private */}
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={editIsPrivate}
+                  onChange={(e) => setEditIsPrivate(e.target.checked)}
+                  className="accent-reddit-blue"
+                />
+                Private community
+              </label>
+
+              {/* Uploads */}
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider mb-1 opacity-70">
+                    Icon (Logo)
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setIconFile(e.target.files?.[0] ?? null)}
+                    className="text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider mb-1 opacity-70">
+                    Banner Image
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setBannerFile(e.target.files?.[0] ?? null)}
+                    className="text-sm"
+                  />
+                </div>
+              </div>
+
+              {editError && (
+                <div className="text-sm text-red-500 font-medium">{editError}</div>
+              )}
+            </div>
+
+            {/* Buttons */}
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => !savingEdit && setEditing(false)}
+                className="px-4 py-2 rounded-full text-sm border border-reddit-border dark:border-reddit-dark_divider hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="submit"
+                disabled={savingEdit}
+                className="px-5 py-2 rounded-full text-sm font-semibold bg-reddit-blue hover:bg-reddit-blue_hover text-white disabled:opacity-50"
+              >
+                {savingEdit ? "Saving…" : "Save changes"}
+              </button>
+            </div>
+          </form>
         </div>
-
-        {/* Description */}
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider mb-1 opacity-70">
-            Description
-          </label>
-          <textarea
-            value={editDescription}
-            onChange={(e) => setEditDescription(e.target.value)}
-            rows={3}
-            className="w-full px-3 py-2 rounded-md bg-reddit-hover dark:bg-reddit-dark_hover border border-reddit-border dark:border-reddit-dark_divider focus:outline-none focus:ring-2 focus:ring-reddit-blue"
-          />
-        </div>
-
-        {/* Rules */}
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider mb-1 opacity-70">
-            Rules (one per line)
-          </label>
-          <textarea
-            value={editRulesText}
-            onChange={(e) => setEditRulesText(e.target.value)}
-            rows={4}
-            className="w-full px-3 py-2 rounded-md bg-reddit-hover dark:bg-reddit-dark_hover border border-reddit-border dark:border-reddit-dark_divider focus:outline-none focus:ring-2 focus:ring-reddit-blue"
-          />
-        </div>
-
-        {/* Private */}
-        <label className="flex items-center gap-2 text-sm cursor-pointer">
-          <input
-            type="checkbox"
-            checked={editIsPrivate}
-            onChange={(e) => setEditIsPrivate(e.target.checked)}
-            className="accent-reddit-blue"
-          />
-          Private community
-        </label>
-
-        {/* Uploads */}
-        <div className="space-y-3">
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider mb-1 opacity-70">
-              Icon (Logo)
-            </label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setIconFile(e.target.files?.[0] ?? null)}
-              className="text-sm"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider mb-1 opacity-70">
-              Banner Image
-            </label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setBannerFile(e.target.files?.[0] ?? null)}
-              className="text-sm"
-            />
-          </div>
-        </div>
-
-        {editError && (
-          <div className="text-sm text-red-500 font-medium">{editError}</div>
-        )}
-      </div>
-
-      {/* Buttons */}
-      <div className="mt-5 flex justify-end gap-3">
-        <button
-          type="button"
-          onClick={() => !savingEdit && setEditing(false)}
-          className="px-4 py-2 rounded-full text-sm border border-reddit-border dark:border-reddit-dark_divider hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
-        >
-          Cancel
-        </button>
-
-        <button
-          type="submit"
-          disabled={savingEdit}
-          className="px-5 py-2 rounded-full text-sm font-semibold bg-reddit-blue hover:bg-reddit-blue_hover text-white disabled:opacity-50"
-        >
-          {savingEdit ? "Saving…" : "Save changes"}
-        </button>
-      </div>
-    </form>
-  </div>
-)}
-
+      )}
     </div>
   );
 }

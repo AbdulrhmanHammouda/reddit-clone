@@ -13,7 +13,8 @@ const storage = new CloudinaryStorage({
   cloudinary,
   params: {
     folder: 'reddit_clone',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+     resource_type: 'auto',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp','gif', 'mp4', 'mov'],
     transformation: [{ quality: 'auto' }],
   },
 });

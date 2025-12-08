@@ -5,6 +5,7 @@ const upload = require("../middleware/upload");
 const Community = require("../models/Community");
 const CommunityMember = require("../models/CommunityMember");
 const Post = require("../models/Post");
+const Vote = require("../models/Vote");
 
 const auth = require("../middleware/authMiddleware");
 const optionalAuth = require("../middleware/optionalAuth");
@@ -208,26 +209,27 @@ router.post("/:name/leave", auth, writeLimiter, async (req, res) => {
   }
 });
 
-// 📝 Get Community + Posts (with owner/join info)
+// 📝 Get Community + Posts (with owner/join info + voting info)
 router.get("/:name/posts", optionalAuth, async (req, res) => {
   try {
     const finalName = normalizeName(req.params.name);
     const community = await Community.findOne({ name: finalName });
     if (!community) {
-      return res
-        .status(404)
-        .json({ success: false, data: null, error: "Community not found" });
+      return res.status(404).json({
+        success: false,
+        data: null,
+        error: "Community not found",
+      });
     }
 
     let isMember = false;
     let memberRole = null;
     let isOwner = false;
+    let userId = req.user?.id || req.user?._id || null;
 
-    if (req.user) {
-      const userId = req.user.id || req.user._id;
+    if (userId) {
       const createdById = community.createdBy?.toString?.();
-
-      if (userId && createdById && createdById === userId.toString()) {
+      if (createdById === userId.toString()) {
         isOwner = true;
         isMember = true;
         memberRole = "owner";
@@ -243,10 +245,36 @@ router.get("/:name/posts", optionalAuth, async (req, res) => {
       }
     }
 
+    // Fetch posts
     const posts = await Post.find({ community: community._id })
       .sort({ createdAt: -1 })
       .populate("author", "username avatar")
-      .populate("community", "name title");
+      .populate("community", "name title icon");
+
+
+    // Attach score + yourVote to each post (✔ fixed vote field)
+    const postsWithVotes = await Promise.all(
+      posts.map(async (post) => {
+        const scoreAgg = await Vote.aggregate([
+          { $match: { post: post._id } },
+          { $group: { _id: "$post", score: { $sum: "$value" } } }, // 🔥 FIXED
+        ]);
+
+        const score = scoreAgg[0]?.score || 0;
+
+        let yourVote = 0;
+        if (userId) {
+          const v = await Vote.findOne({ user: userId, post: post._id });
+          if (v) yourVote = v.value; // 🔥 FIXED
+        }
+
+        return {
+          ...post.toObject(),
+          score,
+          yourVote,
+        };
+      })
+    );
 
     res.json({
       success: true,
@@ -257,13 +285,15 @@ router.get("/:name/posts", optionalAuth, async (req, res) => {
           isOwner,
           memberRole,
         },
-        posts,
+        posts: postsWithVotes,
       },
     });
   } catch (err) {
     res.status(500).json({ success: false, data: null, error: err.message });
   }
 });
+
+
 
 // ✏️ Edit Community
 router.patch("/:name", auth, writeLimiter, async (req, res) => {

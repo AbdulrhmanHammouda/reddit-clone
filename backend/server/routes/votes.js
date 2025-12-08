@@ -1,3 +1,4 @@
+// routes/votes.js
 const express = require('express');
 const router = express.Router();
 const Post = require('../models/Post');
@@ -9,69 +10,47 @@ const validateObjectId = require('../middleware/validateObjectId');
 // POST /api/posts/:id/vote
 router.post('/:id/vote', auth, writeLimiter, validateObjectId('id'), async (req, res) => {
   try {
+    const { direction } = req.body; // 1, -1, 0
     const postId = req.params.id;
-    const { direction } = req.body; // expected 1 or -1
-    if (![1, -1].includes(direction)) return res.status(400).json({ success: false, data: null, error: 'Invalid direction' });
+
+    if (![1, -1, 0].includes(direction))
+      return res.status(400).json({ success: false, error: "Invalid direction" });
 
     const post = await Post.findById(postId);
-    if (!post) return res.status(404).json({ success: false, data: null, error: 'Post not found' });
+    if (!post)
+      return res.status(404).json({ success: false, error: "Post not found" });
 
     const existing = await Vote.findOne({ user: req.user._id, post: postId });
-    let yourVote = direction;
+
     if (!existing) {
-      await Vote.create({ user: req.user._id, post: postId, value: direction });
-      // created vote
-    } else if (existing.value === direction) {
-      // unvote
+      if (direction !== 0)
+        await Vote.create({ user: req.user._id, post: postId, direction });
+    } else if (direction === 0) {
       await existing.deleteOne();
-      yourVote = 0;
     } else {
-      // flip vote
-      existing.value = direction;
+      existing.direction = direction;
       await existing.save();
     }
 
-    // Recompute score from votes to ensure correctness
     const agg = await Vote.aggregate([
       { $match: { post: post._id } },
-      { $group: { _id: '$post', score: { $sum: '$value' } } }
+      { $group: { _id: '$post', score: { $sum: '$direction' } } }
     ]);
-    const newScore = (agg[0] && agg[0].score) || 0;
+
+    const newScore = (agg[0]?.score) || 0;
     post.score = newScore;
     await post.save();
 
-    // return populated post
-    const populated = await Post.findById(post._id).populate('author', 'username').populate('community', 'name title');
-    res.status(200).json({ success: true, data: { post: populated, yourVote: yourVote }, error: null });
+    const updatedVote = await Vote.findOne({ user: req.user._id, post: post._id });
+    const yourVote = updatedVote ? updatedVote.direction : 0;
+
+    res.json({
+      success: true,
+      data: { score: newScore, yourVote }
+    });
+
   } catch (err) {
-    res.status(500).json({ success: false, data: null, error: err.message });
-  }
-});
-
-// DELETE /api/posts/:id/vote  -> remove any vote by user
-router.delete('/:id/vote', auth, writeLimiter, validateObjectId('id'), async (req, res) => {
-  try {
-    const postId = req.params.id;
-    const post = await Post.findById(postId);
-    if (!post) return res.status(404).json({ success: false, data: null, error: 'Post not found' });
-
-    const existing = await Vote.findOne({ user: req.user._id, post: postId });
-    if (existing) {
-      await existing.deleteOne();
-    }
-
-    const agg = await Vote.aggregate([
-      { $match: { post: post._id } },
-      { $group: { _id: '$post', score: { $sum: '$value' } } }
-    ]);
-    const newScore = (agg[0] && agg[0].score) || 0;
-    post.score = newScore;
-    await post.save();
-
-    const populated = await Post.findById(post._id).populate('author', 'username').populate('community', 'name title');
-    res.status(200).json({ success: true, data: { post: populated, yourVote: 0 }, error: null }); // yourVote 0 after delete
-  } catch (err) {
-    res.status(500).json({ success: false, data: null, error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

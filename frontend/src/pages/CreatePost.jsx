@@ -1,9 +1,10 @@
 // src/pages/CreatePost.jsx
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../api/axios";
 import useAuth from "../hooks/useAuth";
 import RichTextEditor from "../components/RichTextEditor";
+
 const TABS = ["text", "image", "link"];
 
 export default function CreatePost() {
@@ -23,14 +24,12 @@ export default function CreatePost() {
   // post data
   const [activeTab, setActiveTab] = useState("text");
   const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
+  const [body, setBody] = useState(""); // HTML string from RichTextEditor
   const [linkUrl, setLinkUrl] = useState("");
   const [imageFile, setImageFile] = useState(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-
-  const bodyRef = useRef(null);
 
   // ---------- load communities ----------
   useEffect(() => {
@@ -42,11 +41,15 @@ export default function CreatePost() {
         if (res.data?.success) {
           setCommunities(res.data.data || []);
         } else {
-          setCommunitiesError(res.data?.error || "Failed to load communities");
+          setCommunitiesError(
+            res.data?.error || "Failed to load communities"
+          );
         }
       } catch (err) {
         setCommunitiesError(
-          err.response?.data?.error || err.message || "Failed to load communities"
+          err.response?.data?.error ||
+            err.message ||
+            "Failed to load communities"
         );
       } finally {
         setCommunitiesLoading(false);
@@ -72,91 +75,6 @@ export default function CreatePost() {
     );
   }, [communities, communitySearch]);
 
-  // ---------- formatting helpers (bold / italic / etc) ----------
-
- function applyFormatting(type) {
-  if (!bodyRef.current) return;
-  const textarea = bodyRef.current;
-  const start = textarea.selectionStart ?? 0;
-  const end = textarea.selectionEnd ?? 0;
-  const text = body || "";
-  const selected = text.slice(start, end);
-
-  let before = "";
-  let after = "";
-  let replacement = selected || "";
-
-  switch (type) {
-    case "bold":
-      before = "**";
-      after = "**";
-      if (!replacement) replacement = "bold text";
-      break;
-    case "italic":
-      before = "*";
-      after = "*";
-      if (!replacement) replacement = "italic text";
-      break;
-    case "underline":
-      before = "__";
-      after = "__";
-      if (!replacement) replacement = "underlined";
-      break;
-    case "code":
-      before = "`";
-      after = "`";
-      if (!replacement) replacement = "code";
-      break;
-    case "bullet":
-      if (!replacement) replacement = "list item";
-      replacement = replacement
-        .split("\n")
-        .map((line) => (line.startsWith("- ") ? line : `- ${line}`))
-        .join("\n");
-      break;
-    case "numbered":
-      if (!replacement) replacement = "list item";
-      replacement = replacement
-        .split("\n")
-        .map((line, i) =>
-          /^\d+\.\s/.test(line) ? line : `${i + 1}. ${line}`
-        )
-        .join("\n");
-      break;
-  }
-
-  // Add space around formatting so markdown renders correctly
-  const needsSpaceBefore = start > 0 && text[start - 1] !== " ";
-  const needsSpaceAfter = end < text.length && text[end] !== " ";
-
-  const spaceBefore = needsSpaceBefore ? " " : "";
-  const spaceAfter = needsSpaceAfter ? " " : "";
-
-  const newBody =
-    text.slice(0, start) +
-    spaceBefore +
-    before +
-    replacement +
-    after +
-    spaceAfter +
-    text.slice(end);
-
-  setBody(newBody);
-
-  // Reposition cursor correctly
-  const newPos =
-    start +
-    spaceBefore.length +
-    before.length +
-    replacement.length +
-    after.length;
-  requestAnimationFrame(() => {
-    textarea.focus();
-    textarea.setSelectionRange(newPos, newPos);
-  });
-}
-
-
   // ---------- submit ----------
   async function handleSubmit(e) {
     e.preventDefault();
@@ -174,13 +92,11 @@ export default function CreatePost() {
     setSubmitting(true);
     try {
       if (activeTab === "image" && imageFile) {
-        // If you already have a /posts/image endpoint, use it here.
-        // Example:
         const fd = new FormData();
         fd.append("title", title.trim());
         fd.append("communityName", selectedCommunity.name);
         fd.append("image", imageFile);
-        if (body.trim()) fd.append("body", body.trim());
+        if (body && body.trim()) fd.append("body", body.trim()); // optional caption HTML
 
         const res = await api.post("/posts/image", fd, {
           headers: { "Content-Type": "multipart/form-data" },
@@ -194,6 +110,7 @@ export default function CreatePost() {
         // text or link post
         const payload = {
           title: title.trim(),
+          // for text tab we send rich HTML; for link tab body is empty
           body: activeTab === "text" ? body : "",
           communityName: selectedCommunity.name,
           url: activeTab === "link" ? linkUrl.trim() || null : null,
@@ -347,15 +264,14 @@ export default function CreatePost() {
 
           {/* Body / link / image based on tab */}
           {activeTab === "text" && (
-  <div>
-    <label className="block text-xs font-semibold uppercase mb-1">
-      Body (optional)
-    </label>
+            <div>
+              <label className="block text-xs font-semibold uppercase mb-1">
+                Body (optional)
+              </label>
 
-    <RichTextEditor value={body} onChange={setBody} />
-  </div>
-)}
-
+              <RichTextEditor value={body} onChange={setBody} />
+            </div>
+          )}
 
           {activeTab === "link" && (
             <div>
