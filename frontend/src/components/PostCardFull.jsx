@@ -27,6 +27,7 @@ export default function PostCardFull({ postId: propPostId }) {
   const [saved, setSaved] = useState(false);
   const [isMember, setIsMember] = useState(false);
   const [isMod, setIsMod] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0); // State for current image index in slider
 
   useEffect(() => {
     // guard: no API call with undefined id
@@ -45,6 +46,7 @@ export default function PostCardFull({ postId: propPostId }) {
         setSaved(data.saved || false);
         setIsMember(data.community?.isMember || false);
         setIsMod(data.community?.isMod || false);
+        setCurrentImageIndex(0); // Reset slider position for new post
       } catch (err) {
         console.error("Error fetching post:", err);
         setError("Error fetching post");
@@ -110,6 +112,16 @@ export default function PostCardFull({ postId: propPostId }) {
   if (loading) return <div className="p-4">Loading...</div>;
   if (error) return <div className="p-4 text-red-500">{error}</div>;
   if (!post) return null;
+
+  const totalImages = post.images?.length || 0;
+
+  const goToNextImage = () => {
+    setCurrentImageIndex((prevIndex) => (prevIndex + 1) % totalImages);
+  };
+
+  const goToPrevImage = () => {
+    setCurrentImageIndex((prevIndex) => (prevIndex - 1 + totalImages) % totalImages);
+  };
 
   const postId = post._id;
   const community = post.community?.name ?? "unknown";
@@ -219,14 +231,44 @@ export default function PostCardFull({ postId: propPostId }) {
         />
       )}
 
-      {/* IMAGE/VIDEO */}
-      {post.imageUrl && (
-        <div className="mt-4 rounded-lg overflow-hidden">
+      {/* IMAGE/VIDEO SLIDER */}
+      {post.images?.length > 0 && (
+        <div className="mt-4 relative w-full h-auto max-h-[480px] overflow-hidden rounded-md">
           <img
-            src={post.imageUrl}
+            src={post.images[currentImageIndex]}
             alt="post media"
-            className="w-full max-h-[480px] object-cover"
+            className="w-full h-full object-contain"
           />
+
+          {totalImages > 1 && (
+            <>
+              {/* Navigation Buttons */}
+              <button
+                onClick={goToPrevImage}
+                className="absolute top-1/2 left-2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full focus:outline-none"
+              >
+                &#10094;
+              </button>
+              <button
+                onClick={goToNextImage}
+                className="absolute top-1/2 right-2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full focus:outline-none"
+              >
+                &#10095;
+              </button>
+
+              {/* Image Indicators */}
+              <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1">
+                {post.images.map((_, index) => (
+                  <span
+                    key={index}
+                    className={`block w-2 h-2 rounded-full ${
+                      index === currentImageIndex ? "bg-white" : "bg-gray-400"
+                    }`}
+                  ></span>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
 

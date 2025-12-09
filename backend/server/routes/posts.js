@@ -21,12 +21,12 @@ const upload = multer({ storage });
 /* ---------------------------------------------------------------------------
    📌 CREATE IMAGE / VIDEO POST
 --------------------------------------------------------------------------- */
-router.post('/image', auth, writeLimiter, upload.single('image'), async (req, res) => {
+router.post('/image', auth, writeLimiter, upload.array('images', 10), async (req, res) => {
   try {
     const { title, body, communityName } = req.body;
 
-    if (!req.file) {
-      return res.status(400).json({ success: false, error: "No file uploaded" });
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ success: false, error: "No files uploaded" });
     }
 
     const community = await Community.findOne({ name: communityName });
@@ -34,12 +34,14 @@ router.post('/image', auth, writeLimiter, upload.single('image'), async (req, re
       return res.status(404).json({ success: false, error: "Community not found" });
     }
 
+    const imageUrls = req.files.map(file => file.path);
+
     const post = await Post.create({
       title,
       body: body || "",
       author: req.user._id,
       community: community._id,
-      imageUrl: req.file.path
+      images: imageUrls // Save array of image URLs
     });
 
     const populated = await Post.findById(post._id)

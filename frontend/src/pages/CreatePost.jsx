@@ -26,7 +26,7 @@ export default function CreatePost() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState(""); // HTML string from RichTextEditor
   const [linkUrl, setLinkUrl] = useState("");
-  const [imageFile, setImageFile] = useState(null);
+  const [imageFiles, setImageFiles] = useState([]); // Array for multiple image files
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -91,11 +91,13 @@ export default function CreatePost() {
 
     setSubmitting(true);
     try {
-      if (activeTab === "image" && imageFile) {
+      if (activeTab === "image" && imageFiles.length > 0) {
         const fd = new FormData();
         fd.append("title", title.trim());
         fd.append("communityName", selectedCommunity.name);
-        fd.append("image", imageFile);
+        imageFiles.forEach(file => {
+          fd.append("images", file); // Append each image file
+        });
         if (body && body.trim()) fd.append("body", body.trim()); // optional caption HTML
 
         const res = await api.post("/posts/image", fd, {
@@ -290,18 +292,15 @@ export default function CreatePost() {
           {activeTab === "image" && (
             <div>
               <label className="block text-xs font-semibold uppercase mb-1">
-                Image / video
+                Image files
               </label>
               <input
                 type="file"
-                accept="image/*,video/*"
-                onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+                accept="image/*"
+                multiple // Allow multiple file selection
+                onChange={(e) => setImageFiles(Array.from(e.target.files))}
+                className="w-full px-3 py-2 rounded-md bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider outline-none"
               />
-              {imageFile && (
-                <div className="mt-1 text-xs text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
-                  Selected: {imageFile.name}
-                </div>
-              )}
 
               <label className="block text-xs font-semibold uppercase mt-4 mb-1">
                 Caption (optional)
