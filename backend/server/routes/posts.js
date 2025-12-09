@@ -4,9 +4,11 @@ const router = express.Router();
 
 const validateObjectId = require('../middleware/validateObjectId');
 const auth = require('../middleware/authMiddleware');
+const optionalAuth = require('../middleware/optionalAuth');
 const { writeLimiter } = require('../middleware/rateLimiter');
 
 const Community = require('../models/Community');
+const CommunityMember = require('../models/CommunityMember');
 const Post = require('../models/Post');
 const Vote = require('../models/Vote');
 const Comment = require('../models/Comment');
@@ -83,52 +85,65 @@ router.post('/', auth, writeLimiter, async (req, res) => {
 /* ---------------------------------------------------------------------------
    📌 GET SINGLE POST + YOUR VOTE
 --------------------------------------------------------------------------- */
-router.get('/:id', validateObjectId('id'), async (req, res) => {
-  try {
-    const authorization = req.headers.authorization;
-    let userId = null;
-
-    // decode token if provided
-    if (authorization?.startsWith("Bearer ")) {
-      const token = authorization.split(" ")[1];
-      try {
-        const jwt = require("jsonwebtoken");
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || "dev_secret");
-        userId = decoded.id;
-      } catch (err) {
-        userId = null; // guest — allow access
+router.get('/:id', optionalAuth, validateObjectId('id'), async (req, res) => {
+    try {
+      const post = await Post.findById(req.params.id)
+        .populate('author', 'username avatar')
+        .populate('community', 'name title icon')
+        .lean(); // Use lean for better performance and to attach properties
+  
+      if (!post) {
+        return res.status(404).json({ success: false, error: 'Post not found' });
       }
+  
+      // Initialize all flags
+      let yourVote = 0;
+      let saved = false;
+      let isMember = false;
+      let isMod = false;
+  
+      // Check flags only if user is logged in
+      if (req.user) {
+        const userId = req.user._id;
+  
+        // Check for vote
+        const vote = await Vote.findOne({ user: userId, post: post._id }).lean();
+        if (vote) yourVote = vote.value;
+  
+        // Check if saved
+        const isSaved = await SavedPost.exists({ user: userId, post: post._id });
+        if (isSaved) saved = true;
+  
+        // Check for community membership and role
+        if (post.community) {
+          const membership = await CommunityMember.findOne({
+            user: userId,
+            community: post.community._id,
+          }).lean();
+  
+          if (membership) {
+            isMember = true;
+            if (['moderator', 'owner'].includes(membership.role)) {
+              isMod = true;
+            }
+          }
+        }
+      }
+  
+      res.status(200).json({
+        success: true,
+        data: {
+          ...post,
+          yourVote,
+          saved,
+          community: post.community ? { ...post.community, isMember, isMod } : null,
+        },
+      });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
     }
+  });
 
-    const post = await Post.findById(req.params.id)
-      .populate('author', 'username avatar')
-      .populate('community', 'name title icon');
-
-    if (!post) {
-      return res.status(404).json({ success: false, error: 'Post not found' });
-    }
-
-    // include user vote only if logged in
-    let yourVote = 0;
-    if (userId) {
-      const v = await Vote.findOne({ user: userId, post: post._id });
-      if (v) yourVote = v.value;
-    }
-
-    res.status(200).json({
-      success: true,
-      data: { ...post.toObject(), yourVote }
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
- 
-
-/* ---------------------------------------------------------------------------
-   🔺🔻 VOTING SYSTEM (direction field)
---------------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------------
    🔺🔻 FINAL VOTING SYSTEM (value field only)
 --------------------------------------------------------------------------- */
@@ -224,22 +239,43 @@ router.patch('/:id', auth, writeLimiter, validateObjectId('id'), async (req, res
    🗑 DELETE POST + CLEANUP
 --------------------------------------------------------------------------- */
 router.delete('/:id', auth, writeLimiter, validateObjectId('id'), async (req, res) => {
-  try {
-    const post = await Post.findOne({ _id: req.params.id, author: req.user._id });
-    if (!post) {
-      return res.status(403).json({ success: false, error: "Not authorized" });
+    try {
+      const post = await Post.findById(req.params.id);
+      if (!post) {
+        // Already gone, success.
+        return res.json({ success: true });
+      }
+  
+      const userId = req.user._id;
+      let isMod = false;
+  
+      // Check if user is a mod of the community
+      if (post.community) {
+        const membership = await CommunityMember.findOne({
+          user: userId,
+          community: post.community,
+        });
+        if (membership && ['moderator', 'owner'].includes(membership.role)) {
+          isMod = true;
+        }
+      }
+  
+      // Author or mod can delete
+      if (post.author.toString() !== userId.toString() && !isMod) {
+        return res.status(403).json({ success: false, error: "Not authorized to delete this post" });
+      }
+  
+      // Proceed with deletion
+      await Vote.deleteMany({ post: post._id });
+      await SavedPost.deleteMany({ post: post._id });
+      await Comment.deleteMany({ post: post._id });
+      await Post.findByIdAndDelete(post._id);
+  
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
     }
-
-    await Vote.deleteMany({ post: post._id });
-    await SavedPost.deleteMany({ post: post._id });
-    await Comment.deleteMany({ post: post._id });
-    await Post.findByIdAndDelete(post._id);
-
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+  });
 
 /* ---------------------------------------------------------------------------
    ⭐ SAVE / UNSAVE
