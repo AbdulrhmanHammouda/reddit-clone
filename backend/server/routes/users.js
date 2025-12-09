@@ -101,14 +101,35 @@ router.get('/me/saved', auth, async (req, res) => {
       .populate({
         path: 'post',
         populate: [
-          { path: 'author', select: 'username' },
-          { path: 'community', select: 'name title' },
+          { path: 'author', select: 'username avatar' }, // Include avatar for author
+          { path: 'community', select: 'name title icon' }, // Include icon for community
         ],
+        select: 'title content image score createdAt', // Select image and other relevant post fields
       });
+
+    const postsWithDetails = await Promise.all(saved.map(async (s) => {
+      const post = s.post.toObject();
+
+      // Calculate score (already available from post.score, but ensure consistency)
+      const score = post.score || 0;
+
+      let yourVote = 0;
+      if (req.user) {
+        const v = await Vote.findOne({ user: req.user._id, post: post._id });
+        if (v) yourVote = v.value;
+      }
+
+      return {
+        ...post,
+        score,
+        yourVote,
+        saved: true, // Always true for posts returned from /me/saved
+      };
+    }));
 
     res.status(200).json({
       success: true,
-      data: saved.map(s => s.post),
+      data: postsWithDetails,
       error: null,
     });
 

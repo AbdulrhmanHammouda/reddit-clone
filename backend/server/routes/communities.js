@@ -6,6 +6,7 @@ const Community = require("../models/Community");
 const CommunityMember = require("../models/CommunityMember");
 const Post = require("../models/Post");
 const Vote = require("../models/Vote");
+const SavedPost = require("../models/SavedPost");
 
 const auth = require("../middleware/authMiddleware");
 const optionalAuth = require("../middleware/optionalAuth");
@@ -261,21 +262,28 @@ router.get("/:name/posts", optionalAuth, async (req, res) => {
       posts.map(async (post) => {
         const scoreAgg = await Vote.aggregate([
           { $match: { post: post._id } },
-          { $group: { _id: "$post", score: { $sum: "$value" } } }, // 🔥 FIXED
+          { $group: { _id: "$post", score: { $sum: "$value" } } },
         ]);
 
         const score = scoreAgg[0]?.score || 0;
 
         let yourVote = 0;
+        let saved = false; // Initialize saved flag
+
         if (userId) {
           const v = await Vote.findOne({ user: userId, post: post._id });
-          if (v) yourVote = v.value; // 🔥 FIXED
+          if (v) yourVote = v.value;
+
+          // Check if post is saved by the user
+          const s = await SavedPost.findOne({ user: userId, post: post._id });
+          if (s) saved = true;
         }
 
         return {
           ...post.toObject(),
           score,
           yourVote,
+          saved, // Include the saved flag
         };
       })
     );

@@ -54,8 +54,15 @@ export default function CommunityPage() {
       }
 
       const { community: c, posts: p } = res.data.data;
+
+      const normalized = (p || []).map((post) => ({
+        ...post,
+        saved: !!post.saved, // ensure boolean
+        yourVote: post.yourVote ?? 0, // ensure number
+      }));
+
       setCommunity(c);
-      setPosts(p || []);
+      setPosts(normalized);
     } catch (err) {
       setError(err.response?.data?.error || err.message || "Failed to load");
       setCommunity(null);
@@ -289,7 +296,9 @@ export default function CommunityPage() {
           onJoin={headerOnJoin}
           joinLoading={joinLoading}
           onCreatePost={() =>
-            navigate(`/createpost?community=${encodeURIComponent(community.name)}`)
+            navigate(
+              `/createpost?community=${encodeURIComponent(community.name)}`
+            )
           }
           onEditCommunity={openEditModal}
         />
@@ -299,7 +308,15 @@ export default function CommunityPage() {
         <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 flex justify-center">
             <div className="w-full max-w-[740px]">
-              <CommunityFeed posts={posts} createPost={createPost} />
+              <CommunityFeed
+                posts={posts}
+                createPost={createPost}
+                onToggleSave={(postId, saved) => {
+                  setPosts((prev) =>
+                    prev.map((p) => (p._id === postId ? { ...p, saved } : p))
+                  );
+                }}
+              />
             </div>
           </div>
 
@@ -418,7 +435,9 @@ export default function CommunityPage() {
               </div>
 
               {editError && (
-                <div className="text-sm text-red-500 font-medium">{editError}</div>
+                <div className="text-sm text-red-500 font-medium">
+                  {editError}
+                </div>
               )}
             </div>
 

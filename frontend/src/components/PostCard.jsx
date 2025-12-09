@@ -88,18 +88,23 @@ export default function PostCard(props) {
     }
   }
 
-  async function toggleSave() {
-    if (!token) return alert("Login first");
-    try {
-      if (!saved) {
-        await api.post(`/posts/${id}/save`);
-        setSaved(true);
-      } else {
-        await api.delete(`/posts/${id}/save`);
-        setSaved(false);
-      }
-    } catch {}
+ async function toggleSave() {
+  if (!token) return alert("Login to save posts");
+  try {
+    if (!saved) {
+      await api.post(`/posts/${id}/save`);
+      setSaved(true);
+      props.onToggleSave?.(true);   // 🔥 notify parent state
+    } else {
+      await api.delete(`/posts/${id}/save`);
+      setSaved(false);
+      props.onToggleSave?.(false);  // 🔥 notify parent state
+    }
+  } catch (err) {
+    console.error(err);
   }
+}
+
 
   function onDeleteClick() {
     setShowDeleteModal(true);

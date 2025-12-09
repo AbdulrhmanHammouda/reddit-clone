@@ -168,7 +168,13 @@ export default function ProfilePage() {
   const [followLoading, setFollowLoading] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
 
+  // state for saved posts
+  const [savedPosts, setSavedPosts] = useState([]);
+  const [savedLoading, setSavedLoading] = useState(false);
+  const [savedError, setSavedError] = useState(null);
+
   const mountedRef = useRef(true);
+  const isOwn = authUser?.username === username;
 
   // If this is YOUR profile (username === authUser?.username), get your moderated communities via /users/me/communities
   useEffect(() => {
@@ -187,6 +193,48 @@ export default function ProfilePage() {
     }
     return () => (mountedRef.current = false);
   }, [authLoading, authUser, username]);
+
+  // lazy load saved when tab is opened
+  useEffect(() => {
+    let mounted = true;
+    async function fetchSaved() {
+      if (!isOwn) return;               // don't fetch others' saved
+      setSavedLoading(true);
+      setSavedError(null);
+      try {
+        const res = await api.get(`/users/me/saved`); // prefer /users/me/saved for privacy
+        if (!mounted) return;
+        setSavedPosts(res.data?.data || []);
+      } catch (err) {
+        if (!mounted) return;
+        setSavedError(err.response?.data?.error || err.message || 'Failed to load saved');
+      } finally {
+        if (mounted) setSavedLoading(false);
+      }
+    }
+    if (activeTab === 'saved' && savedPosts.length === 0 && isOwn) fetchSaved();
+    return () => { mounted = false; };
+  }, [activeTab, isOwn, savedPosts.length]); // Added savedPosts.length to dependency array
+
+  // lazy load comments when tab opened (if you prefer separate endpoint)
+  useEffect(() => {
+    let mounted = true;
+    async function fetchUserComments() {
+      // Only fetch if comments array is empty and tab is active
+      if (comments.length > 0) return;
+
+      try {
+        const res = await api.get(`/users/${encodeURIComponent(username)}/comments`);
+        if (!mounted) return;
+        setComments(res.data?.data || []);
+      } catch (err) {
+        if (!mounted) return;
+        console.error('Failed to fetch comments', err);
+      }
+    }
+    if (activeTab === 'comments' && comments.length === 0) fetchUserComments();
+    return () => { mounted = false; };
+  }, [activeTab, username, comments.length]); // Added comments.length to dependency array
 
   // load public profile (/users/:username)
   useEffect(() => {
@@ -289,9 +337,9 @@ export default function ProfilePage() {
           </div>
 
           <div className="flex gap-2 mb-4">
-            {["overview", "posts", "comments"].map((tab) => (
+            {(isOwn ? ["overview", "posts", "comments", "saved"] : ["overview", "posts", "comments"]).map((tab) => (
               <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-1.5 rounded-full text-sm font-medium ${activeTab === tab ? "bg-reddit-hover dark:bg-reddit-dark_hover text-reddit-text dark:text-reddit-dark_text" : "text-reddit-text_secondary dark:text-reddit-dark_text_secondary hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"}`}>
-                {tab === "overview" ? "Overview" : tab === "posts" ? "Posts" : "Comments"}
+                {tab === "overview" ? "Overview" : tab === "posts" ? "Posts" : tab === "comments" ? "Comments" : "Saved"}
               </button>
             ))}
           </div>
@@ -322,8 +370,38 @@ export default function ProfilePage() {
 
           {activeTab === "comments" && (
             <div>
-              <CommentReplyBox topLevel onReply={() => {}} onCancel={() => {}} />
-              <CommentsList comments={comments} />
+              {comments.length ? (
+                <>
+                  <CommentReplyBox topLevel onReply={() => {}} onCancel={() => {}} />
+                  <CommentsList comments={comments} />
+                </>
+              ) : (
+                <p className="text-sm text-reddit-text_secondary">No comments yet.</p>
+              )}
+            </div>
+          )}
+
+          {activeTab === "saved" && (
+            <div>
+              {isOwn ? (
+                savedLoading ? (
+                  <div className="text-sm text-reddit-text_secondary">Loading saved posts...</div>
+                ) : savedError ? (
+                  <div className="text-sm text-red-500">Error loading saved posts: {savedError}</div>
+                ) : savedPosts.length === 0 ? (
+                  <div className="text-sm text-reddit-text_secondary">No saved posts yet.</div>
+                ) : (
+                  <div className="space-y-4">
+                    {savedPosts.map((post) => (
+                      <PostCard key={post._id} post={post} />
+                    ))}
+                  </div>
+                )
+              ) : (
+                <div className="text-sm text-reddit-text_secondary">
+                  This user's saved posts are private.
+                </div>
+              )}
             </div>
           )}
         </section>
