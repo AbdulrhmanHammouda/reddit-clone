@@ -25,6 +25,10 @@ export default function PostPage() {
     }
   }
 
+  const handleCommentDelete = (commentId) => {
+    setComments((prevComments) => prevComments.filter((comment) => comment._id !== commentId));
+  };
+
   useEffect(() => {
     fetchComments();
   }, [postId]);
@@ -65,7 +69,7 @@ export default function PostPage() {
           Loading comments...
         </div>
       ) : comments.length > 0 ? (
-        <CommentsList comments={comments} postId={postId} />
+        <CommentsList comments={comments} postId={postId} onDeleteComment={handleCommentDelete} />
       ) : (
         <div className="mt-4 text-sm text-reddit-text_secondary">
           No comments yet.

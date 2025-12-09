@@ -329,6 +329,10 @@ export default function ProfilePage() {
     }
   };
 
+  const handleCommentDelete = (commentId) => {
+    setComments((prevComments) => prevComments.filter((comment) => comment._id !== commentId));
+  };
+
   if (loading) return <div className="pt-10 text-center text-reddit-text_secondary dark:text-reddit-dark_text_secondary">Loading profile...</div>;
   if (error) return <div className="pt-10 text-center text-red-500">Error: {error}</div>;
 
@@ -371,8 +375,8 @@ export default function ProfilePage() {
               <p className="text-sm text-reddit-text_secondary mb-4">Overview</p>
               {comments.length ? (
                 <>
-                  {/* <CommentReplyBox topLevel onReply={() => {}} onCancel={() => {}} /> */}
-                  <CommentsList comments={comments} />
+                  <CommentReplyBox topLevel onReply={() => {}} onCancel={() => {}} />
+                  <CommentsList comments={comments} onDeleteComment={handleCommentDelete} />
                 </>
               ) : (
                 <p className="text-sm text-reddit-text_secondary">No recent comments to show.</p>
@@ -388,8 +392,8 @@ export default function ProfilePage() {
                 <div className="text-sm text-red-500">Error loading comments: {commentsError}</div>
               ) : comments.length ? (
                 <>
-                  {/* <CommentReplyBox topLevel onReply={() => {}} onCancel={() => {}} /> */}
-                  <CommentsList comments={comments} />
+                  <CommentReplyBox topLevel onReply={() => {}} onCancel={() => {}} />
+                  <CommentsList comments={comments} onDeleteComment={handleCommentDelete} />
                 </>
               ) : (
                 <p className="text-sm text-reddit-text_secondary">No comments yet.</p>

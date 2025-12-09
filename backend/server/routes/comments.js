@@ -6,6 +6,7 @@ const validateObjectId = require("../middleware/validateObjectId");
 const Comment = require("../models/Comment");
 const Post = require("../models/Post");
 const CommentVote = require("../models/CommentVote");
+const SavedComment = require("../models/SavedComment");
 const auth = require("../middleware/authMiddleware");
 const { writeLimiter } = require("../middleware/rateLimiter");
 
@@ -56,6 +57,49 @@ router.post("/:id/vote", auth, validateObjectId("id"), async (req, res) => {
     const yourVote = updated ? updated.value : 0;
 
     res.json({ success: true, data: { score: comment.score, yourVote } });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+
+/* --------------------------------------------
+   ⭐ SAVE COMMENT
+-------------------------------------------- */
+router.post("/:id/save", auth, validateObjectId("id"), async (req, res) => {
+  try {
+    const commentId = req.params.id;
+    const userId = req.user._id;
+
+    const comment = await Comment.findById(commentId);
+    if (!comment) {
+      return res.status(404).json({ success: false, error: "Comment not found" });
+    }
+
+    const existing = await SavedComment.findOne({ user: userId, comment: commentId });
+    if (existing) {
+      return res.status(200).json({ success: true, saved: true }); // Already saved
+    }
+
+    await SavedComment.create({ user: userId, comment: commentId });
+    res.status(201).json({ success: true, saved: true });
+
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/* --------------------------------------------
+   ⭐ UNSAVE COMMENT
+-------------------------------------------- */
+router.delete("/:id/save", auth, validateObjectId("id"), async (req, res) => {
+  try {
+    const commentId = req.params.id;
+    const userId = req.user._id;
+
+    await SavedComment.deleteOne({ user: userId, comment: commentId });
+    res.status(200).json({ success: true, saved: false });
+
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -113,7 +157,7 @@ router.get("/post/:postId", validateObjectId("postId"), auth, async (req, res) =
     const userId = req.user?._id;
 
     const flat = await Comment.find({ post: postId })
-      .sort({ createdAt: 1 })
+      .sort({ createdAt: -1 }) // Sort by creation date, newest first
       .populate("author", "username avatar")
       .lean();
 
@@ -129,10 +173,17 @@ router.get("/post/:postId", validateObjectId("postId"), auth, async (req, res) =
       : [];
     const mapVotes = new Map(votes.map(v => [v.comment.toString(), v.value]));
 
+    // Fetch saved comments for the user
+    const savedComments = userId
+      ? await SavedComment.find({ user: userId, comment: { $in: ids } }).lean()
+      : [];
+    const mapSaved = new Map(savedComments.map(s => [s.comment.toString(), true]));
+
     flat.forEach(c => {
       c.id = c._id;
       c.replies = [];
       c.yourVote = mapVotes.get(c._id.toString()) || 0;
+      c.saved = mapSaved.has(c._id.toString()); // Attach saved status
     });
 
     const byId = {};
@@ -173,6 +224,34 @@ router.patch("/:id", auth, writeLimiter, validateObjectId("id"), async (req, res
   }
 });
 
+
+async function deleteCommentAndChildren(commentId, postId) {
+  const commentsToDelete = [commentId];
+  let currentCommentCount = 0;
+
+  async function findChildren(parentId) {
+    const children = await Comment.find({ parent: parentId }).select('_id');
+    for (const child of children) {
+      commentsToDelete.push(child._id);
+      currentCommentCount++;
+      await findChildren(child._id);
+    }
+  }
+
+  await findChildren(commentId); // Start finding children from the initial comment
+
+  // Delete all votes associated with the comments
+  await CommentVote.deleteMany({ comment: { $in: commentsToDelete } });
+
+  // Delete all saved entries associated with the comments
+  await SavedComment.deleteMany({ comment: { $in: commentsToDelete } });
+
+  // Delete the comments themselves
+  await Comment.deleteMany({ _id: { $in: commentsToDelete } });
+
+  return currentCommentCount + 1; // +1 for the original comment itself
+}
+
 /* --------------------------------------------
    🗑 DELETE COMMENT
 -------------------------------------------- */
@@ -182,9 +261,9 @@ router.delete("/:id", auth, writeLimiter, validateObjectId("id"), async (req, re
     if (!comment)
       return res.status(403).json({ success: false, error: "Not authorized" });
 
-    await CommentVote.deleteMany({ comment: comment._id });
-    await Post.findByIdAndUpdate(comment.post, { $inc: { commentsCount: -1 } });
-    await comment.deleteOne();
+    const totalDeletedComments = await deleteCommentAndChildren(comment._id, comment.post);
+
+    await Post.findByIdAndUpdate(comment.post, { $inc: { commentsCount: -totalDeletedComments } });
 
     res.json({ success: true });
   } catch (err) {
