@@ -15,17 +15,14 @@ export default function ProfileMenu({ onClose }) {
   const navigate = useNavigate();
   const { token, user, logout, updateUser } = useAuth();
 
-  const [avatar, setAvatar] = useState(
-    user?.avatar ||
-      "https://www.redditstatic.com/avatars/avatar_default_07_D4E815.png"
-  );
+  const [avatar, setAvatar] = useState(user?.avatar || "https://www.redditstatic.com/avatars/avatar_default_07_D4E815.png");
 
-  // keep local avatar in sync when context user changes
+  // Keep local avatar in sync when context user changes
   useEffect(() => {
     if (user?.avatar) setAvatar(user.avatar);
   }, [user]);
 
-  // fetch latest profile once token + username available, then update context
+  // Fetch latest profile once token + username available, then update context
   useEffect(() => {
     if (!token || !user?.username) return;
     let mounted = true;
@@ -37,19 +34,20 @@ export default function ProfileMenu({ onClose }) {
         if (!mounted) return;
         if (updated?.avatar && updated.avatar !== avatar) {
           setAvatar(updated.avatar);
-          // update context safely (no re-login / no extra fetch)
+          // Update context safely (no re-login / no extra fetch)
           updateUser(updated);
         }
       } catch (err) {
-        // ignore (we still have the fallback avatar)
+        // Ignore (we still have the fallback avatar)
         console.debug("ProfileMenu: failed to refresh avatar", err);
       }
     }
 
     fetchLatest();
-    return () => { mounted = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, user?.username]); // only re-run when username or token changes
+    return () => {
+      mounted = false;
+    };
+  }, [token, user?.username]); // Only re-run when username or token changes
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -63,7 +61,7 @@ export default function ProfileMenu({ onClose }) {
 
   const handleLogout = () => {
     logout();
-    window.location.replace("/login"); // quick redirect (no blank-white wait)
+    window.location.replace("/login"); // Quick redirect (no blank-white wait)
   };
 
   return (
@@ -78,9 +76,7 @@ export default function ProfileMenu({ onClose }) {
         <img src={avatar} className="h-10 w-10 rounded-full object-cover" alt="avatar" />
         <div>
           <p className="text-sm font-semibold">View Profile</p>
-          <p className="text-xs text-reddit-text_secondary">
-            u/{user?.username || ""}
-          </p>
+          <p className="text-xs text-reddit-text_secondary">{`u/${user?.username || ""}`}</p>
         </div>
       </button>
 

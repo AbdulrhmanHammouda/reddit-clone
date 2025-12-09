@@ -1,40 +1,37 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import MenuButton from "../components/MenuButton";
 
 export default function MainLayout({ children, noRightSidebar = false }) {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    // Retrieve the sidebar state from localStorage
+    const savedState = localStorage.getItem("sidebarState");
+    return savedState ? JSON.parse(savedState) : true; // Default to true (open)
+  });
+
   const desktopShiftClass = sidebarOpen ? "lg:ml-[250px]" : "lg:ml-[68px]";
+
+  // Store the sidebar state in localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem("sidebarState", JSON.stringify(sidebarOpen));
+  }, [sidebarOpen]);
 
   return (
     <div className="min-h-screen bg-reddit-page dark:bg-reddit-dark_bg transition-colors duration-200">
       {/* Navbar */}
-      <Navbar onToggleSidebar={() => setSidebarOpen((s) => !s)} />
+      <Navbar onToggleSidebar={() => setSidebarOpen((prev) => !prev)} />
 
       {/* Sidebar (fixed) */}
       <Sidebar sidebarOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      {/* Main scrolling area - make sure it has lower stacking context */}
+      {/* Main scrolling area */}
       <div className={`${desktopShiftClass} transition-all duration-300 z-0 relative`}>
         <div className="flex gap-6 px-4 lg:px-8 pt-6">
-
-          {/* Floating Sidebar Toggle Button (on top) */}
+          {/* Floating Sidebar Toggle Button */}
           <div
-            className={`
-              hidden lg:flex
-              items-center justify-center
-              h-8 w-7 rounded-full
-              bg-reddit-card dark:bg-reddit-dark_card
-              border border-reddit-border dark:border-reddit-dark_border
-              shadow
-              fixed
-              top-24
-              ${sidebarOpen ? "left-[240px]" : "left-[58px]"}
-              transition-all duration-300
-              z-70
-            `}
-            onClick={() => setSidebarOpen((s) => !s)}
+            className={`hidden lg:flex items-center justify-center h-8 w-7 rounded-full bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_border shadow fixed top-24 ${sidebarOpen ? "left-[240px]" : "left-[58px]"} transition-all duration-300 z-70`}
+            onClick={() => setSidebarOpen((prev) => !prev)}
           >
             <MenuButton open={sidebarOpen} />
           </div>

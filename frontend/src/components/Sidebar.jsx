@@ -17,21 +17,21 @@ export default function Sidebar({ sidebarOpen = true, onClose = () => {} }) {
     <>
       {/* DESKTOP SIDEBAR - FIXED */}
       <aside
-         className={`
-    hidden lg:block
-    fixed
-    top-16
-    left-0
-    ${widthClass}
-    h-[calc(100vh-64px)]
-    px-2
-    bg-reddit-card dark:bg-reddit-dark_card
-    border-r border-reddit-border dark:border-reddit-dark_border
-    transition-all duration-300
-    overflow-y-auto
-    pointer-events-auto
-    z-1001
-  `}
+        className={`
+          hidden lg:block
+          fixed
+          top-16
+          left-0
+          ${widthClass}
+          h-[calc(100vh-64px)]
+          px-2
+          bg-reddit-card dark:bg-reddit-dark_card
+          border-r border-reddit-border dark:border-reddit-dark_border
+          transition-all duration-300
+          overflow-y-auto
+          pointer-events-auto
+          z-1001
+        `}
         style={{ WebkitOverflowScrolling: "touch" }}
       >
         <div className="flex flex-col gap-1 py-3">
@@ -41,28 +41,24 @@ export default function Sidebar({ sidebarOpen = true, onClose = () => {} }) {
             sidebarOpen={sidebarOpen}
             onClick={() => navigate("/")}
           />
-
           <SidebarItem
             Icon={ArrowTopRightOnSquareIcon}
             label="Popular"
             sidebarOpen={sidebarOpen}
             onClick={() => navigate("/popular")}
           />
-
           <SidebarItem
             Icon={Squares2X2Icon}
             label="All"
             sidebarOpen={sidebarOpen}
             onClick={() => navigate("/all")}
           />
-
           <SidebarItem
             Icon={GlobeAltIcon}
             label="Explore"
             sidebarOpen={sidebarOpen}
             onClick={() => navigate("/explore")}
           />
-
           <SidebarItem
             Icon={PlusIcon}
             label="Start a community"
@@ -71,7 +67,7 @@ export default function Sidebar({ sidebarOpen = true, onClose = () => {} }) {
           />
         </div>
 
-        {/* divider */}
+        {/* Divider */}
         <div className={`my-4 border-t border-reddit-divider ${sidebarOpen ? "" : "opacity-0 h-0"}`} />
       </aside>
 

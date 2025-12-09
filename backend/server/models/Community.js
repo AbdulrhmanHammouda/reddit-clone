@@ -16,7 +16,9 @@ const CommunitySchema = new mongoose.Schema({
   banner: { type: String, default: '' },
 
   membersCount: { type: Number, default: 0 },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  interests: { type: [String], default: [] },
+
 });
 
 module.exports = mongoose.model('Community', CommunitySchema);
