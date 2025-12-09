@@ -1,4 +1,5 @@
-// src/pages/PostPage.jsx or PostCardFull.jsx (whichever file you are using)
+// src/pages/PostPage.jsx  OR  src/components/PostCardFull.jsx
+// (but make sure you only have ONE default PostCardFull in the project)
 
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
@@ -10,11 +11,13 @@ import {
 } from "@heroicons/react/24/outline";
 import useAuth from "../hooks/useAuth";
 
-
-export default function PostCardFull() {
-  const { id } = useParams(); // ✔ Correct param from route /post/:id
+export default function PostCardFull({ postId: propPostId }) {
+  const params = useParams();          // from /post/:id
   const navigate = useNavigate();
   const { token, user } = useAuth();
+
+  // use prop if given, otherwise URL param
+  const id = propPostId || params.id;
 
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -26,21 +29,31 @@ export default function PostCardFull() {
   const [isMod, setIsMod] = useState(false);
 
   useEffect(() => {
+    // guard: no API call with undefined id
+    if (!id) {
+      setError("No post id provided");
+      setLoading(false);
+      return;
+    }
+
     async function fetchPost() {
       try {
-        const response = await api.get(`/posts/${id}`); // ✔ Correct request path
-        setPost(response.data.data);
-        setSaved(response.data.data.saved || false);
-        setIsMember(response.data.data.community?.isMember || false);
-        setIsMod(response.data.data.community?.isMod || false);
+        const response = await api.get(`/posts/${id}`);
+        const data = response.data.data;
+
+        setPost(data);
+        setSaved(data.saved || false);
+        setIsMember(data.community?.isMember || false);
+        setIsMod(data.community?.isMod || false);
       } catch (err) {
+        console.error("Error fetching post:", err);
         setError("Error fetching post");
       } finally {
         setLoading(false);
       }
     }
 
-    if (id) fetchPost();
+    fetchPost();
   }, [id]);
 
   async function toggleSave() {
@@ -56,16 +69,21 @@ export default function PostCardFull() {
         await api.delete(`/posts/${id}/save`);
         setSaved(false);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error("Save error:", err);
+    }
   }
 
   async function onDelete() {
     if (!token) return;
-    if (!confirm("Delete this post?")) return;
+
+    const ok = window.confirm("Delete this post? This action cannot be undone.");
+    if (!ok) return;
+
     try {
       await api.delete(`/posts/${id}`);
-      // after delete, navigate away or update UI
-      navigate(-1); // go back
+      // go back to previous page (e.g. profile or community)
+      navigate(-1);
     } catch (err) {
       console.error(err);
       alert("Failed to delete");
@@ -73,15 +91,19 @@ export default function PostCardFull() {
   }
 
   function handleShare() {
+    if (!id) return;
     const url = `${window.location.origin}/post/${id}`;
     if (navigator.share) {
-      navigator.share({ title: post.title, url }).catch(() => { });
+      navigator
+        .share({ title: post?.title || "Post", url })
+        .catch(() => {});
     } else {
-      navigator.clipboard?.writeText(url).then(() => {
-        alert("Link copied to clipboard");
-      }).catch(() => {
-        prompt("Copy link", url);
-      });
+      navigator.clipboard
+        ?.writeText(url)
+        .then(() => alert("Link copied to clipboard"))
+        .catch(() => {
+          window.prompt("Copy link", url);
+        });
     }
   }
 
@@ -94,9 +116,9 @@ export default function PostCardFull() {
 
   const createdAtFormatted = post.createdAt
     ? new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-    }).format(new Date(post.createdAt))
+        month: "short",
+        day: "numeric",
+      }).format(new Date(post.createdAt))
     : "recently";
 
   return (
@@ -134,26 +156,55 @@ export default function PostCardFull() {
           </h1>
         </div>
 
+        {/* 3-dot menu */}
         <div className="ml-2 relative">
-          <button onClick={(e) => { e.stopPropagation(); setMenuOpen(v => !v); }} className="p-2 rounded-full hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover text-reddit-icon dark:text-reddit-dark_icon">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenuOpen((v) => !v);
+            }}
+            className="p-2 rounded-full hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover text-reddit-icon dark:text-reddit-dark_icon"
+          >
             <EllipsisHorizontalIcon className="h-5 w-5" />
           </button>
+
           {menuOpen && (
             <div className="absolute right-0 mt-2 w-44 bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider rounded shadow-lg z-30">
-              <button onClick={(e) => { e.stopPropagation(); handleShare(); setMenuOpen(false); }} className="w-full text-left px-3 py-2 hover:bg-reddit-hover">Share</button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleShare();
+                  setMenuOpen(false);
+                }}
+                className="w-full text-left px-3 py-2 hover:bg-reddit-hover"
+              >
+                Share
+              </button>
 
               {token && (
-                <button onClick={(e) => { e.stopPropagation(); toggleSave(); setMenuOpen(false); }} className="w-full text-left px-3 py-2 hover:bg-reddit-hover">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleSave();
+                    setMenuOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 hover:bg-reddit-hover"
+                >
                   {saved ? "Unsave" : "Save"}
                 </button>
               )}
 
-              <button onClick={(e) => { e.stopPropagation(); console.log('Promote'); setMenuOpen(false); }} className="w-full text-left px-3 py-2 hover:bg-reddit-hover">Promote Post</button>
-
-              <button onClick={(e) => { e.stopPropagation(); console.log('Hide'); setMenuOpen(false); }} className="w-full text-left px-3 py-2 hover:bg-reddit-hover">Hide</button>
-
-              {(user && (user._id === post.author?._id || isMod)) && (
-                <button onClick={(e) => { e.stopPropagation(); onDelete(); setMenuOpen(false); }} className="w-full text-left px-3 py-2 hover:bg-red-600 hover:text-white">Delete</button>
+              {user && (user._id === post.author?._id || isMod) && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete();
+                    setMenuOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 hover:bg-red-600 hover:text-white"
+                >
+                  Delete
+                </button>
               )}
             </div>
           )}

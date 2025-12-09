@@ -1,43 +1,42 @@
-// PostCardFull.jsx
-import { useEffect, useState } from "react";
-import api from "../api/axios";
-import CommentsList from "./CommentsList";  // Component to list all comments for the post
+// src/components/DarkModeToggle.jsx
+import { useState, useEffect } from "react";
+import { SunIcon, MoonIcon } from "@heroicons/react/24/outline";
 
-export default function PostCardFull({ postId }) {
-  const [post, setPost] = useState(null);
-  const [comments, setComments] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function DarkModeToggle() {
+  // Initialize state from localStorage or default to false (light mode)
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem("darkMode");
+      return saved !== null ? JSON.parse(saved) : false;
+    }
+    return false;
+  });
 
+  // Effect to apply the dark class to <html> and save to localStorage
   useEffect(() => {
-    const fetchPostData = async () => {
-      try {
-        const res = await api.get(`/posts/${postId}`);
-        setPost(res.data.data);
-        
-        const commentRes = await api.get(`/comments/post/${postId}`);
-        setComments(commentRes.data.data.comments);
-      } catch (err) {
-        console.error("Error fetching post data:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchPostData();
-  }, [postId]);
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("darkMode", "true");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("darkMode", "false");
+    }
+  }, [isDarkMode]);
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
+  const toggleDarkMode = () => {
+    setIsDarkMode(prevMode => !prevMode);
+  };
 
   return (
-    <div>
-      <h1>{post.title}</h1>
-      <p>{post.body}</p>
-      <div>
-        <strong>Comments:</strong>
-        <CommentsList comments={comments} />
-      </div>
-    </div>
+    <button
+      onClick={toggleDarkMode}
+      className="flex items-center gap-3 px-4 py-3 text-sm text-reddit-text dark:text-reddit-dark_text hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover transition rounded-sm w-full"
+    >
+      {isDarkMode 
+        ? <SunIcon className="h-5 w-5" /> 
+        : <MoonIcon className="h-5 w-5" />
+      }
+      <span>{isDarkMode ? "Light Mode" : "Dark Mode"}</span>
+    </button>
   );
 }
