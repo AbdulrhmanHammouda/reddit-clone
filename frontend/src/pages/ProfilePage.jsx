@@ -317,6 +317,12 @@ export default function ProfilePage() {
     }
   };
 
+  const handlePostCardToggleSave = (postId, isSaved) => {
+    if (!isSaved) {
+      setSavedPosts((prevPosts) => prevPosts.filter((post) => post._id !== postId));
+    }
+  };
+
   if (loading) return <div className="pt-10 text-center text-reddit-text_secondary dark:text-reddit-dark_text_secondary">Loading profile...</div>;
   if (error) return <div className="pt-10 text-center text-red-500">Error: {error}</div>;
 
@@ -393,7 +399,7 @@ export default function ProfilePage() {
                 ) : (
                   <div className="space-y-4">
                     {savedPosts.map((post) => (
-                      <PostCard key={post._id} post={post} />
+                      <PostCard key={post._id} post={post} onToggleSave={handlePostCardToggleSave} />
                     ))}
                   </div>
                 )
