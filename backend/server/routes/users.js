@@ -322,4 +322,50 @@ router.get("/me/communities", auth, async (req, res) => {
 
 
 
+// GET /api/users/:username/comments → fetch comments by a user
+router.get('/:username/comments', auth, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.params.username });
+    if (!user) {
+      return res.status(404).json({ success: false, data: null, error: 'User not found' });
+    }
+
+    const comments = await Comment.find({ author: user._id })
+      .populate('author', 'username avatar')
+      .populate({
+        path: 'post',
+        select: 'title community',
+        populate: { path: 'community', select: 'name title icon' },
+      })
+      .sort({ createdAt: -1 });
+
+    const commentsWithDetails = await Promise.all(
+      comments.map(async (comment) => {
+        let yourVote = 0;
+        if (req.user) {
+          const vote = await CommentVote.findOne({
+            user: req.user._id,
+            comment: comment._id,
+          });
+          if (vote) yourVote = vote.value;
+        }
+
+        return {
+          ...comment.toObject(),
+          yourVote,
+        };
+      })
+    );
+
+    res.status(200).json({
+      success: true,
+      data: commentsWithDetails,
+      error: null,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, data: null, error: err.message });
+  }
+});
+
+
 module.exports = router;

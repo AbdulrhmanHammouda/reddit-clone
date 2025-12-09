@@ -172,6 +172,9 @@ export default function ProfilePage() {
   const [savedPosts, setSavedPosts] = useState([]);
   const [savedLoading, setSavedLoading] = useState(false);
   const [savedError, setSavedError] = useState(null);
+  // state for comments
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentsError, setCommentsError] = useState(null);
 
   const mountedRef = useRef(true);
   const isOwn = authUser?.username === username;
@@ -220,16 +223,19 @@ export default function ProfilePage() {
   useEffect(() => {
     let mounted = true;
     async function fetchUserComments() {
-      // Only fetch if comments array is empty and tab is active
-      if (comments.length > 0) return;
+      if (comments.length > 0) return; // Only fetch if comments array is empty
 
+      setCommentsLoading(true);
+      setCommentsError(null);
       try {
         const res = await api.get(`/users/${encodeURIComponent(username)}/comments`);
         if (!mounted) return;
         setComments(res.data?.data || []);
       } catch (err) {
         if (!mounted) return;
-        console.error('Failed to fetch comments', err);
+        setCommentsError(err.response?.data?.error || err.message || 'Failed to load comments');
+      } finally {
+        if (mounted) setCommentsLoading(false);
       }
     }
     if (activeTab === 'comments' && comments.length === 0) fetchUserComments();
@@ -365,7 +371,7 @@ export default function ProfilePage() {
               <p className="text-sm text-reddit-text_secondary mb-4">Overview</p>
               {comments.length ? (
                 <>
-                  <CommentReplyBox topLevel onReply={() => {}} onCancel={() => {}} />
+                  {/* <CommentReplyBox topLevel onReply={() => {}} onCancel={() => {}} /> */}
                   <CommentsList comments={comments} />
                 </>
               ) : (
@@ -376,9 +382,13 @@ export default function ProfilePage() {
 
           {activeTab === "comments" && (
             <div>
-              {comments.length ? (
+              {commentsLoading ? (
+                <div className="text-sm text-reddit-text_secondary">Loading comments...</div>
+              ) : commentsError ? (
+                <div className="text-sm text-red-500">Error loading comments: {commentsError}</div>
+              ) : comments.length ? (
                 <>
-                  <CommentReplyBox topLevel onReply={() => {}} onCancel={() => {}} />
+                  {/* <CommentReplyBox topLevel onReply={() => {}} onCancel={() => {}} /> */}
                   <CommentsList comments={comments} />
                 </>
               ) : (
