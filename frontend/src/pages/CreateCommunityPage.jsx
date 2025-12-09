@@ -1,13 +1,7 @@
-// src/pages/CreateCommunityPage.jsx
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import useAuth from "../hooks/useAuth";
-
-/*
- CreateCommunityPage
- - Create real community using backend POST /communities
-*/
 
 function validateName(name) {
   if (!name || name.trim().length === 0) return "Name is required.";
@@ -24,28 +18,44 @@ export default function CreateCommunityPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
-  const [rules, setRules] = useState("");
+  const [topics, setTopics] = useState([]); // Added topics state for interests
+  const [icon, setIcon] = useState(null); // Logo
+  const [banner, setBanner] = useState(null); // Banner
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState("");
 
-  const vanity = useMemo(() => `/r/${name || "your_community"}`, [name]);
+  const vanity = useMemo(() => `/r/${name ? name.trim() : "your_community"}`, [name]);
+
+  const availableTopics = [
+    "Anime & Manga", "Cosplay", "Art", "Architecture", "Design", "Photography", "Filmmaking", "Performing Arts",
+    "Digital Art", "Film", "Music", "Tech", "Gaming", "Lifestyle"
+  ];
+
+  const handleTopicSelect = (topic) => {
+    if (!topics.includes(topic) && topics.length < 3) {
+      setTopics([...topics, topic]);
+    }
+  };
+
+  const handleTopicRemove = (topic) => {
+    setTopics(topics.filter((t) => t !== topic));
+  };
 
 const onSubmit = async (e) => {
   e.preventDefault();
 
   const nameErr = validateName(name);
   const descErr = description.length > 500 ? "Description too long" : "";
-  const rulesArr = rules.split("\n").map(r => r.trim()).filter(Boolean);
 
   const newErrors = {};
   if (nameErr) newErrors.name = nameErr;
   if (descErr) newErrors.description = descErr;
-  if (rulesArr.length === 0) newErrors.rules = "At least one rule is required.";
+  if (topics.length < 1) newErrors.topics = "At least one interest is required.";
+
   setErrors(newErrors);
   if (Object.keys(newErrors).length > 0) return;
 
-  // ✔️ Accept token from context OR localStorage
   const effectiveToken = token || localStorage.getItem("token");
   if (!effectiveToken) return navigate("/login");
 
@@ -54,19 +64,51 @@ const onSubmit = async (e) => {
   setSuccessMessage("");
 
   try {
-    const res = await api.post("/communities", {
+    // 1️⃣ Create the community JSON first
+    const body = {
       name: name.trim().toLowerCase(),
       title: name.trim(),
       description: description.trim(),
       isPrivate,
-      rules: rulesArr,
+      interests: topics,
+    };
+
+    const res = await api.post("/communities", body, {
+      headers: {
+        Authorization: `Bearer ${effectiveToken}`,
+      },
     });
 
-    if (res.data?.success) {
-      const newCommunity = res.data.data;
-      setSuccessMessage("Community created!");
-      navigate(`/r/${newCommunity.name}`);
+    const created = res.data.data; // community object with .name
+    const communityName = created.name;
+
+    // 2️⃣ Upload icon if exists
+    if (icon) {
+      const formIcon = new FormData();
+      formIcon.append("icon", icon);
+
+      await api.post(`/communities/${encodeURIComponent(communityName)}/icon`, formIcon, {
+        headers: {
+          Authorization: `Bearer ${effectiveToken}`,
+        },
+      });
     }
+
+    // 3️⃣ Upload banner if exists
+    if (banner) {
+      const formBanner = new FormData();
+      formBanner.append("banner", banner);
+
+      await api.post(`/communities/${encodeURIComponent(communityName)}/banner`, formBanner, {
+        headers: {
+          Authorization: `Bearer ${effectiveToken}`,
+        },
+      });
+    }
+
+    // 4️⃣ Navigate to community page
+    navigate(`/r/${communityName}`);
+
   } catch (err) {
     setErrors({
       name: err.response?.data?.error || "Failed to create community",
@@ -140,6 +182,24 @@ const onSubmit = async (e) => {
             {errors.description && <p className="mt-1 text-sm text-red-500">{errors.description}</p>}
           </div>
 
+          {/* Interests */}
+          <div>
+            <label className="block text-sm font-medium">Interests</label>
+            <div className="mt-4 flex gap-2 flex-wrap">
+              {availableTopics.map((topic) => (
+                <button
+                  key={topic}
+                  onClick={() => handleTopicSelect(topic)}
+                  className={`px-4 py-2 rounded-md border ${topics.includes(topic) ? "bg-gray-300 text-gray-500" : "bg-gray-200 text-gray-700"}`}
+                  disabled={topics.includes(topic)}
+                >
+                  {topic}
+                </button>
+              ))}
+            </div>
+            {errors.topics && <p className="mt-1 text-sm text-red-500">{errors.topics}</p>}
+          </div>
+
           {/* Type */}
           <div>
             <label className="block text-sm font-medium">Type</label>
@@ -155,23 +215,33 @@ const onSubmit = async (e) => {
             </div>
           </div>
 
-          {/* Rules */}
+          {/* Logo */}
           <div>
-            <label className="block text-sm font-medium">Rules (one per line)</label>
-            <textarea
-              value={rules}
-              onChange={(e) => setRules(e.target.value)}
-              rows={4}
-              className="w-full mt-1 px-3 py-2 rounded-md bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider"
+            <label className="block text-sm font-medium">Logo</label>
+            <input
+              type="file"
+              onChange={(e) => setIcon(e.target.files[0])}
+              className="w-full px-3 py-2 rounded-md bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider"
             />
-            {errors.rules && <p className="mt-1 text-sm text-red-500">{errors.rules}</p>}
+            {icon && <p>{icon.name}</p>}
           </div>
 
-          {/* Buttons */}
+          {/* Banner */}
+          <div>
+            <label className="block text-sm font-medium">Banner</label>
+            <input
+              type="file"
+              onChange={(e) => setBanner(e.target.files[0])}
+              className="w-full px-3 py-2 rounded-md bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider"
+            />
+            {banner && <p>{banner.name}</p>}
+          </div>
+
+          {/* Submit */}
           <div className="flex items-center gap-3">
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || topics.length < 1} // Disable if no topics selected
               className="px-4 py-2 rounded-md bg-reddit-blue text-white font-semibold disabled:opacity-60"
             >
               {loading ? "Creating…" : "Create Community"}
@@ -183,7 +253,9 @@ const onSubmit = async (e) => {
                 setName("");
                 setDescription("");
                 setIsPrivate(false);
-                setRules("");
+                setTopics([]);
+                setIcon(null);
+                setBanner(null);
                 setErrors({});
               }}
               className="px-4 py-2 rounded-md bg-reddit-card dark:bg-reddit-dark_card border text-sm"

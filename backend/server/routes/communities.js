@@ -17,20 +17,21 @@ function normalizeName(name) {
 }
 
 // 🚀 Create Community (Owner)
+// backend/routes/communities.js
+// backend/routes/communities.js
 router.post("/", auth, writeLimiter, async (req, res) => {
   try {
-    const { name, title, description, isPrivate, rules } = req.body;
+    const { name, title, description, isPrivate, rules, interests } = req.body;
 
-    if (!name || !title) {
-      return res.status(400).json({ success: false, error: "Missing fields" });
+    // Ensure interests is an array and not undefined
+    if (!Array.isArray(interests) || interests.length < 1) {
+      return res.status(400).json({ success: false, error: "No interests selected" });
     }
 
     const finalName = normalizeName(name);
     const exists = await Community.findOne({ name: finalName });
     if (exists) {
-      return res
-        .status(400)
-        .json({ success: false, error: "Community already exists" });
+      return res.status(400).json({ success: false, error: "Community already exists" });
     }
 
     const community = await Community.create({
@@ -40,6 +41,7 @@ router.post("/", auth, writeLimiter, async (req, res) => {
       createdBy: req.user._id,
       isPrivate: !!isPrivate,
       rules: rules || [],
+      interests: interests,  // Save the selected topics/interests
       membersCount: 1,
     });
 
@@ -54,6 +56,8 @@ router.post("/", auth, writeLimiter, async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
+
 
 // 🧭 Get Community Basic Details
 router.get("/:name", optionalAuth, async (req, res) => {
