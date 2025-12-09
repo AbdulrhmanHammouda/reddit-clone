@@ -55,16 +55,7 @@ export default function PostsFeed() {
     );
 
   return (
-    <div
-      className="
-        w-full 
-        max-w-[740px] 
-        flex flex-col gap-4 
-        bg-reddit-page 
-        dark:bg-reddit-dark_bg 
-        transition-colors duration-200
-      "
-    >
+    <div className="w-full max-w-[740px] flex flex-col gap-4 bg-reddit-page dark:bg-reddit-dark_bg transition-colors duration-200">
       {posts.map((post) => (
         <PostCard key={post.id} {...post} />
       ))}

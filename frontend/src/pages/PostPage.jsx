@@ -1,72 +1,76 @@
-// src/pages/PostPage.jsx
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import PostCardFull from "../components/PostCardFull";
 import CommentsList from "../components/CommentsList";
 import CommentReplyBox from "../components/CommentReplyBox";
+import api from "../api/axios";
+import useAuth from "../hooks/useAuth";
 
 export default function PostPage() {
-  const [post, setPost] = useState({
-    id: 1,
-    title: "Example full post title (#2)",
-    body: "This is the post content...",
-    score: 128,
-  });
+  const { id: postId } = useParams();
+  const { token } = useAuth();
 
-  // Initial dummy comments
-  const [comments, setComments] = useState([
-    {
-      id: 1,
-      author: "alice",
-      time: "1h",
-      text: "This is a top-level comment.",
-      score: 12,
-      replies: [
-        {
-          id: 11,
-          author: "bob",
-          time: "45m",
-          text: "This is a reply.",
-          score: 3,
-          replies: [],
-        },
-      ],
-    },
-    {
-      id: 2,
-      author: "charlie",
-      time: "2h",
-      text: "Another comment with no replies.",
-      score: 5,
-      replies: [],
-    },
-  ]);
+  const [comments, setComments] = useState([]);
+  const [loadingComments, setLoadingComments] = useState(true);
 
-  function addTopLevelComment(text) {
-    const newComment = {
-      id: Date.now(),
-      author: "you",
-      time: "now",
-      text,
-      score: 0,
-      replies: [],
-    };
+  async function fetchComments() {
+    try {
+      const res = await api.get(`/comments/post/${postId}`);
+      // 🔥 new API returns: { success, data: roots }
+      setComments(res.data.data || []);
+    } catch (err) {
+      console.error("Failed to load comments:", err);
+    } finally {
+      setLoadingComments(false);
+    }
+  }
 
-    // TODO: send to backend
-    setComments((c) => [newComment, ...c]);
+  useEffect(() => {
+    fetchComments();
+  }, [postId]);
+
+  async function addTopLevelComment(text, images = []) {
+    if (!token) return;
+
+    const formData = new FormData();
+    formData.append("postId", postId);
+    formData.append("body", text);
+
+    images.forEach((file) => formData.append("images", file));
+
+    try {
+      await api.post("/comments", formData);
+      // 🔥 Instead of pushing locally → refetch from backend
+      fetchComments();
+    } catch (err) {
+      console.error("Failed to post comment", err);
+    }
   }
 
   return (
     <div className="px-4 lg:px-0 max-w-[740px] mx-auto mt-6 pb-20">
-      
-      <PostCardFull postId={post.id} />
+      <PostCardFull />
 
-      {/* TOP-LEVEL COMMENT BOX */}
+      {/* Top-level comment */}
       <div className="mt-6 bg-reddit-card dark:bg-reddit-dark_card p-4 rounded-lg border border-reddit-border dark:border-reddit-dark_divider">
-        <CommentReplyBox onReply={addTopLevelComment} onCancel={() => {}} topLevel />
+        <CommentReplyBox
+          onReply={addTopLevelComment}
+          onCancel={() => {}}
+          topLevel
+        />
       </div>
 
-      {/* COMMENTS */}
-      <CommentsList comments={comments} />
+      {loadingComments ? (
+        <div className="text-sm text-reddit-text_secondary mt-4">
+          Loading comments...
+        </div>
+      ) : comments.length > 0 ? (
+        <CommentsList comments={comments} postId={postId} />
+      ) : (
+        <div className="mt-4 text-sm text-reddit-text_secondary">
+          No comments yet.
+        </div>
+      )}
     </div>
   );
 }

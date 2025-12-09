@@ -1,112 +1,166 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import VoteButtons from "./VoteButtons";
 import CommentReplyBox from "./CommentReplyBox";
+import api from "../api/axios";
+import useAuth from "../hooks/useAuth";
 
-export default function Comment({ comment }) {
+// PRO icons
+import {
+  ChevronDownIcon,
+  ChevronRightIcon,
+} from "@heroicons/react/24/solid";
+
+export default function Comment({ comment, postId }) {
+  const { token } = useAuth();
+
+  // State
   const [showReply, setShowReply] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const [replies, setReplies] = useState(comment.replies || []);
 
-  function handleReply(text) {
-    const newReply = {
-      id: Date.now(),
-      author: "you",
-      time: "now",
-      text,
-      score: 0,
-      replies: [],
-    };
+  // Normalized author
+  const username =
+    typeof comment.author === "string"
+      ? comment.author
+      : comment.author?.username || "user";
 
-    setReplies((prev) => [...prev, newReply]);
-    setShowReply(false);
+  const avatar =
+    typeof comment.author === "object" ? comment.author?.avatar : null;
+
+  const commentId = comment.id || comment._id;
+
+  async function handleReply(text, images = []) {
+    if (!token) return;
+
+    const formData = new FormData();
+    formData.append("postId", postId);
+    formData.append("body", text);
+    formData.append("parent", commentId);
+    images.forEach((file) => formData.append("images", file));
+
+    try {
+      const res = await api.post("/comments", formData);
+      setReplies((prev) => [...prev, res.data.data]);
+      setShowReply(false);
+    } catch (err) {
+      console.error("Reply failed:", err);
+    }
   }
 
-  return (
-    <div>
-      <div className="
-        bg-reddit-card 
-        dark:bg-reddit-dark_card 
-        border border-reddit-border 
-        dark:border-reddit-dark_divider 
-        rounded-lg p-4 
-        text-reddit-text 
-        dark:text-reddit-dark_text
-      ">
+  const created =
+    comment.createdAt && !Number.isNaN(Date.parse(comment.createdAt))
+      ? new Date(comment.createdAt).toLocaleString()
+      : "";
 
-        {/* HEADER */}
-        <div className="flex items-start gap-3">
+  return (
+    <div className="bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider rounded-lg p-4 text-reddit-text dark:text-reddit-dark_text">
+      
+      {/* HEADER */}
+      <div className="flex gap-3">
+        
+        {/* Avatar */}
+        <Link
+          to={`/u/${username}`}
+          className="h-8 w-8 rounded-full overflow-hidden bg-reddit-hover dark:bg-reddit-dark_hover flex items-center justify-center font-semibold"
+        >
+          {avatar ? (
+            <img
+              src={avatar}
+              className="h-full w-full object-cover"
+              alt={username}
+            />
+          ) : (
+            username[0]?.toUpperCase()
+          )}
+        </Link>
+
+        <div className="flex-1">
           
-          {/* Avatar */}
-          <div className="
-            h-8 w-8 rounded-full 
-            bg-reddit-hover 
-            dark:bg-reddit-dark_hover
-            flex items-center justify-center 
-            font-semibold text-reddit-text
-            dark:text-reddit-dark_text
-          ">
-            {comment.author[0].toUpperCase()}
+          {/* Username + date */}
+          <div className="text-sm flex items-center gap-2">
+            <Link to={`/u/${username}`} className="font-semibold hover:underline">
+              {username}
+            </Link>
+            {created && (
+              <span className="text-reddit-text_secondary text-xs">{created}</span>
+            )}
           </div>
 
-          {/* Comment Body */}
-          <div className="flex-1">
+          {/* Body */}
+          <div className="mt-2 whitespace-pre-wrap text-reddit-text_light dark:text-reddit-dark_text_light">
+            {comment.body}
+          </div>
 
-            {/* Name + Time */}
-            <div className="text-sm flex gap-2">
-              <span className="font-semibold text-reddit-text dark:text-reddit-dark_text">
-                {comment.author}
-              </span>
-              <span className="text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
-                {comment.time}
-              </span>
+          {/* Images */}
+          {comment.images?.length > 0 && (
+            <div className="mt-2 flex gap-2 flex-wrap">
+              {comment.images.map((src, i) => (
+                <img
+                  key={i}
+                  src={src}
+                  className="max-w-[180px] rounded-md border"
+                  alt="comment media"
+                />
+              ))}
             </div>
+          )}
 
-            {/* Comment Text */}
-            <div className="mt-2 text-reddit-text_light dark:text-reddit-dark_text_light">
-              {comment.text}
-            </div>
+          {/* Actions */}
+          <div className="mt-3 flex gap-2 items-center text-sm">
 
-            {/* Actions */}
-            <div className="mt-3 flex items-center gap-3 text-sm">
+            {/* Voting */}
+            <VoteButtons
+              commentId={commentId}
+              initialScore={comment.score || 0}
+              initialVote={comment.yourVote || 0}
+            />
 
-              <VoteButtons initial={comment.score} />
-
+            {/* Collapse / Expand */}
+            {replies.length > 0 && (
               <button
-                className="
-                  px-2 py-1 rounded 
-                  hover:bg-reddit-hover 
-                  dark:hover:bg-reddit-dark_hover
-                  text-reddit-text_secondary 
-                  dark:text-reddit-dark_text_secondary
-                "
-                onClick={() => setShowReply((s) => !s)}
+                onClick={() => setCollapsed((v) => !v)}
+                className="p-1 rounded hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
+                title={collapsed ? "Show replies" : "Hide replies"}
               >
-                Reply
+                {collapsed ? (
+                  <ChevronRightIcon className="h-4 w-4 text-reddit-text_secondary dark:text-reddit-dark_text_secondary" />
+                ) : (
+                  <ChevronDownIcon className="h-4 w-4 text-reddit-text_secondary dark:text-reddit-dark_text_secondary" />
+                )}
               </button>
-            </div>
+            )}
+
+            {/* Reply */}
+            <button
+              className="px-2 py-1 hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover rounded"
+              onClick={() => setShowReply((v) => !v)}
+            >
+              Reply
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Reply Box */}
+      {/* Reply box */}
       {showReply && (
-        <div className="ml-10 mt-2">
-          <CommentReplyBox 
-            onReply={handleReply} 
-            onCancel={() => setShowReply(false)} 
+        <div className="ml-12 mt-2">
+          <CommentReplyBox
+            onReply={handleReply}
+            onCancel={() => setShowReply(false)}
           />
         </div>
       )}
 
       {/* Nested Replies */}
-      {replies.length > 0 && (
-        <div className="
-          ml-10 pl-4 
-          border-l border-reddit-border 
-          dark:border-reddit-dark_divider 
-          mt-3 flex flex-col gap-3
-        ">
-          {replies.map((r) => (
-            <Comment key={r.id} comment={r} />
+      {replies.length > 0 && !collapsed && (
+        <div className="ml-12 border-l border-reddit-border dark:border-reddit-dark_divider pl-4 mt-3 flex flex-col gap-3">
+          {replies.map((rep) => (
+            <Comment
+              key={rep.id || rep._id}
+              comment={rep}
+              postId={postId}
+            />
           ))}
         </div>
       )}

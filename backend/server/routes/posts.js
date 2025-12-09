@@ -83,8 +83,23 @@ router.post('/', auth, writeLimiter, async (req, res) => {
 /* ---------------------------------------------------------------------------
    📌 GET SINGLE POST + YOUR VOTE
 --------------------------------------------------------------------------- */
-router.get('/:id', validateObjectId('id'), auth, async (req, res) => {
+router.get('/:id', validateObjectId('id'), async (req, res) => {
   try {
+    const authorization = req.headers.authorization;
+    let userId = null;
+
+    // decode token if provided
+    if (authorization?.startsWith("Bearer ")) {
+      const token = authorization.split(" ")[1];
+      try {
+        const jwt = require("jsonwebtoken");
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || "dev_secret");
+        userId = decoded.id;
+      } catch (err) {
+        userId = null; // guest — allow access
+      }
+    }
+
     const post = await Post.findById(req.params.id)
       .populate('author', 'username avatar')
       .populate('community', 'name title icon');
@@ -93,9 +108,12 @@ router.get('/:id', validateObjectId('id'), auth, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Post not found' });
     }
 
+    // include user vote only if logged in
     let yourVote = 0;
-    const v = await Vote.findOne({ user: req.user._id, post: post._id });
-    if (v) yourVote = v.direction; // use direction consistently
+    if (userId) {
+      const v = await Vote.findOne({ user: userId, post: post._id });
+      if (v) yourVote = v.value;
+    }
 
     res.status(200).json({
       success: true,
@@ -105,6 +123,8 @@ router.get('/:id', validateObjectId('id'), auth, async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
+ 
 
 /* ---------------------------------------------------------------------------
    🔺🔻 VOTING SYSTEM (direction field)

@@ -1,4 +1,3 @@
-// src/components/PostCard.jsx
 import {
   ChatBubbleBottomCenterTextIcon,
   ShareIcon,
@@ -37,9 +36,7 @@ export default function PostCard(props) {
   const community = communityObj.name ?? communityObj.title ?? "unknown";
 
   const communityAvatar =
-    communityObj.avatar ??
-    communityObj.icon ??
-    "https://www.redditstatic.com/avatars/avatar_default_02_46D160.png";
+    communityObj.avatar ?? communityObj.icon ?? "https://www.redditstatic.com/avatars/avatar_default_02_46D160.png";
 
   // author may be object or string
   const authorObj =
@@ -67,27 +64,15 @@ export default function PostCard(props) {
 
   const externalUrl = incoming.url ?? null;
 
-  // safe guard
+  // safeguard
   if (!incoming || (typeof incoming !== "object")) return null;
 
   return (
-    <div
-      className="
-        w-full max-w-[740px]
-        bg-reddit-card dark:bg-reddit-dark_card
-        rounded-xl p-4
-        border border-reddit-border dark:border-reddit-dark_divider
-        shadow-sm
-      "
-    >
+    <div className="w-full max-w-[740px] bg-reddit-card dark:bg-reddit-dark_card rounded-xl p-4 border border-reddit-border dark:border-reddit-dark_divider shadow-sm">
       {/* HEADER */}
       <div className="flex items-center justify-between text-[13px]">
         <div className="flex items-center gap-2 text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
-          <Link
-            to={`/r/${community}`}
-            onClick={(e) => e.stopPropagation()}
-            className="h-6 w-6"
-          >
+          <Link to={`/r/${community}`} onClick={(e) => e.stopPropagation()} className="h-6 w-6">
             <img src={communityAvatar} className="h-full w-full rounded-full object-cover" />
           </Link>
 
@@ -161,7 +146,6 @@ export default function PostCard(props) {
               />
             </div>
           ) : (
-            // simple grid for multiple images
             <div className="grid grid-cols-2 gap-2">
               {images.slice(0, 4).map((src, idx) => (
                 <div
@@ -180,13 +164,7 @@ export default function PostCard(props) {
       {/* BODY (HTML or plain text). If body looks like HTML we render it as HTML; otherwise plain text. */}
       {body && (
         <div
-          className="
-            mt-3 text-[15px]
-            text-reddit-text_light dark:text-reddit-dark_text_light
-            leading-snug whitespace-pre-wrap
-          "
-          // If content is HTML (e.g. from Tiptap) we trust it because it was produced/escaped by our editor.
-          // If you are concerned, sanitize server-side or use a client sanitizer.
+          className="mt-3 text-[15px] text-reddit-text_light dark:text-reddit-dark_text_light leading-snug whitespace-pre-wrap"
           dangerouslySetInnerHTML={{ __html: body }}
         />
       )}
@@ -203,18 +181,10 @@ export default function PostCard(props) {
 
       {/* ACTION BAR */}
       <div className="flex items-center gap-4 mt-3">
-        {/* Votes */}
-   
-<div onClick={(e) => e.stopPropagation()}>
-  <VoteButtons
-  postId={incoming._id ?? incoming.id}
-  initialScore={score}
-  initialVote={incoming.yourVote ?? 0}
-/>
-</div>
+        <div onClick={(e) => e.stopPropagation()}>
+          <VoteButtons postId={incoming._id ?? incoming.id} initialScore={score} initialVote={incoming.yourVote ?? 0} />
+        </div>
 
-
-        {/* Comments */}
         <div
           className="flex items-center gap-1 bg-reddit-hover dark:bg-reddit-dark_hover px-3 py-[6px] rounded-full text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary cursor-pointer hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
           onClick={(e) => {
@@ -226,7 +196,6 @@ export default function PostCard(props) {
           <span>{commentsCount}</span>
         </div>
 
-        {/* Share */}
         <div
           className="flex items-center gap-1 bg-reddit-hover dark:bg-reddit-dark_hover px-3 py-[6px] rounded-full text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary cursor-pointer hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
           onClick={(e) => {

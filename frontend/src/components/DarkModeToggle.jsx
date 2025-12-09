@@ -1,57 +1,43 @@
+// PostCardFull.jsx
 import { useEffect, useState } from "react";
-import { MoonIcon } from "@heroicons/react/24/outline";
+import api from "../api/axios";
+import CommentsList from "./CommentsList";  // Component to list all comments for the post
 
-export default function DarkModeToggle() {
-  const [enabled, setEnabled] = useState(() => {
-    try {
-      return localStorage.getItem("theme") === "dark";
-    } catch (e) {
-      return false;
-    }
-  });
+export default function PostCardFull({ postId }) {
+  const [post, setPost] = useState(null);
+  const [comments, setComments] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      if (enabled) {
-        document.documentElement.classList.add("dark");
-        localStorage.setItem("theme", "dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-        localStorage.setItem("theme", "light");
+    const fetchPostData = async () => {
+      try {
+        const res = await api.get(`/posts/${postId}`);
+        setPost(res.data.data);
+        
+        const commentRes = await api.get(`/comments/post/${postId}`);
+        setComments(commentRes.data.data.comments);
+      } catch (err) {
+        console.error("Error fetching post data:", err);
+      } finally {
+        setLoading(false);
       }
-    } catch (e) {
-      // ignore storage errors
-    }
-  }, [enabled]);
+    };
+    
+    fetchPostData();
+  }, [postId]);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
-    <button
-      onClick={() => setEnabled(!enabled)}
-      className="
-        flex items-center justify-between px-4 py-3 text-sm w-full
-        text-reddit-text dark:text-reddit-dark_text 
-        hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover
-      "
-    >
-      <span className="flex items-center gap-3">
-        <MoonIcon className="h-5 w-5" />
-        Dark Mode
-      </span>
-
-      {/* toggle */}
-      <div
-        className={`
-          w-10 h-5 rounded-full transition flex items-center px-1
-          ${enabled ? "bg-reddit-blue dark:bg-reddit-dark_blue" : "bg-reddit-hover dark:bg-reddit-dark_hover"}
-        `}
-      >
-        <div
-          className={`
-            w-4 h-4 bg-reddit-card dark:bg-reddit-dark_card rounded-full transition
-            ${enabled ? "translate-x-5" : "translate-x-0"}
-          `}
-        ></div>
+    <div>
+      <h1>{post.title}</h1>
+      <p>{post.body}</p>
+      <div>
+        <strong>Comments:</strong>
+        <CommentsList comments={comments} />
       </div>
-    </button>
+    </div>
   );
 }

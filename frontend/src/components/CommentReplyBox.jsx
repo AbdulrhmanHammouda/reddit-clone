@@ -1,80 +1,91 @@
 import { useState } from "react";
 import { PhotoIcon } from "@heroicons/react/24/outline";
 
-export default function CommentReplyBox({ onReply, onCancel, topLevel = false }) {
+export default function CommentReplyBox({
+  onReply,
+  onCancel,
+  topLevel = false,
+}) {
   const [text, setText] = useState("");
+  const [images, setImages] = useState([]); // multiple images
 
   function submit() {
-    if (!text.trim()) return;
-    onReply(text.trim());
+    if (!text.trim() && images.length === 0) return;
+    onReply(text.trim(), images); // ✔ send array of images
     setText("");
+    setImages([]);
+  }
+
+  function handleImageUpload(e) {
+    const files = Array.from(e.target.files);
+    setImages((prev) => [...prev, ...files]); // Append NOT replace
   }
 
   return (
     <div className="w-full">
-      {/* Container */}
-      <div
-        className="
-        w-full border border-reddit-border dark:border-reddit-dark_divider
-        bg-white dark:bg-reddit-dark_card 
-        rounded-3xl px-4 py-3 flex flex-col gap-3
-        "
-      >
-        {/* TEXTAREA */}
+      <div className="w-full border border-reddit-border dark:border-reddit-dark_divider bg-white dark:bg-reddit-dark_card rounded-3xl px-4 py-3 flex flex-col gap-3">
+
+        {/* TEXT AREA */}
         <textarea
-          className="
-            w-full resize-none outline-none bg-transparent
-            text-reddit-text dark:text-reddit-dark_text
-            placeholder:text-reddit-text_secondary dark:placeholder:text-reddit-dark_text_secondary
-          "
+          className="w-full resize-none bg-transparent outline-none text-reddit-text dark:text-reddit-dark_text placeholder:text-reddit-text_secondary dark:placeholder:text-reddit-dark_text_secondary"
           rows={topLevel ? 4 : 2}
           placeholder={topLevel ? "Add a comment" : "Add your reply"}
           value={text}
           onChange={(e) => setText(e.target.value)}
         />
 
-        {/* Bottom toolbar */}
-        <div className="flex items-center justify-between">
-          
-          {/* LEFT: Image & GIF icons */}
-          <div className="flex items-center gap-2 text-reddit-icon dark:text-reddit-dark_icon">
-            <PhotoIcon className="h-5 w-5 cursor-pointer" />
-            <span className="text-xs font-medium cursor-pointer">GIF</span>
+        {/* IMAGE PREVIEW */}
+        {images.length > 0 && (
+          <div className="flex gap-2 flex-wrap">
+            {images.map((file, index) => (
+              <div key={index} className="relative">
+                <img
+                  src={URL.createObjectURL(file)}
+                  className="h-24 w-24 object-cover rounded-md border"
+                />
+                <button
+                  onClick={() =>
+                    setImages(images.filter((_, i) => i !== index))
+                  }
+                  className="absolute top-1 right-1 bg-black/60 text-white text-xs rounded px-1"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
           </div>
+        )}
 
-          {/* RIGHT: Actions */}
-          <div className="flex items-center gap-2">
-            {/* ... menu button */}
-            <button className="
-                h-8 w-8 rounded-full flex items-center justify-center
-                text-reddit-text_secondary dark:text-reddit-dark_text_secondary
-                hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover
-              ">
-              …
-            </button>
+        {/* TOOLBAR */}
+        <div className="flex items-center justify-between">
 
-            {/* Cancel (only for replies) */}
+          {/* Upload images */}
+          <label className="cursor-pointer flex items-center gap-1 text-sm text-reddit-icon dark:text-reddit-dark_icon">
+            <PhotoIcon className="h-5 w-5" />
+            <input
+              type="file"
+              className="hidden"
+              accept="image/*"
+              multiple
+              onChange={handleImageUpload}
+            />
+          </label>
+
+          {/* ACTIONS */}
+          <div className="flex gap-2">
             {!topLevel && (
               <button
                 onClick={onCancel}
-                className="
-                px-4 py-1 rounded-full text-sm
-                bg-reddit-hover dark:bg-reddit-dark_hover
-                text-reddit-text dark:text-reddit-dark_text
-              ">
+                className="px-4 py-1 rounded-full bg-reddit-hover dark:bg-reddit-dark_hover text-sm"
+              >
                 Cancel
               </button>
             )}
 
-            {/* Submit */}
             <button
               onClick={submit}
-              disabled={!text.trim()}
-              className="
-                px-4 py-1 rounded-full text-sm font-medium
-                bg-reddit-blue hover:bg-reddit-blue_hover 
-                text-white disabled:opacity-50
-              "
+              disabled={!text.trim() && images.length === 0}
+              className="px-4 py-1 rounded-full font-medium text-sm bg-reddit-blue text-white disabled:opacity-50"
             >
               {topLevel ? "Comment" : "Reply"}
             </button>
