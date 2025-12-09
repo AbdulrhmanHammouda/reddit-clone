@@ -62,9 +62,9 @@ router.post("/:id/vote", auth, validateObjectId("id"), async (req, res) => {
 });
 
 /* --------------------------------------------
-   📌 CREATE COMMENT (supports multiple images)
+   📌 CREATE COMMENT (supports a single image)
 -------------------------------------------- */
-router.post("/", auth, writeLimiter, upload.array("images", 10), async (req, res) => {
+router.post("/", auth, writeLimiter, upload.single("images"), async (req, res) => {
   try {
     const { postId, body, parent } = req.body;
 
@@ -78,7 +78,7 @@ router.post("/", auth, writeLimiter, upload.array("images", 10), async (req, res
     if (!post)
       return res.status(404).json({ success: false, error: "Post not found" });
 
-    const imageUrls = req.files?.map(f => f.secure_url || f.path) || [];
+    const imageUrls = req.file ? [req.file.secure_url || req.file.path] : [];
 
     const comment = await Comment.create({
       post: postId,

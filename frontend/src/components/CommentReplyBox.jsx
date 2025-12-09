@@ -7,18 +7,18 @@ export default function CommentReplyBox({
   topLevel = false,
 }) {
   const [text, setText] = useState("");
-  const [images, setImages] = useState([]); // multiple images
+  const [image, setImage] = useState(null); // single image
 
   function submit() {
-    if (!text.trim() && images.length === 0) return;
-    onReply(text.trim(), images); // ✔ send array of images
+    if (!text.trim() && !image) return;
+    onReply(text.trim(), image ? [image] : []); // ✔ send array with single image
     setText("");
-    setImages([]);
+    setImage(null);
   }
 
   function handleImageUpload(e) {
-    const files = Array.from(e.target.files);
-    setImages((prev) => [...prev, ...files]); // Append NOT replace
+    const file = e.target.files[0];
+    setImage(file || null);
   }
 
   return (
@@ -35,24 +35,18 @@ export default function CommentReplyBox({
         />
 
         {/* IMAGE PREVIEW */}
-        {images.length > 0 && (
-          <div className="flex gap-2 flex-wrap">
-            {images.map((file, index) => (
-              <div key={index} className="relative">
-                <img
-                  src={URL.createObjectURL(file)}
-                  className="h-24 w-24 object-cover rounded-md border"
-                />
-                <button
-                  onClick={() =>
-                    setImages(images.filter((_, i) => i !== index))
-                  }
-                  className="absolute top-1 right-1 bg-black/60 text-white text-xs rounded px-1"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
+        {image && (
+          <div className="relative w-fit">
+            <img
+              src={URL.createObjectURL(image)}
+              className="h-24 w-24 object-cover rounded-md border"
+            />
+            <button
+              onClick={() => setImage(null)}
+              className="absolute top-1 right-1 bg-black/60 text-white text-xs rounded px-1"
+            >
+              ✕
+            </button>
           </div>
         )}
 
@@ -64,10 +58,9 @@ export default function CommentReplyBox({
             <PhotoIcon className="h-5 w-5" />
             <input
               type="file"
-              name="images" 
+              name="image" 
               className="hidden"
               accept="image/*"
-              multiple
               onChange={handleImageUpload}
             />
           </label>
@@ -85,7 +78,7 @@ export default function CommentReplyBox({
 
             <button
               onClick={submit}
-              disabled={!text.trim() && images.length === 0}
+              disabled={!text.trim() && !image}
               className="px-4 py-1 rounded-full font-medium text-sm bg-reddit-blue text-white disabled:opacity-50"
             >
               {topLevel ? "Comment" : "Reply"}
