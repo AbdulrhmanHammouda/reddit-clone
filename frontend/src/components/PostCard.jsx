@@ -15,7 +15,6 @@ export default function PostCard(props) {
   const { token, user } = useAuth();
 
   const incoming = props.post ?? props;
-
   const id = incoming._id ?? incoming.id ?? null;
   const title = incoming.title ?? "";
   const body = incoming.body ?? "";
@@ -41,9 +40,10 @@ export default function PostCard(props) {
   const author = authorObj.username ?? authorObj.name ?? "user";
 
   const createdAgo = incoming.createdAt
-    ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(
-        new Date(incoming.createdAt)
-      )
+    ? new Intl.DateTimeFormat("en-US", {
+        month: "short",
+        day: "numeric",
+      }).format(new Date(incoming.createdAt))
     : "recently";
 
   const images =
@@ -78,36 +78,6 @@ export default function PostCard(props) {
     return () => document.removeEventListener("mousedown", onDocDown);
   }, [menuOpen]);
 
-  async function toggleSave() {
-    if (!token) return alert("Login to save posts");
-    try {
-      if (!saved) {
-        await api.post(`/posts/${id}/save`);
-        setSaved(true);
-      } else {
-        await api.delete(`/posts/${id}/save`);
-        setSaved(false);
-      }
-    } catch {
-      alert("Failed to save");
-    }
-  }
-
-  function onDeleteClick() {
-    setShowDeleteModal(true);
-    setMenuOpen(false);
-  }
-
-  async function onDeleteConfirm() {
-    if (!token) return;
-    try {
-      await api.delete(`/posts/${id}`);
-      navigate(0);
-    } catch {
-      alert("Failed to delete");
-    }
-  }
-
   function handleShare() {
     const url = `${window.location.origin}/post/${id}`;
     if (navigator.share) {
@@ -118,34 +88,53 @@ export default function PostCard(props) {
     }
   }
 
+  async function toggleSave() {
+    if (!token) return alert("Login first");
+    try {
+      if (!saved) {
+        await api.post(`/posts/${id}/save`);
+        setSaved(true);
+      } else {
+        await api.delete(`/posts/${id}/save`);
+        setSaved(false);
+      }
+    } catch {}
+  }
+
+  function onDeleteClick() {
+    setShowDeleteModal(true);
+    setMenuOpen(false);
+  }
+
+  async function onDeleteConfirm() {
+    if (!token) return;
+    await api.delete(`/posts/${id}`);
+    navigate(0);
+  }
+
   async function handleJoin(e) {
     e.stopPropagation();
     if (!token) return navigate("/login");
-    try {
-      await api.post(`/communities/${community}/join`);
-      setIsMember(true);
-    } catch {
-      alert("Join failed");
-    }
+    await api.post(`/communities/${community}/join`);
+    setIsMember(true);
   }
 
   return (
     <>
-      <div className="w-full max-w-[740px] bg-reddit-card dark:bg-reddit-dark_card rounded-xl p-4 border border-reddit-border dark:border-reddit-dark_divider shadow-sm">
+      <div className="w-full max-w-[740px] bg-reddit-card dark:bg-reddit-dark_card rounded-xl p-4 border border-reddit-border dark:border-reddit-dark_divider shadow-sm transition-colors">
 
         {/* HEADER */}
-        <div className="flex items-center justify-between text-[13px]">
-          <div className="flex items-center gap-2 text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
+        <div className="flex items-center justify-between text-[13px] text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
+          <div className="flex items-center gap-2">
             <Link to={`/r/${community}`} className="h-6 w-6">
               <img src={communityAvatar} className="h-full w-full rounded-full" />
             </Link>
 
-            <Link to={`/r/${community}`} className="font-semibold hover:underline">
+            <Link to={`/r/${community}`} className="font-semibold text-reddit-text dark:text-reddit-dark_text hover:underline">
               r/{community}
             </Link>
 
             <span>•</span>
-
             <Link to={`/u/${author}`} className="truncate max-w-[120px] hover:underline">
               u/{author}
             </Link>
@@ -165,29 +154,18 @@ export default function PostCard(props) {
             )}
 
             <div className="relative" ref={menuRef}>
-              <button
-                onClick={() => setMenuOpen(v => !v)}
-                className="p-1 rounded-full"
-              >
-                <EllipsisHorizontalIcon className="h-5 w-5" />
+              <button onClick={() => setMenuOpen(v => !v)} className="p-1 rounded-full hover:bg-[#e8e9eb] dark:hover:bg-[#2c2d2f]">
+                <EllipsisHorizontalIcon className="h-5 w-5 text-reddit-icon dark:text-reddit-dark_icon" />
               </button>
 
               {menuOpen && (
                 <div className="absolute right-0 mt-2 w-44 bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider rounded shadow-lg z-30">
-
-                  <button
-                    onClick={handleShare}
-                    className="w-full text-left px-3 py-2 hover:bg-reddit-hover flex items-center gap-2"
-                  >
-                    <ShareOutline className="h-4 w-4" />
-                    Share
+                  <button onClick={handleShare} className="w-full text-left px-3 py-2 hover:bg-[#e8e9eb] dark:hover:bg-[#2c2d2f] flex items-center gap-2">
+                    <ShareOutline className="h-4 w-4" /> Share
                   </button>
 
                   {token && (
-                    <button
-                      onClick={toggleSave}
-                      className="w-full text-left px-3 py-2 hover:bg-reddit-hover"
-                    >
+                    <button onClick={toggleSave} className="w-full text-left px-3 py-2 hover:bg-[#e8e9eb] dark:hover:bg-[#2c2d2f]">
                       {saved ? "Unsave" : "Save"}
                     </button>
                   )}
@@ -208,7 +186,7 @@ export default function PostCard(props) {
 
         {/* TITLE */}
         <h2
-          className="mt-2 text-[18px] font-semibold cursor-pointer hover:underline"
+          className="mt-2 text-[18px] font-semibold text-reddit-text dark:text-reddit-dark_text leading-6 cursor-pointer hover:underline"
           onClick={() => navigate(`/post/${id}`)}
         >
           {title}
@@ -217,47 +195,41 @@ export default function PostCard(props) {
         {/* BODY */}
         {body && (
           <div
-            className="mt-3 text-[15px] whitespace-pre-wrap"
+            className="mt-3 text-[15px] text-reddit-text_light dark:text-reddit-dark_text_light whitespace-pre-wrap"
             dangerouslySetInnerHTML={{ __html: body }}
           />
         )}
 
         {/* ACTION BAR */}
-        <div className="flex items-center gap-4 mt-3">
-          <VoteButtons
-            postId={id}
-            initialScore={score}
-            initialVote={incoming.yourVote ?? 0}
-          />
+        <div className="flex items-center gap-4 mt-3 text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
 
-          {/* COMMENTS BUTTON */}
-          <div
-            className="flex items-center gap-1 px-3 py-[6px] rounded-full hover:bg-reddit-hover cursor-pointer"
+          <VoteButtons postId={id} initialScore={score} initialVote={incoming.yourVote ?? 0} />
+
+          {/* COMMENTS */}
+          <button
+            className="flex items-center gap-1 px-3 py-[6px] rounded-full hover:bg-[#e8e9eb] dark:hover:bg-[#2c2d2f]"
             onClick={() => navigate(`/post/${id}`)}
           >
             <ChatBubbleBottomCenterTextIcon className="h-4 w-4" />
             <span>{commentsCount}</span>
-          </div>
+          </button>
 
-          {/* SHARE BUTTON */}
-          <div
-            className="flex items-center gap-1 px-3 py-[6px] rounded-full hover:bg-reddit-hover cursor-pointer"
+          {/* SHARE */}
+          <button
+            className="flex items-center gap-1 px-3 py-[6px] rounded-full hover:bg-[#e8e9eb] dark:hover:bg-[#2c2d2f]"
             onClick={handleShare}
           >
             <ShareOutline className="h-4 w-4" />
             <span>Share</span>
-          </div>
+          </button>
         </div>
       </div>
 
       {/* DELETE MODAL */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-[#0b1113] p-6 rounded-2xl w-[430px] relative">
-            <button
-              className="absolute top-3 right-3 p-1"
-              onClick={() => setShowDeleteModal(false)}
-            >
+          <div className="bg-[#0b1113] p-6 rounded-2xl w-[430px] relative text-white">
+            <button className="absolute top-3 right-3 p-1" onClick={() => setShowDeleteModal(false)}>
               <XMarkIcon className="h-5 w-5" />
             </button>
 
@@ -267,17 +239,11 @@ export default function PostCard(props) {
             </p>
 
             <div className="flex justify-end gap-3">
-              <button
-                className="px-5 py-2 rounded-full bg-[#1f2933]"
-                onClick={() => setShowDeleteModal(false)}
-              >
+              <button className="px-5 py-2 rounded-full bg-[#1f2933] hover:bg-[#2b3940]" onClick={() => setShowDeleteModal(false)}>
                 Go Back
               </button>
 
-              <button
-                className="px-5 py-2 rounded-full bg-red-600 hover:bg-red-700 text-white"
-                onClick={onDeleteConfirm}
-              >
+              <button className="px-5 py-2 rounded-full bg-red-600 hover:bg-red-700 text-white" onClick={onDeleteConfirm}>
                 Yes, Delete
               </button>
             </div>
