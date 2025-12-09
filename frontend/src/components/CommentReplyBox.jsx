@@ -64,6 +64,7 @@ export default function CommentReplyBox({
             <PhotoIcon className="h-5 w-5" />
             <input
               type="file"
+              name="images" 
               className="hidden"
               accept="image/*"
               multiple
