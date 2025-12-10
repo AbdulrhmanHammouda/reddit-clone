@@ -3,7 +3,6 @@ import { useEffect, useState, useCallback } from "react";
 import api from "../api/axios";
 import SortMenu from "../components/SortMenu";
 import PostCard from "../components/PostCard";
-import TrendingCommunitiesWidget from "../components/TrendingCommunitiesWidget";
 
 export default function AllPage() {
   const [sort, setSort] = useState("hot");
@@ -61,105 +60,66 @@ export default function AllPage() {
   };
 
   return (
-    <div className="w-full flex justify-center">
-      <div className="w-full max-w-6xl px-4 md:px-6 pt-6 pb-10 flex flex-col lg:flex-row gap-6">
-        {/* Main Content */}
-        <main className="flex-1 lg:flex-[2]">
-          {/* Header */}
-          <header className="mb-6">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="h-14 w-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                <svg className="h-8 w-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-reddit-text dark:text-reddit-dark_text">
-                  r/all
-                </h1>
-                <p className="text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
-                  The most active posts from across Reddit, including all communities
-                </p>
-              </div>
-            </div>
+    <div className="w-full pb-10">
+      {/* Sort Menu */}
+      <div className="mb-4">
+        <SortMenu 
+          value={sort} 
+          onChange={(s, t) => handleSortChange(s, t)} 
+        />
+      </div>
 
-            <div className="flex items-center gap-3">
-              <SortMenu 
-                value={sort} 
-                onChange={(s, t) => handleSortChange(s, t)} 
-              />
+      {/* Posts */}
+      <section className="space-y-3">
+        {loading ? (
+          Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="animate-pulse bg-reddit-card dark:bg-reddit-dark_card rounded-xl p-4 border border-reddit-border dark:border-reddit-dark_divider"
+            >
+              <div className="flex gap-3 mb-3">
+                <div className="h-6 w-6 bg-reddit-hover dark:bg-reddit-dark_hover rounded-full" />
+                <div className="h-4 bg-reddit-hover dark:bg-reddit-dark_hover rounded w-32" />
+                <div className="h-4 bg-reddit-hover dark:bg-reddit-dark_hover rounded w-16 ml-auto" />
+              </div>
+              <div className="h-5 bg-reddit-hover dark:bg-reddit-dark_hover rounded w-3/4 mb-3" />
+              <div className="h-64 bg-reddit-hover dark:bg-reddit-dark_hover rounded" />
             </div>
-          </header>
+          ))
+        ) : error ? (
+          <div className="text-center py-10">
+            <p className="text-red-500 mb-4">{error}</p>
+            <button
+              onClick={() => fetchPosts(1, true)}
+              className="px-4 py-2 rounded-full bg-reddit-blue text-white"
+            >
+              Retry
+            </button>
+          </div>
+        ) : posts.length === 0 ? (
+          <div className="text-center py-10 text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
+            No posts found
+          </div>
+        ) : (
+          <>
+            {posts.map((post) => (
+              <PostCard key={post._id} post={post} />
+            ))}
 
-          {/* Posts */}
-          <section className="space-y-4">
-            {loading ? (
-              Array.from({ length: 3 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="animate-pulse bg-reddit-card dark:bg-reddit-dark_card rounded-xl p-4 border border-reddit-border dark:border-reddit-dark_divider"
-                >
-                  <div className="flex gap-3">
-                    <div className="h-10 w-10 bg-reddit-hover dark:bg-reddit-dark_hover rounded-full" />
-                    <div className="flex-1">
-                      <div className="h-4 bg-reddit-hover dark:bg-reddit-dark_hover rounded w-1/3 mb-2" />
-                      <div className="h-5 bg-reddit-hover dark:bg-reddit-dark_hover rounded w-3/4 mb-2" />
-                      <div className="h-3 bg-reddit-hover dark:bg-reddit-dark_hover rounded w-full" />
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : error ? (
-              <div className="text-center py-10">
-                <p className="text-red-500 mb-4">{error}</p>
+            {hasMore && (
+              <div className="flex justify-center pt-4">
                 <button
-                  onClick={() => fetchPosts(1, true)}
-                  className="px-4 py-2 rounded-full bg-reddit-blue text-white"
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                  className="px-6 py-2 rounded-full bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider text-sm font-medium hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover disabled:opacity-50 transition"
                 >
-                  Retry
+                  {loadingMore ? "Loading..." : "Load More"}
                 </button>
               </div>
-            ) : posts.length === 0 ? (
-              <div className="text-center py-10 text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
-                No posts found
-              </div>
-            ) : (
-              <>
-                {posts.map((post) => (
-                  <PostCard key={post._id} post={post} />
-                ))}
-
-                {hasMore && (
-                  <div className="flex justify-center pt-4">
-                    <button
-                      onClick={loadMore}
-                      disabled={loadingMore}
-                      className="px-6 py-2 rounded-full bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider text-sm font-medium hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover disabled:opacity-50 transition"
-                    >
-                      {loadingMore ? "Loading..." : "Load More"}
-                    </button>
-                  </div>
-                )}
-              </>
             )}
-          </section>
-        </main>
-
-        {/* Sidebar */}
-        <aside className="w-full lg:w-80 space-y-4">
-          <TrendingCommunitiesWidget />
-          
-          {/* All Info Card */}
-          <div className="bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider rounded-xl p-4">
-            <h3 className="font-semibold text-reddit-text dark:text-reddit-dark_text mb-2">
-              About r/all
-            </h3>
-            <p className="text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
-              r/all shows posts from every community on the site. This is the unfiltered view of everything happening across the platform.
-            </p>
-          </div>
-        </aside>
-      </div>
+          </>
+        )}
+      </section>
     </div>
   );
 }

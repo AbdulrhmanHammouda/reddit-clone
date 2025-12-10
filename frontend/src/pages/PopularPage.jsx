@@ -1,10 +1,10 @@
 // src/pages/PopularPage.jsx
 import { useEffect, useState, useCallback } from "react";
-import { Link } from "react-router-dom";
 import api from "../api/axios";
 import SortMenu from "../components/SortMenu";
 import PostCard from "../components/PostCard";
 import TrendingCommunitiesWidget from "../components/TrendingCommunitiesWidget";
+import RecentPosts from "../components/RecentPosts";
 
 export default function PopularPage() {
   const [sort, setSort] = useState("hot");
@@ -63,50 +63,48 @@ export default function PopularPage() {
 
   return (
     <div className="w-full flex justify-center">
-      <div className="w-full max-w-6xl px-4 md:px-6 pt-6 pb-10 flex flex-col lg:flex-row gap-6">
+      <div className="w-full max-w-6xl px-4 md:px-6 pt-4 pb-10 flex flex-col lg:flex-row gap-6">
         {/* Main Content */}
-        <main className="flex-1 lg:flex-[2]">
-          {/* Header */}
-          <header className="mb-6">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="h-14 w-14 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center">
-                <svg className="h-8 w-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                </svg>
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-reddit-text dark:text-reddit-dark_text">
-                  Popular
-                </h1>
-                <p className="text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
-                  The best posts on Reddit for you, pulled from the most active communities
-                </p>
-              </div>
+        <main className="flex-1 min-w-0">
+          {/* Header - Reddit style */}
+          <header className="flex items-center gap-4 mb-4">
+            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center flex-shrink-0">
+              <svg className="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
             </div>
-
-            <div className="flex items-center gap-3">
-              <SortMenu 
-                value={sort} 
-                onChange={(s, t) => handleSortChange(s, t)} 
-              />
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold text-reddit-text dark:text-reddit-dark_text">
+                Popular
+              </h1>
+              <p className="text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary truncate">
+                The best posts on Reddit for you, pulled from the most active communities
+              </p>
             </div>
           </header>
 
+          {/* Sort Menu */}
+          <div className="mb-4">
+            <SortMenu 
+              value={sort} 
+              onChange={(s, t) => handleSortChange(s, t)} 
+            />
+          </div>
+
           {/* Posts */}
-          <section className="space-y-4">
+          <section className="space-y-3">
             {loading ? (
-              // Skeleton loaders
               Array.from({ length: 3 }).map((_, i) => (
                 <div
                   key={i}
                   className="animate-pulse bg-reddit-card dark:bg-reddit-dark_card rounded-xl p-4 border border-reddit-border dark:border-reddit-dark_divider"
                 >
                   <div className="flex gap-3">
-                    <div className="h-10 w-10 bg-reddit-hover dark:bg-reddit-dark_hover rounded-full" />
+                    <div className="h-8 w-8 bg-reddit-hover dark:bg-reddit-dark_hover rounded-full" />
                     <div className="flex-1">
-                      <div className="h-4 bg-reddit-hover dark:bg-reddit-dark_hover rounded w-1/3 mb-2" />
-                      <div className="h-5 bg-reddit-hover dark:bg-reddit-dark_hover rounded w-3/4 mb-2" />
-                      <div className="h-3 bg-reddit-hover dark:bg-reddit-dark_hover rounded w-full" />
+                      <div className="h-3 bg-reddit-hover dark:bg-reddit-dark_hover rounded w-1/4 mb-2" />
+                      <div className="h-5 bg-reddit-hover dark:bg-reddit-dark_hover rounded w-3/4 mb-3" />
+                      <div className="h-48 bg-reddit-hover dark:bg-reddit-dark_hover rounded" />
                     </div>
                   </div>
                 </div>
@@ -148,18 +146,26 @@ export default function PopularPage() {
         </main>
 
         {/* Sidebar */}
-        <aside className="w-full lg:w-80 space-y-4">
+        <aside className="w-full lg:w-80 space-y-4 flex-shrink-0">
+          {/* Trending Communities */}
           <TrendingCommunitiesWidget />
           
-          {/* Popular Info Card */}
-          <div className="bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider rounded-xl p-4">
-            <h3 className="font-semibold text-reddit-text dark:text-reddit-dark_text mb-2">
-              About Popular
-            </h3>
-            <p className="text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
-              See the best posts from communities across the site. This feed is curated to show trending content from everywhere.
-            </p>
+          {/* About Popular Card */}
+          <div className="bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-reddit-border dark:border-reddit-dark_divider">
+              <h3 className="font-semibold text-reddit-text dark:text-reddit-dark_text">
+                About Popular
+              </h3>
+            </div>
+            <div className="p-4">
+              <p className="text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
+                See the best posts from communities across the site. This feed is curated to show trending content from everywhere.
+              </p>
+            </div>
           </div>
+
+          {/* Recent Posts */}
+          <RecentPosts />
         </aside>
       </div>
     </div>
