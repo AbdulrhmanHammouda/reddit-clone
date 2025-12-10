@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import PostCardFull from "../components/PostCardFull";
 import CommentsList from "../components/CommentsList";
 import CommentReplyBox from "../components/CommentReplyBox";
@@ -9,10 +9,12 @@ import Toast from "../components/Toast";
 
 export default function PostPage() {
   const { id: postId } = useParams();
+  const navigate = useNavigate();
   const { token } = useAuth();
 
   const [post, setPost] = useState(null);
   const [postLoading, setPostLoading] = useState(true);
+  const [postError, setPostError] = useState(null);
   const [comments, setComments] = useState([]);
   const [loadingComments, setLoadingComments] = useState(true);
   const [toastConfig, setToastConfig] = useState(null);
@@ -32,6 +34,8 @@ export default function PostPage() {
   }, []);
 
   useEffect(() => {
+    // Reset on mount (important for StrictMode double-render)
+    mountedRef.current = true;
     return () => {
       mountedRef.current = false;
       if (pollRef.current) {
@@ -43,12 +47,19 @@ export default function PostPage() {
 
   const fetchPost = useCallback(
     async ({ withLoader = false } = {}) => {
+      console.log("fetchPost called, postId:", postId);
       if (!postId) return null;
-      if (withLoader) setPostLoading(true);
+      if (withLoader) {
+        setPostLoading(true);
+        setPostError(null);
+      }
       try {
+        console.log("Making API call to:", `/posts/${postId}`);
         const res = await api.get(`/posts/${postId}`);
+        console.log("API response:", res.data);
         if (!mountedRef.current) return null;
         const nextPost = res.data.data;
+        console.log("nextPost:", nextPost);
         const isProcessing = Boolean(nextPost?.processing);
         const wasProcessing = prevProcessingRef.current;
 
@@ -56,6 +67,7 @@ export default function PostPage() {
 
         setPost(nextPost);
         setPostLoading(false);
+        setPostError(null);
 
         if (wasProcessing && !isProcessing) {
           showToastMessage("🎥 Your video is ready!", "success");
@@ -65,7 +77,10 @@ export default function PostPage() {
         return nextPost;
       } catch (err) {
         console.error("Failed to load post:", err);
-        if (mountedRef.current) setPostLoading(false);
+        if (mountedRef.current) {
+          setPostLoading(false);
+          setPostError(err.response?.data?.error || err.message || "Failed to load post");
+        }
         return null;
       }
     },
@@ -149,8 +164,41 @@ export default function PostPage() {
     };
   }, [post?.processing, fetchPost]);
 
-  if (postLoading) return <div className="mt-6">Loading post…</div>;
-  if (!post) return <div className="mt-6 text-red-500">Post not found</div>;
+  if (postLoading) {
+    return (
+      <div className="mt-6 flex items-center justify-center py-12">
+        <div className="text-reddit-text dark:text-reddit-dark_text">Loading post…</div>
+      </div>
+    );
+  }
+
+  if (postError) {
+    return (
+      <div className="mt-6 flex flex-col items-center justify-center py-12 gap-4">
+        <div className="text-red-500">Error: {postError}</div>
+        <button
+          onClick={() => fetchPost({ withLoader: true })}
+          className="px-4 py-2 bg-reddit-blue hover:bg-reddit-blue_hover text-white font-semibold rounded-full transition"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (!post) {
+    return (
+      <div className="mt-6 flex flex-col items-center justify-center py-12 gap-4">
+        <div className="text-red-500">Post not found</div>
+        <button
+          onClick={() => navigate(-1)}
+          className="px-4 py-2 bg-reddit-blue hover:bg-reddit-blue_hover text-white font-semibold rounded-full transition"
+        >
+          Go Back
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 lg:px-0 max-w-[740px] mx-auto mt-6 pb-20 relative">

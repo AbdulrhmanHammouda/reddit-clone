@@ -27,13 +27,20 @@ export default function Navbar({ onToggleSidebar }) {
   const searchRef = useRef(null);
   const debounceRef = useRef(null);
 
+  // Notifications state
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const notificationsRef = useRef(null);
+
   const userRaw = JSON.parse(localStorage.getItem("user"));
   const username = userRaw?.username;
+  const token = localStorage.getItem("token");
 
   const [userAvatar, setUserAvatar] = useState(defaultProfileImg);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
     if (!token || !username) return;
 
     api
@@ -44,7 +51,122 @@ export default function Navbar({ onToggleSidebar }) {
         else setUserAvatar(defaultProfileImg);
       })
       .catch((err) => console.error(err));
-  }, [username]);
+  }, [username, token]);
+
+  // Fetch unread notification count
+  useEffect(() => {
+    if (!token) return;
+
+    const fetchUnreadCount = async () => {
+      try {
+        const res = await api.get("/notifications/unread-count");
+        if (res.data?.success) {
+          setUnreadCount(res.data.data.count);
+        }
+      } catch (err) {
+        console.error("Failed to fetch unread count:", err);
+      }
+    };
+
+    fetchUnreadCount();
+    // Poll every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, [token]);
+
+  // Fetch notifications when dropdown opens
+  useEffect(() => {
+    if (!notificationsOpen || !token) return;
+
+    const fetchNotifications = async () => {
+      setNotificationsLoading(true);
+      try {
+        const res = await api.get("/notifications?limit=10");
+        if (res.data?.success) {
+          setNotifications(res.data.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch notifications:", err);
+      } finally {
+        setNotificationsLoading(false);
+      }
+    };
+
+    fetchNotifications();
+  }, [notificationsOpen, token]);
+
+  // Close notifications when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (notificationsRef.current && !notificationsRef.current.contains(e.target)) {
+        setNotificationsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleNotificationClick = async (notification) => {
+    // Mark as read
+    if (!notification.read) {
+      try {
+        await api.patch(`/notifications/${notification._id}/read`);
+        setUnreadCount((c) => Math.max(0, c - 1));
+        setNotifications((prev) =>
+          prev.map((n) => (n._id === notification._id ? { ...n, read: true } : n))
+        );
+      } catch (err) {
+        console.error("Failed to mark notification as read:", err);
+      }
+    }
+
+    // Navigate based on notification type
+    setNotificationsOpen(false);
+    if (notification.sourcePost) {
+      navigate(`/post/${notification.sourcePost._id}`);
+    } else if (notification.sourceCommunity) {
+      navigate(`/r/${notification.sourceCommunity.name}`);
+    } else if (notification.sourceUser) {
+      navigate(`/u/${notification.sourceUser.username}`);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      await api.patch("/notifications/read-all");
+      setUnreadCount(0);
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    } catch (err) {
+      console.error("Failed to mark all as read:", err);
+    }
+  };
+
+  const getNotificationText = (notification) => {
+    const user = notification.sourceUser?.username || "Someone";
+    switch (notification.type) {
+      case "reply":
+        return `${user} replied to your comment`;
+      case "vote":
+        return `${user} upvoted your post`;
+      case "message":
+        return `${user} sent you a message`;
+      case "community_invite":
+        return `You were invited to join r/${notification.sourceCommunity?.name || "a community"}`;
+      default:
+        return "You have a new notification";
+    }
+  };
+
+  const getTimeAgo = (date) => {
+    const seconds = Math.floor((Date.now() - new Date(date)) / 1000);
+    if (seconds < 60) return "just now";
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+  };
 
   // Search with debounce
   useEffect(() => {
@@ -279,8 +401,82 @@ export default function Navbar({ onToggleSidebar }) {
           </div>
 
           {/* Notifications */}
-          <div className="relative group">
-            <BellIcon className="h-7 w-7 text-reddit-icon dark:text-reddit-dark_icon p-1 rounded-full cursor-pointer transition hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover" />
+          <div className="relative" ref={notificationsRef}>
+            <button
+              onClick={() => setNotificationsOpen(!notificationsOpen)}
+              className="relative p-1 rounded-full cursor-pointer transition hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
+            >
+              <BellIcon className="h-6 w-6 text-reddit-icon dark:text-reddit-dark_icon" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-reddit-orange text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {/* Notifications Dropdown */}
+            {notificationsOpen && (
+              <div className="absolute right-0 mt-2 w-80 bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider rounded-xl shadow-xl z-50 overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-reddit-border dark:border-reddit-dark_divider">
+                  <h3 className="font-semibold text-reddit-text dark:text-reddit-dark_text">Notifications</h3>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={markAllAsRead}
+                      className="text-xs text-reddit-blue hover:underline"
+                    >
+                      Mark all as read
+                    </button>
+                  )}
+                </div>
+
+                <div className="max-h-[400px] overflow-y-auto">
+                  {notificationsLoading ? (
+                    <div className="p-4 text-center text-reddit-text_secondary">
+                      Loading...
+                    </div>
+                  ) : notifications.length === 0 ? (
+                    <div className="p-8 text-center text-reddit-text_secondary">
+                      <BellIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      <p>No notifications yet</p>
+                    </div>
+                  ) : (
+                    notifications.map((notification) => (
+                      <button
+                        key={notification._id}
+                        onClick={() => handleNotificationClick(notification)}
+                        className={`w-full text-left px-4 py-3 hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover border-b border-reddit-border dark:border-reddit-dark_divider last:border-b-0 ${
+                          !notification.read ? "bg-reddit-blue/5" : ""
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <img
+                            src={notification.sourceUser?.avatar || defaultProfileImg}
+                            alt=""
+                            className="h-8 w-8 rounded-full flex-shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-reddit-text dark:text-reddit-dark_text">
+                              {getNotificationText(notification)}
+                            </p>
+                            {notification.sourcePost && (
+                              <p className="text-xs text-reddit-text_secondary truncate mt-0.5">
+                                {notification.sourcePost.title}
+                              </p>
+                            )}
+                            <p className="text-xs text-reddit-text_secondary mt-1">
+                              {getTimeAgo(notification.createdAt)}
+                            </p>
+                          </div>
+                          {!notification.read && (
+                            <div className="h-2 w-2 bg-reddit-blue rounded-full flex-shrink-0 mt-2"></div>
+                          )}
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Profile */}

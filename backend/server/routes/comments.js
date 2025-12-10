@@ -7,6 +7,7 @@ const Comment = require("../models/Comment");
 const Post = require("../models/Post");
 const CommentVote = require("../models/CommentVote");
 const SavedComment = require("../models/SavedComment");
+const Notification = require("../models/Notification");
 const auth = require("../middleware/authMiddleware");
 const { writeLimiter } = require("../middleware/rateLimiter");
 
@@ -133,6 +134,31 @@ router.post("/", auth, writeLimiter, upload.single("images"), async (req, res) =
     });
 
     await Post.findByIdAndUpdate(postId, { $inc: { commentsCount: 1 } });
+
+    // 🔔 Create notification for post author (if not commenting on own post)
+    if (post.author.toString() !== req.user._id.toString()) {
+      await Notification.create({
+        user: post.author,
+        type: "reply",
+        sourceUser: req.user._id,
+        sourcePost: postId,
+        sourceComment: comment._id,
+      });
+    }
+
+    // 🔔 If replying to a comment, notify the parent comment author
+    if (parent && mongoose.isValidObjectId(parent)) {
+      const parentComment = await Comment.findById(parent);
+      if (parentComment && parentComment.author.toString() !== req.user._id.toString()) {
+        await Notification.create({
+          user: parentComment.author,
+          type: "reply",
+          sourceUser: req.user._id,
+          sourcePost: postId,
+          sourceComment: comment._id,
+        });
+      }
+    }
 
     // 🔥 Fetch full comment with all fields (including images)
     const populated = await Comment.findById(comment._id)
