@@ -4,6 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import CommunityHeader from "../components/CommunityHeader";
 import CommunityFeed from "../components/CommunityFeed";
 import CommunitySidebar from "../components/CommunitySidebar";
+import SortMenu from "../components/SortMenu";
 import api from "../api/axios";
 import useAuth from "../hooks/useAuth";
 
