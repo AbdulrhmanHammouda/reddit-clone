@@ -6,6 +6,7 @@ import CommentReplyBox from "../components/CommentReplyBox";
 import api from "../api/axios";
 import useAuth from "../hooks/useAuth";
 import Toast from "../components/Toast";
+import { addRecentPost } from "../components/RecentPosts";
 
 export default function PostPage() {
   const { id: postId } = useParams();
@@ -91,6 +92,13 @@ export default function PostPage() {
     prevProcessingRef.current = null;
     fetchPost({ withLoader: true });
   }, [fetchPost]);
+
+  // Track viewed post in Recent Posts
+  useEffect(() => {
+    if (post?._id) {
+      addRecentPost(post);
+    }
+  }, [post?._id]);
 
   async function fetchComments() {
     try {

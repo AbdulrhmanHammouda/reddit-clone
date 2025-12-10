@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import MenuButton from "../components/MenuButton";
+import RecentPosts from "../components/RecentPosts";
 
 export default function MainLayout({ children, noRightSidebar = false }) {
   const [sidebarOpen, setSidebarOpen] = useState(() => {
@@ -44,9 +45,16 @@ export default function MainLayout({ children, noRightSidebar = false }) {
           </main>
 
           {/* Right sidebar */}
-          {!noRightSidebar && <aside className="hidden xl:block w-[320px]">{/* Right widgets */}</aside>}
+          {!noRightSidebar && (
+            <aside className="hidden xl:block w-[320px] flex-shrink-0">
+              <div className="sticky top-20 space-y-4">
+                <RecentPosts />
+              </div>
+            </aside>
+          )}
         </div>
       </div>
     </div>
   );
 }
+
