@@ -8,7 +8,7 @@ import CommunityPage from "./pages/CommunityPage";
 import PopularPage from "./pages/PopularPage";
 import AllPage from "./pages/AllPage";
 import ExplorePage from "./pages/ExplorePage";
-import ChatPage from "./components/ChatPage";
+import ChatPage from "./pages/ChatPage";
 import CreateCommunityPage from "./pages/CreateCommunityPage";
 import ProfilePage from "./pages/ProfilePage";
 import CreatePost from "./pages/CreatePost";
