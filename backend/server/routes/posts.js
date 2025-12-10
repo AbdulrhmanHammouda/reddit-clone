@@ -96,7 +96,9 @@ router.get('/', optionalAuth, async (req, res) => {
     const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
     const skip = (page - 1) * limit;
 
-    const userId = req.user?._id;
+    // Convert to ObjectId for proper MongoDB matching
+    const userId = req.user?._id ? new mongoose.Types.ObjectId(req.user._id) : null;
+    console.log("Home feed - userId:", userId, "raw:", req.user?._id);
 
     // Base match with time window for "top" sort
     const match = { ...timeWindowMatch(sort === "top" ? time : "all") };
@@ -104,6 +106,7 @@ router.get('/', optionalAuth, async (req, res) => {
     // Exclude own posts on home feed
     if (userId) {
       match.author = { $ne: userId };
+      console.log("Excluding posts from author:", userId);
     }
 
     // Build sort stages
