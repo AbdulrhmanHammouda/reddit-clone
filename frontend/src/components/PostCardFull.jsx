@@ -10,53 +10,31 @@ import {
   EllipsisHorizontalIcon,
 } from "@heroicons/react/24/outline";
 import useAuth from "../hooks/useAuth";
+import ImageCarousel from "./ImageCarousel";
+import FullscreenImageViewer from "./FullscreenImageViewer";
 
-export default function PostCardFull({ postId: propPostId }) {
-  const params = useParams();          // from /post/:id
+export default function PostCardFull({ post: incomingProp, postId: propPostId }) {
+  const params = useParams(); // from /post/:id
   const navigate = useNavigate();
   const { token, user } = useAuth();
 
-  // use prop if given, otherwise URL param
-  const id = propPostId || params.id;
-
-  const [post, setPost] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const incoming = incomingProp ?? {};
+  const id = incoming._id ?? propPostId ?? params.id;
 
   const [menuOpen, setMenuOpen] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [isMember, setIsMember] = useState(false);
-  const [isMod, setIsMod] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0); // State for current image index in slider
+  const [saved, setSaved] = useState(incoming.saved || false);
+  const [isMember, setIsMember] = useState(incoming.community?.isMember || false);
+  const [isMod, setIsMod] = useState(incoming.community?.isMod || false);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
 
   useEffect(() => {
-    // guard: no API call with undefined id
-    if (!id) {
-      setError("No post id provided");
-      setLoading(false);
-      return;
-    }
-
-    async function fetchPost() {
-      try {
-        const response = await api.get(`/posts/${id}`);
-        const data = response.data.data;
-
-        setPost(data);
-        setSaved(data.saved || false);
-        setIsMember(data.community?.isMember || false);
-        setIsMod(data.community?.isMod || false);
-        setCurrentImageIndex(0); // Reset slider position for new post
-      } catch (err) {
-        console.error("Error fetching post:", err);
-        setError("Error fetching post");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchPost();
-  }, [id]);
+    if (!incoming) return;
+    setSaved(incoming.saved || false);
+    setIsMember(incoming.community?.isMember || false);
+    setIsMod(incoming.community?.isMod || false);
+    setViewerIndex(0);
+  }, [incoming]);
 
   async function toggleSave() {
     if (!token) {
@@ -84,7 +62,6 @@ export default function PostCardFull({ postId: propPostId }) {
 
     try {
       await api.delete(`/posts/${id}`);
-      // go back to previous page (e.g. profile or community)
       navigate(-1);
     } catch (err) {
       console.error(err);
@@ -97,7 +74,7 @@ export default function PostCardFull({ postId: propPostId }) {
     const url = `${window.location.origin}/post/${id}`;
     if (navigator.share) {
       navigator
-        .share({ title: post?.title || "Post", url })
+        .share({ title: incoming?.title || "Post", url })
         .catch(() => {});
     } else {
       navigator.clipboard
@@ -109,29 +86,28 @@ export default function PostCardFull({ postId: propPostId }) {
     }
   }
 
-  if (loading) return <div className="p-4">Loading...</div>;
-  if (error) return <div className="p-4 text-red-500">{error}</div>;
-  if (!post) return null;
+  if (!incoming || !id) return null;
 
-  const totalImages = post.images?.length || 0;
+  const videoUrl = incoming.videoUrl ?? null;
+  const images =
+    incoming.imageUrl && Array.isArray(incoming.imageUrl)
+      ? incoming.imageUrl
+      : incoming.images || [];
 
-  const goToNextImage = () => {
-    setCurrentImageIndex((prevIndex) => (prevIndex + 1) % totalImages);
-  };
+  const postId = incoming._id;
+  const community = incoming.community?.name ?? "unknown";
 
-  const goToPrevImage = () => {
-    setCurrentImageIndex((prevIndex) => (prevIndex - 1 + totalImages) % totalImages);
-  };
-
-  const postId = post._id;
-  const community = post.community?.name ?? "unknown";
-
-  const createdAtFormatted = post.createdAt
+  const createdAtFormatted = incoming.createdAt
     ? new Intl.DateTimeFormat("en-US", {
         month: "short",
         day: "numeric",
-      }).format(new Date(post.createdAt))
+      }).format(new Date(incoming.createdAt))
     : "recently";
+
+  const openViewer = (index = 0) => {
+    setViewerIndex(index);
+    setViewerOpen(true);
+  };
 
   return (
     <article className="w-full max-w-[740px] mx-auto bg-reddit-card dark:bg-reddit-dark_card rounded-xl p-4 border border-reddit-border dark:border-reddit-dark_divider shadow-sm">
@@ -139,7 +115,7 @@ export default function PostCardFull({ postId: propPostId }) {
       <header className="flex items-start gap-3">
         <Link to={`/r/${community}`} className="h-10 w-10 block">
           <img
-            src={post.community?.icon}
+            src={incoming.community?.icon}
             className="h-full w-full rounded-full object-cover"
             alt="community icon"
           />
@@ -155,16 +131,16 @@ export default function PostCardFull({ postId: propPostId }) {
             </Link>{" "}
             • Posted by{" "}
             <Link
-              to={`/u/${post.author?.username}`}
+              to={`/u/${incoming.author?.username}`}
               className="hover:underline font-semibold"
             >
-              u/{post.author?.username ?? "user"}
+              u/{incoming.author?.username ?? "user"}
             </Link>{" "}
             • {createdAtFormatted}
           </div>
 
           <h1 className="mt-2 text-2xl font-bold text-reddit-text dark:text-reddit-dark_text leading-7">
-            {post.title}
+            {incoming.title}
           </h1>
         </div>
 
@@ -206,7 +182,7 @@ export default function PostCardFull({ postId: propPostId }) {
                 </button>
               )}
 
-              {user && (user._id === post.author?._id || isMod) && (
+              {user && (user._id === incoming.author?._id || isMod) && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -224,60 +200,34 @@ export default function PostCardFull({ postId: propPostId }) {
       </header>
 
       {/* BODY */}
-      {post.body && (
+      {incoming.body && (
         <div
           className="mt-4 text-reddit-text_light dark:text-reddit-dark_text_light whitespace-pre-wrap leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: post.body }}
+          dangerouslySetInnerHTML={{ __html: incoming.body }}
         />
       )}
 
-      {/* IMAGE/VIDEO SLIDER */}
-      {post.images?.length > 0 && (
-        <div className="mt-4 relative w-full h-auto max-h-[480px] overflow-hidden rounded-md">
-          <img
-            src={post.images[currentImageIndex]}
-            alt="post media"
-            className="w-full h-full object-contain"
+      {/* MEDIA */}
+      {videoUrl ? (
+        <div className="mt-4 rounded-xl overflow-hidden bg-black/60">
+          <video
+            src={videoUrl}
+            controls
+            className="w-full max-h-[520px] object-contain bg-black"
           />
-
-          {totalImages > 1 && (
-            <>
-              {/* Navigation Buttons */}
-              <button
-                onClick={goToPrevImage}
-                className="absolute top-1/2 left-2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full focus:outline-none"
-              >
-                &#10094;
-              </button>
-              <button
-                onClick={goToNextImage}
-                className="absolute top-1/2 right-2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full focus:outline-none"
-              >
-                &#10095;
-              </button>
-
-              {/* Image Indicators */}
-              <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1">
-                {post.images.map((_, index) => (
-                  <span
-                    key={index}
-                    className={`block w-2 h-2 rounded-full ${
-                      index === currentImageIndex ? "bg-white" : "bg-gray-400"
-                    }`}
-                  ></span>
-                ))}
-              </div>
-            </>
-          )}
         </div>
+      ) : (
+        images.length > 0 && (
+          <ImageCarousel images={images} onImageClick={openViewer} />
+        )
       )}
 
       {/* ACTION BAR */}
       <div className="mt-4 flex items-center gap-4">
         <VoteButtons
           postId={postId}
-          initialScore={post.score}
-          initialVote={post.yourVote ?? 0}
+          initialScore={incoming.score}
+          initialVote={incoming.yourVote ?? 0}
         />
 
         {/* Comments Button */}
@@ -286,9 +236,17 @@ export default function PostCardFull({ postId: propPostId }) {
           onClick={() => navigate(`/post/${postId}#comments`)}
         >
           <ChatBubbleBottomCenterTextIcon className="h-4 w-4" />
-          <span>{post.commentsCount ?? 0}</span>
+          <span>{incoming.commentsCount ?? 0}</span>
         </div>
       </div>
+
+      {viewerOpen && (
+        <FullscreenImageViewer
+          images={images}
+          index={viewerIndex}
+          onClose={() => setViewerOpen(false)}
+        />
+      )}
     </article>
   );
 }

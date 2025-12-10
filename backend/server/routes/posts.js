@@ -18,6 +18,16 @@ const multer = require('multer');
 const { storage } = require('../utils/cloudinary');
 const upload = multer({ storage });
 
+// Video upload (mp4, webm)
+const videoUpload = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    const allowed = ["video/mp4", "video/webm"];
+    if (allowed.includes(file.mimetype)) return cb(null, true);
+    return cb(new Error("Invalid video format. Only mp4 and webm are allowed."));
+  },
+});
+
 /* ---------------------------------------------------------------------------
    📌 CREATE IMAGE / VIDEO POST
 --------------------------------------------------------------------------- */
@@ -51,6 +61,45 @@ router.post('/image', auth, writeLimiter, upload.array('images', 10), async (req
     res.status(201).json({ success: true, data: populated });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/* ---------------------------------------------------------------------------
+   🎥 CREATE VIDEO POST
+--------------------------------------------------------------------------- */
+router.post('/video', auth, writeLimiter, videoUpload.single('video'), async (req, res) => {
+  try {
+    const { title, body, communityName } = req.body;
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: "No video uploaded" });
+    }
+
+    const community = await Community.findOne({ name: communityName });
+    if (!community) {
+      return res.status(404).json({ success: false, error: "Community not found" });
+    }
+
+    const post = await Post.create({
+      title,
+      body: body || "",
+      author: req.user._id,
+      community: community._id,
+      videoUrl: req.file.path,
+      images: [],
+    });
+
+    const populated = await Post.findById(post._id)
+      .populate('author', 'username avatar')
+      .populate('community', 'name title icon');
+
+    res.status(201).json({ success: true, data: populated });
+  } catch (err) {
+    const message = err.message || "Upload failed";
+    if (message.includes("Invalid video format")) {
+      return res.status(400).json({ success: false, error: message });
+    }
+    res.status(500).json({ success: false, error: message });
   }
 });
 

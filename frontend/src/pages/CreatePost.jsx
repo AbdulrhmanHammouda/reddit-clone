@@ -27,6 +27,7 @@ export default function CreatePost() {
   const [body, setBody] = useState(""); // HTML string from RichTextEditor
   const [linkUrl, setLinkUrl] = useState("");
   const [imageFiles, setImageFiles] = useState([]); // Array for multiple image files
+  const [videoFile, setVideoFile] = useState(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -91,21 +92,31 @@ export default function CreatePost() {
 
     setSubmitting(true);
     try {
-      if (activeTab === "image" && imageFiles.length > 0) {
+      if (activeTab === "image" && (imageFiles.length > 0 || videoFile)) {
         const fd = new FormData();
         fd.append("title", title.trim());
         fd.append("communityName", selectedCommunity.name);
-        imageFiles.forEach(file => {
-          fd.append("images", file); // Append each image file
-        });
         if (body && body.trim()) fd.append("body", body.trim()); // optional caption HTML
 
-        const res = await api.post("/posts/image", fd, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        if (videoFile) {
+          fd.append("video", videoFile);
+          const res = await api.post("/posts/video", fd, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
+          if (!res.data?.success) {
+            throw new Error(res.data?.error || "Failed to create video post");
+          }
+        } else {
+          imageFiles.forEach((file) => {
+            fd.append("images", file); // Append each image file
+          });
+          const res = await api.post("/posts/image", fd, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
 
-        if (!res.data?.success) {
-          throw new Error(res.data?.error || "Failed to create image post");
+          if (!res.data?.success) {
+            throw new Error(res.data?.error || "Failed to create image post");
+          }
         }
         navigate(`/r/${selectedCommunity.name}`);
       } else {
@@ -298,9 +309,38 @@ export default function CreatePost() {
                 type="file"
                 accept="image/*"
                 multiple // Allow multiple file selection
+                disabled={Boolean(videoFile)}
                 onChange={(e) => setImageFiles(Array.from(e.target.files))}
                 className="w-full px-3 py-2 rounded-md bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider outline-none"
               />
+
+              <label className="block text-xs font-semibold uppercase mt-4 mb-1">
+                Video file (mp4, webm)
+              </label>
+              <input
+                type="file"
+                accept="video/*"
+                disabled={imageFiles.length > 0}
+                onChange={(e) => {
+                  const file = e.target.files?.[0] || null;
+                  setVideoFile(file);
+                  if (file) setImageFiles([]);
+                }}
+                className="w-full px-3 py-2 rounded-md bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider outline-none"
+              />
+
+              {videoFile && (
+                <div className="mt-3">
+                  <p className="text-xs text-reddit-text_secondary dark:text-reddit-dark_text_secondary mb-1">
+                    Video preview
+                  </p>
+                  <video
+                    src={URL.createObjectURL(videoFile)}
+                    controls
+                    className="w-full max-h-[360px] rounded-lg bg-black object-contain"
+                  />
+                </div>
+              )}
 
               <label className="block text-xs font-semibold uppercase mt-4 mb-1">
                 Caption (optional)

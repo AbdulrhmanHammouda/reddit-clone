@@ -21,3 +21,23 @@
   content: "";
   @apply absolute left-1/2 top-0 -translate-x-1/2 -translate-y-full border-8 border-transparent border-b-reddit-text;
 }
+
+/* Hide scrollbars while keeping scroll ability */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Fully hide scrollbars when using snap carousels */
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}

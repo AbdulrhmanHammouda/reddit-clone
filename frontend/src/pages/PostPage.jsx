@@ -10,8 +10,21 @@ export default function PostPage() {
   const { id: postId } = useParams();
   const { token } = useAuth();
 
+  const [post, setPost] = useState(null);
   const [comments, setComments] = useState([]);
   const [loadingComments, setLoadingComments] = useState(true);
+
+  useEffect(() => {
+    async function fetchPost() {
+      try {
+        const res = await api.get(`/posts/${postId}`);
+        setPost(res.data.data);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    fetchPost();
+  }, [postId]);
 
   async function fetchComments() {
     try {
@@ -51,9 +64,11 @@ export default function PostPage() {
     }
   }
 
+  if (!post) return <div className="mt-6">Loading post…</div>;
+
   return (
     <div className="px-4 lg:px-0 max-w-[740px] mx-auto mt-6 pb-20">
-      <PostCardFull />
+      <PostCardFull post={post} />
 
       {/* Top-level comment */}
       <div className="mt-6 bg-reddit-card dark:bg-reddit-dark_card p-4 rounded-lg border border-reddit-border dark:border-reddit-dark_divider">

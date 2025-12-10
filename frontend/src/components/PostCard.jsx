@@ -9,6 +9,8 @@ import VoteButtons from "./VoteButtons";
 import React, { useState, useRef, useEffect } from "react";
 import api from "../api/axios";
 import useAuth from "../hooks/useAuth";
+import ImageCarousel from "./ImageCarousel";
+import FullscreenImageViewer from "./FullscreenImageViewer";
 
 export default function PostCard(props) {
   const navigate = useNavigate();
@@ -46,19 +48,11 @@ export default function PostCard(props) {
       }).format(new Date(incoming.createdAt))
     : "recently";
 
-  const images = incoming.images || [];
-  const totalImages = images.length;
-
-  const videoUrl = incoming.videoUrl ?? incoming.video ?? null;
-  const externalUrl = incoming.url ?? null;
-
-  const goToNextImage = () => {
-    setCurrentImageIndex((prevIndex) => (prevIndex + 1) % totalImages);
-  };
-
-  const goToPrevImage = () => {
-    setCurrentImageIndex((prevIndex) => (prevIndex - 1 + totalImages) % totalImages);
-  };
+  const videoUrl = incoming.videoUrl ?? null;
+  const images =
+    incoming.imageUrl && Array.isArray(incoming.imageUrl)
+      ? incoming.imageUrl
+      : incoming.images || [];
 
   if (!incoming || typeof incoming !== "object") return null;
 
@@ -67,7 +61,8 @@ export default function PostCard(props) {
   const [isMember, setIsMember] = useState(incoming.community?.isMember || false);
   const [isMod, setIsMod] = useState(incoming.community?.isMod || false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0); // State for current image index in slider
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
 
   const menuRef = useRef(null);
 
@@ -91,23 +86,27 @@ export default function PostCard(props) {
     }
   }
 
- async function toggleSave() {
-  if (!token) return alert("Login to save posts");
-  try {
-    if (!saved) {
-      await api.post(`/posts/${id}/save`);
-      setSaved(true);
-      props.onToggleSave?.(id, true);   // 🔥 notify parent state
-    } else {
-      await api.delete(`/posts/${id}/save`);
-      setSaved(false);
-      props.onToggleSave?.(id, false);  // 🔥 notify parent state
+  async function toggleSave() {
+    if (!token) return alert("Login to save posts");
+    try {
+      if (!saved) {
+        await api.post(`/posts/${id}/save`);
+        setSaved(true);
+        props.onToggleSave?.(id, true); // 🔥 notify parent state
+      } else {
+        await api.delete(`/posts/${id}/save`);
+        setSaved(false);
+        props.onToggleSave?.(id, false); // 🔥 notify parent state
+      }
+    } catch (err) {
+      console.error(err);
     }
-  } catch (err) {
-    console.error(err);
   }
-}
 
+  const openViewer = (index = 0) => {
+    setViewerIndex(index);
+    setViewerOpen(true);
+  };
 
   function onDeleteClick() {
     setShowDeleteModal(true);
@@ -208,45 +207,19 @@ export default function PostCard(props) {
           />
         )}
 
-        {/* Images Slider */}
-        {images.length > 0 && (
-          <div className="mt-2 relative w-full h-auto max-h-[400px] overflow-hidden rounded-md border">
-            <img
-              src={images[currentImageIndex]}
-              className="w-full h-full object-contain"
-              alt="post image"
+        {/* Media */}
+        {videoUrl ? (
+          <div className="mt-3 rounded-xl overflow-hidden bg-black/60">
+            <video
+              src={videoUrl}
+              controls
+              className="w-full max-h-[500px] object-contain bg-black"
             />
-
-            {totalImages > 1 && (
-              <>
-                {/* Navigation Buttons */}
-                <button
-                  onClick={goToPrevImage}
-                  className="absolute top-1/2 left-2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full focus:outline-none"
-                >
-                  &#10094;
-                </button>
-                <button
-                  onClick={goToNextImage}
-                  className="absolute top-1/2 right-2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full focus:outline-none"
-                >
-                  &#10095;
-                </button>
-
-                {/* Image Indicators */}
-                <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1">
-                  {images.map((_, index) => (
-                    <span
-                      key={index}
-                      className={`block w-2 h-2 rounded-full ${
-                        index === currentImageIndex ? "bg-white" : "bg-gray-400"
-                      }`}
-                    ></span>
-                  ))}
-                </div>
-              </>
-            )}
           </div>
+        ) : (
+          images.length > 0 && (
+            <ImageCarousel images={images} onImageClick={openViewer} />
+          )
         )}
 
         {/* ACTION BAR */}
@@ -273,6 +246,14 @@ export default function PostCard(props) {
           </button>
         </div>
       </div>
+
+      {viewerOpen && (
+        <FullscreenImageViewer
+          images={images}
+          index={viewerIndex}
+          onClose={() => setViewerOpen(false)}
+        />
+      )}
 
       {/* DELETE MODAL */}
       {showDeleteModal && (

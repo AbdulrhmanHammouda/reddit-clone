@@ -15,10 +15,12 @@
     <script>
       (function() {
         try {
-          var saved = localStorage.getItem('theme');
-          if (saved === 'dark') {
+          var saved = localStorage.getItem('darkMode');
+          var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var isDark = saved !== null ? saved === 'true' : prefersDark;
+          if (isDark) {
             document.documentElement.classList.add('dark');
-          } else if (saved === 'light') {
+          } else {
             document.documentElement.classList.remove('dark');
           }
         } catch (e) {

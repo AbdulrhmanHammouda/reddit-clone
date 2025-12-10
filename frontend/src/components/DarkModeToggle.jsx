@@ -1,41 +1,40 @@
 // src/components/DarkModeToggle.jsx
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { SunIcon, MoonIcon } from "@heroicons/react/24/outline";
 
+function getInitialMode() {
+  if (typeof window === "undefined") return false;
+  const saved = localStorage.getItem("darkMode");
+  if (saved !== null) return saved === "true";
+  if (document.documentElement.classList.contains("dark")) return true;
+  const prefersDark =
+    window.matchMedia &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches;
+  return prefersDark;
+}
+
 export default function DarkModeToggle() {
-  // Initialize state from localStorage or default to false (light mode)
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem("darkMode");
-      return saved !== null ? JSON.parse(saved) : false;
-    }
-    return false;
-  });
+  const [isDarkMode, setIsDarkMode] = useState(getInitialMode);
 
-  // Effect to apply the dark class to <html> and save to localStorage
   useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("darkMode", "true");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("darkMode", "false");
-    }
+    const root = document.documentElement;
+    const next = isDarkMode ? "true" : "false";
+    if (isDarkMode) root.classList.add("dark");
+    else root.classList.remove("dark");
+    localStorage.setItem("darkMode", next);
   }, [isDarkMode]);
-
-  const toggleDarkMode = () => {
-    setIsDarkMode(prevMode => !prevMode);
-  };
 
   return (
     <button
-      onClick={toggleDarkMode}
+      type="button"
+      onClick={() => setIsDarkMode((prev) => !prev)}
       className="flex items-center gap-3 px-4 py-3 text-sm text-reddit-text dark:text-reddit-dark_text hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover transition rounded-sm w-full"
     >
-      {isDarkMode 
-        ? <SunIcon className="h-5 w-5" /> 
-        : <MoonIcon className="h-5 w-5" />
-      }
+      {isDarkMode ? (
+        <SunIcon className="h-5 w-5" />
+      ) : (
+        <MoonIcon className="h-5 w-5" />
+      )}
       <span>{isDarkMode ? "Light Mode" : "Dark Mode"}</span>
     </button>
   );
