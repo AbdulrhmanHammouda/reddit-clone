@@ -31,9 +31,10 @@ function useOnClickOutside(ref, handler) {
  * SortMenu component
  * Props:
  *  - value: "best" | "hot" | "new" | "top" | "rising"
- *  - onChange: (newValue) => void
+ *  - onChange: ({ sort, time }) => void
+ *  - time: optional, only relevant for "top"
  */
-export default function SortMenu({ value = "best", onChange = () => {} }) {
+export default function SortMenu({ value = "best", time = "all", onChange = () => {} }) {
   const OPTIONS = [
     { key: "best", label: "Best", Icon: StarIcon },
     { key: "hot", label: "Hot", Icon: FireIcon },
@@ -95,7 +96,7 @@ export default function SortMenu({ value = "best", onChange = () => {} }) {
         e.preventDefault();
         if (focusedIndex >= 0 && focusedIndex < OPTIONS.length) {
           const selected = OPTIONS[focusedIndex];
-          onChange(selected.key);
+          onChange({ sort: selected.key, time });
           setOpen(false);
         }
       }
@@ -110,6 +111,14 @@ export default function SortMenu({ value = "best", onChange = () => {} }) {
   }, [open, onKeyDown]);
 
   const current = OPTIONS.find((o) => o.key === value) || OPTIONS[0];
+  const timeOptions = [
+    { key: "hour", label: "Past Hour" },
+    { key: "day", label: "Past 24 Hours" },
+    { key: "week", label: "Past Week" },
+    { key: "month", label: "Past Month" },
+    { key: "year", label: "Past Year" },
+    { key: "all", label: "All Time" },
+  ];
 
   return (
     <div ref={containerRef} className="relative inline-block text-left">
@@ -150,12 +159,12 @@ export default function SortMenu({ value = "best", onChange = () => {} }) {
                 role="menuitem"
                 tabIndex={-1}
                 onClick={() => {
-                  onChange(opt.key);
+                  onChange({ sort: opt.key, time });
                   setOpen(false);
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
-                    onChange(opt.key);
+                    onChange({ sort: opt.key, time });
                     setOpen(false);
                   }
                 }}
@@ -171,6 +180,35 @@ export default function SortMenu({ value = "best", onChange = () => {} }) {
               </button>
             );
           })}
+
+          {value === "top" && (
+            <>
+              <div className="px-3 py-1 text-xs text-reddit-text_secondary dark:text-reddit-dark_text_secondary font-medium border-t border-reddit-border dark:border-reddit-dark_divider mt-1">
+                Time range
+              </div>
+              {timeOptions.map((opt) => {
+                const activeTime = opt.key === time;
+                return (
+                  <button
+                    key={opt.key}
+                    role="menuitem"
+                    tabIndex={-1}
+                    onClick={() => {
+                      onChange({ sort: value, time: opt.key });
+                      setOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 text-sm focus:outline-none ${
+                      activeTime
+                        ? "bg-reddit-hover dark:bg-reddit-dark_hover font-semibold text-reddit-text dark:text-reddit-dark_text"
+                        : "text-reddit-text_secondary dark:text-reddit-dark_text_secondary hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </>
+          )}
         </div>
       </div>
     </div>

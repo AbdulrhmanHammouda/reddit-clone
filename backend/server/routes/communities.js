@@ -17,6 +17,20 @@ function normalizeName(name) {
   return (name || "").toLowerCase();
 }
 
+// 🕐 Time filter helper for "top" sort
+function timeWindowMatch(time) {
+  const msMap = {
+    hour: 3600000,
+    day: 86400000,
+    week: 7 * 86400000,
+    month: 30 * 86400000,
+    year: 365 * 86400000,
+  };
+  if (!time || time === "all") return {};
+  const ms = msMap[time] || msMap.month;
+  return { createdAt: { $gte: new Date(Date.now() - ms) } };
+}
+
 // 🚀 Create Community (Owner)
 // backend/routes/communities.js
 // backend/routes/communities.js
@@ -214,7 +228,7 @@ router.post("/:name/leave", auth, writeLimiter, async (req, res) => {
   }
 });
 
-// 📝 Get Community + Posts (with owner/join info + voting info)
+// 📝 Get Community + Posts (with owner/join info + voting info) + sort
 router.get("/:name/posts", optionalAuth, async (req, res) => {
   try {
     const finalName = normalizeName(req.params.name);
@@ -250,11 +264,68 @@ router.get("/:name/posts", optionalAuth, async (req, res) => {
       }
     }
 
-    // Fetch posts
-    const posts = await Post.find({ community: community._id })
-      .sort({ createdAt: -1 })
-      .populate("author", "username avatar")
-      .populate("community", "name title icon membersCount");
+    const sort = (req.query.sort || "best").toLowerCase();
+    const time = (req.query.time || "all").toLowerCase();
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const match = { community: community._id, ...timeWindowMatch(sort === "top" ? time : "all") };
+
+    const pipeline = [{ $match: match }];
+
+    const now = new Date();
+    const ageHoursExpr = {
+      $divide: [{ $subtract: [now, "$createdAt"] }, 1000 * 3600],
+    };
+
+    if (sort === "hot") {
+      pipeline.push({
+        $addFields: {
+          ageHours: ageHoursExpr,
+          hotScore: {
+            $divide: ["$score", { $pow: [{ $add: ["$ageHours", 2] }, 1.5] }],
+          },
+        },
+      });
+      pipeline.push({ $sort: { hotScore: -1 } });
+    } else if (sort === "new") {
+      pipeline.push({ $sort: { createdAt: -1 } });
+    } else if (sort === "top") {
+      pipeline.push({ $sort: { score: -1, createdAt: -1 } });
+    } else if (sort === "rising") {
+      pipeline.push({
+        $addFields: {
+          ageHours: ageHoursExpr,
+          risingScore: {
+            $cond: [
+              { $lte: ["$ageHours", 0.1] },
+              "$score",
+              { $divide: ["$score", { $sqrt: { $add: ["$ageHours", 1] } }] },
+            ],
+          },
+        },
+      });
+      pipeline.push({ $sort: { risingScore: -1 } });
+    } else {
+      pipeline.push({
+        $addFields: {
+          ageHours: ageHoursExpr,
+          bestScore: {
+            $add: ["$score", { $divide: ["$score", { $add: ["$ageHours", 10] }] }],
+          },
+        },
+      });
+      pipeline.push({ $sort: { bestScore: -1, createdAt: -1 } });
+    }
+
+    pipeline.push({ $skip: skip }, { $limit: limit });
+
+    let posts = await Post.aggregate(pipeline);
+    posts = await Post.populate(posts, [
+      { path: "author", select: "username avatar" },
+      { path: "community", select: "name title icon membersCount" },
+    ]);
 
 
     // Attach score + yourVote to each post (✔ fixed vote field)
@@ -280,7 +351,7 @@ router.get("/:name/posts", optionalAuth, async (req, res) => {
         }
 
         return {
-          ...post.toObject(),
+          ...post,
           score,
           yourVote,
           saved, // Include the saved flag
@@ -298,6 +369,8 @@ router.get("/:name/posts", optionalAuth, async (req, res) => {
           memberRole,
         },
         posts: postsWithVotes,
+        page,
+        limit,
       },
     });
   } catch (err) {

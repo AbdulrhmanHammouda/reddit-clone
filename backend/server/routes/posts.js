@@ -14,10 +14,24 @@ const Vote = require('../models/Vote');
 const Comment = require('../models/Comment');
 const SavedPost = require('../models/SavedPost');
 const HiddenPost = require('../models/HiddenPost');
+const mongoose = require('mongoose');
 
 const multer = require('multer');
 const { storage } = require('../utils/cloudinary');
 const upload = multer({ storage });
+
+function timeWindowMatch(time) {
+  const msMap = {
+    hour: 3600000,
+    day: 86400000,
+    week: 7 * 86400000,
+    month: 30 * 86400000,
+    year: 365 * 86400000,
+  };
+  if (!time || time === "all") return {};
+  const ms = msMap[time] || msMap.month;
+  return { createdAt: { $gte: new Date(Date.now() - ms) } };
+}
 
 // Video upload (mp4, webm only)
 const videoUpload = multer({
@@ -61,6 +75,136 @@ router.post('/image', auth, writeLimiter, upload.array('images', 10), async (req
 
     res.status(201).json({ success: true, data: populated });
   } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/* ---------------------------------------------------------------------------
+   📥 FEED WITH SORTING (best | hot | new | top | rising)
+--------------------------------------------------------------------------- */
+router.get('/', optionalAuth, async (req, res) => {
+  try {
+    const sort = (req.query.sort || "best").toLowerCase();
+    const time = (req.query.time || "all").toLowerCase();
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const userId = req.user?._id;
+
+    // base match (time window for top)
+    const match = { ...timeWindowMatch(sort === "top" ? time : "all") };
+
+    // Exclude own posts on home feed unless includeMine=1 is set
+    if (userId && req.query.includeMine !== "1" && !req.query.community) {
+      match.author = { $ne: userId };
+    }
+
+    const pipeline = [{ $match: match }];
+
+    // Common addFields for ageHours
+    const now = new Date();
+    const ageHoursExpr = {
+      $divide: [{ $subtract: [now, "$createdAt"] }, 1000 * 3600],
+    };
+
+    if (sort === "hot") {
+      pipeline.push({
+        $addFields: {
+          ageHours: ageHoursExpr,
+          hotScore: {
+            $divide: [
+              "$score",
+              {
+                $pow: [
+                  { $add: ["$ageHours", 2] },
+                  1.5,
+                ],
+              },
+            ],
+          },
+        },
+      });
+      pipeline.push({ $sort: { hotScore: -1 } });
+    } else if (sort === "new") {
+      pipeline.push({ $sort: { createdAt: -1 } });
+    } else if (sort === "top") {
+      pipeline.push({ $sort: { score: -1, createdAt: -1 } });
+    } else if (sort === "rising") {
+      pipeline.push({
+        $addFields: {
+          ageHours: ageHoursExpr,
+          risingScore: {
+            $cond: [
+              { $lte: ["$ageHours", 0.1] },
+              "$score",
+              {
+                $divide: [
+                  "$score",
+                  { $sqrt: { $add: ["$ageHours", 1] } },
+                ],
+              },
+            ],
+          },
+        },
+      });
+      pipeline.push({ $sort: { risingScore: -1 } });
+    } else {
+      // best (default) - score with slight recency bias
+      pipeline.push({
+        $addFields: {
+          ageHours: ageHoursExpr,
+          bestScore: {
+            $add: [
+              "$score",
+              {
+                $divide: [
+                  "$score",
+                  { $add: ["$ageHours", 10] },
+                ],
+              },
+            ],
+          },
+        },
+      });
+      pipeline.push({ $sort: { bestScore: -1, createdAt: -1 } });
+    }
+
+    pipeline.push({ $skip: skip }, { $limit: limit });
+
+    const total = await Post.countDocuments(match);
+
+    let posts = await Post.aggregate(pipeline);
+
+    // populate author/community on aggregated docs
+    posts = await Post.populate(posts, [
+      { path: "author", select: "username avatar" },
+      { path: "community", select: "name title icon" },
+    ]);
+
+    // attach yourVote/saved flags
+    if (userId) {
+      for (const p of posts) {
+        const vote = await Vote.findOne({ user: userId, post: p._id }).lean();
+        p.yourVote = vote?.value || 0;
+        const savedDoc = await SavedPost.findOne({ user: userId, post: p._id }).lean();
+        p.saved = !!savedDoc;
+      }
+    } else {
+      posts = posts.map((p) => ({ ...p, yourVote: 0, saved: false }));
+    }
+
+    res.json({
+      success: true,
+      data: {
+        posts,
+        page,
+        limit,
+        total,
+      },
+    });
+  } catch (err) {
+    console.error("GET /api/posts error", err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

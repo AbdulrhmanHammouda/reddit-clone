@@ -70,6 +70,7 @@ export default function PostCard(props) {
   const [hidden, setHidden] = useState(false);
   const [scoreState, setScoreState] = useState(score);
   const [voteState, setVoteState] = useState(incoming.yourVote ?? 0);
+  const [joinLoading, setJoinLoading] = useState(false);
 
   const menuRef = useRef(null);
 
@@ -153,11 +154,16 @@ export default function PostCard(props) {
     e.stopPropagation();
     if (!token) return;
     try {
+      setJoinLoading(true);
       await api.post(`/communities/${community}/join`);
       setIsMember(true); // optimistic
       setMenuOpen(false);
+      toast.success(`Joined r/${community}`);
     } catch (err) {
       console.error("Join error", err);
+      toast.error("Failed to join");
+    } finally {
+      setJoinLoading(false);
     }
   }
 
@@ -170,44 +176,30 @@ export default function PostCard(props) {
         {/* HEADER */}
         <div className="flex items-center justify-between text-[13px] text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
           <div className="flex items-center gap-2">
-            {(() => {
-              const routeCommunity = routeCommunityName || communityName;
-              const hideCommunityName =
-                routeCommunity &&
-                routeCommunity.toLowerCase() === (community || "").toLowerCase();
-              return (
-                <>
-                  {community && (
-                    <Link to={`/r/${community}`} className="h-6 w-6">
-                      <img src={communityAvatar || defaultProfileImg} className="h-full w-full rounded-full" />
-                    </Link>
-                  )}
-
-                  {!hideCommunityName && community && (
-                    <>
-                      <Link
-                        to={`/r/${community}`}
-                        className="font-semibold text-reddit-text dark:text-reddit-dark_text hover:underline"
-                      >
-                        r/{community}
-                      </Link>
-                      <span>•</span>
-                    </>
-                  )}
-
-                  <Link to={`/u/${author}`} className="truncate max-w-[120px] hover:underline">
-                    u/{author}
-                  </Link>
-                  <span>•</span>
-                  <span>{createdAgo}</span>
-                </>
-              );
-            })()}
+            {community && (
+              <>
+                <Link to={`/r/${community}`} className="h-6 w-6">
+                  <img src={communityAvatar || defaultProfileImg} className="h-full w-full rounded-full" />
+                </Link>
+                <Link
+                  to={`/r/${community}`}
+                  className="font-semibold text-reddit-text dark:text-reddit-dark_text hover:underline"
+                >
+                  r/{community}
+                </Link>
+                <span>•</span>
+              </>
+            )}
+            <Link to={`/u/${author}`} className="truncate max-w-[120px] hover:underline">
+              u/{author}
+            </Link>
+            <span>•</span>
+            <span>{createdAgo}</span>
           </div>
 
           <div className="flex items-center gap-2">
             {(() => {
-              const isCommunityPage = location.pathname === `/r/${community}`;
+              const isCommunityPage = location.pathname.startsWith("/r/");
               const isUserProfilePage = location.pathname.startsWith("/u/");
               return (
                 token &&
@@ -218,8 +210,9 @@ export default function PostCard(props) {
                   <button
                     className="bg-reddit-blue hover:bg-reddit-blue_hover text-white text-xs font-semibold px-3 py-1 rounded-full"
                     onClick={handleJoin}
+                    disabled={joinLoading}
                   >
-                    Join
+                    {joinLoading ? "Joining..." : "Join"}
                   </button>
                 )
               );

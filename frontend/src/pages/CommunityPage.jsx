@@ -6,7 +6,6 @@ import CommunityFeed from "../components/CommunityFeed";
 import CommunitySidebar from "../components/CommunitySidebar";
 import api from "../api/axios";
 import useAuth from "../hooks/useAuth";
-import SortMenu from "../components/SortMenu";
 
 export default function CommunityPage() {
   const { name } = useParams();
@@ -19,6 +18,7 @@ export default function CommunityPage() {
   const [joinLoading, setJoinLoading] = useState(false);
   const [error, setError] = useState(null);
   const [sort, setSort] = useState("best");
+  const [time, setTime] = useState("all");
 
   // editing states
   const [editing, setEditing] = useState(false);
@@ -45,7 +45,13 @@ export default function CommunityPage() {
 
       const res = await api.get(
         `/communities/${encodeURIComponent(name)}/posts`,
-        { headers }
+        {
+          headers,
+          params: {
+            sort,
+            time: sort === "top" ? time : undefined,
+          },
+        }
       );
 
       if (!res?.data?.success) {
@@ -77,7 +83,7 @@ export default function CommunityPage() {
   useEffect(() => {
     if (!name) return;
     load();
-  }, [name, token, load]);
+  }, [name, token, load, sort, time]);
 
   const sortedPosts = useMemo(() => {
     const arr = [...posts];
@@ -324,7 +330,14 @@ export default function CommunityPage() {
           <div className="lg:col-span-2 flex justify-center">
             <div className="w-full max-w-[740px]">
               <div className="mb-4 flex items-center justify-between">
-                <SortMenu value={sort} onChange={setSort} />
+                <SortMenu
+                  value={sort}
+                  time={time}
+                  onChange={({ sort: nextSort, time: nextTime = "all" }) => {
+                    setSort(nextSort);
+                    setTime(nextSort === "top" ? nextTime : "all");
+                  }}
+                />
               </div>
               <CommunityFeed
                 posts={sortedPosts}
