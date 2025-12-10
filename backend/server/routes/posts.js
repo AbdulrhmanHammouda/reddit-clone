@@ -13,6 +13,7 @@ const Post = require('../models/Post');
 const Vote = require('../models/Vote');
 const Comment = require('../models/Comment');
 const SavedPost = require('../models/SavedPost');
+const HiddenPost = require('../models/HiddenPost');
 
 const multer = require('multer');
 const { storage } = require('../utils/cloudinary');
@@ -388,6 +389,23 @@ router.post('/:id/save', auth, validateObjectId('id'), async (req, res) => {
 router.delete('/:id/save', auth, validateObjectId('id'), async (req, res) => {
   await SavedPost.findOneAndDelete({ user: req.user._id, post: req.params.id });
   res.json({ success: true, saved: false });
+});
+
+/* ---------------------------------------------------------------------------
+   🙈 HIDE / UNHIDE
+--------------------------------------------------------------------------- */
+router.post('/:id/hide', auth, validateObjectId('id'), async (req, res) => {
+  await HiddenPost.findOneAndUpdate(
+    { user: req.user._id, post: req.params.id },
+    {},
+    { upsert: true }
+  );
+  res.json({ success: true, hidden: true });
+});
+
+router.delete('/:id/hide', auth, validateObjectId('id'), async (req, res) => {
+  await HiddenPost.findOneAndDelete({ user: req.user._id, post: req.params.id });
+  res.json({ success: true, hidden: false });
 });
 
 module.exports = router;

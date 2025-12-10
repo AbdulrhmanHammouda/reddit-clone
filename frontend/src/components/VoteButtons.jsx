@@ -8,6 +8,7 @@ export default function VoteButtons({
   commentId,
   initialScore = 0,
   initialVote = 0,
+  onVoteChange,
 }) {
   const { token } = useAuth();
 
@@ -45,6 +46,7 @@ export default function VoteButtons({
       setState(
         yourVote === 1 ? "up" : yourVote === -1 ? "down" : "none"
       );
+      onVoteChange?.({ score, yourVote });
     } catch (err) {
       console.error("Vote error:", err?.response?.data || err);
     }

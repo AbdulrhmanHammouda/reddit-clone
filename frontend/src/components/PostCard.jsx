@@ -4,16 +4,19 @@ import {
   ShareIcon as ShareOutline,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import VoteButtons from "./VoteButtons";
 import React, { useState, useRef, useEffect } from "react";
 import api from "../api/axios";
 import useAuth from "../hooks/useAuth";
 import ImageCarousel from "./ImageCarousel";
 import FullscreenImageViewer from "./FullscreenImageViewer";
+import defaultProfileImg from "../assets/default_profile.jpeg";
+import { toast } from "react-hot-toast";
 
 export default function PostCard(props) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { token, user } = useAuth();
 
   const incoming = props.post ?? props;
@@ -58,11 +61,14 @@ export default function PostCard(props) {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [saved, setSaved] = useState(incoming.saved || false);
-  const [isMember, setIsMember] = useState(incoming.community?.isMember || false);
+  const [isMember, setIsMember] = useState(Boolean(incoming.community?.isMember));
   const [isMod, setIsMod] = useState(incoming.community?.isMod || false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
+  const [hidden, setHidden] = useState(false);
+  const [scoreState, setScoreState] = useState(score);
+  const [voteState, setVoteState] = useState(incoming.yourVote ?? 0);
 
   const menuRef = useRef(null);
 
@@ -103,6 +109,22 @@ export default function PostCard(props) {
     }
   }
 
+  async function toggleHide() {
+    if (!token) return alert("Login to hide posts");
+    try {
+      if (!hidden) {
+        await api.post(`/posts/${id}/hide`);
+        setHidden(true);
+        props.onHide?.(id);
+      } else {
+        await api.delete(`/posts/${id}/hide`);
+        setHidden(false);
+      }
+    } catch (err) {
+      console.error("Hide error:", err);
+    }
+  }
+
   const openViewer = (index = 0) => {
     setViewerIndex(index);
     setViewerOpen(true);
@@ -115,16 +137,30 @@ export default function PostCard(props) {
 
   async function onDeleteConfirm() {
     if (!token) return;
-    await api.delete(`/posts/${id}`);
-    navigate(0);
+    try {
+      await api.delete(`/posts/${id}`);
+      props.onDelete?.(id);
+      setShowDeleteModal(false);
+      toast.success("Post deleted");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to delete");
+    }
   }
 
   async function handleJoin(e) {
     e.stopPropagation();
-    if (!token) return navigate("/login");
-    await api.post(`/communities/${community}/join`);
-    setIsMember(true);
+    if (!token) return;
+    try {
+      await api.post(`/communities/${community}/join`);
+      setIsMember(true); // optimistic
+      setMenuOpen(false);
+    } catch (err) {
+      console.error("Join error", err);
+    }
   }
+
+  if (hidden) return null;
 
   return (
     <>
@@ -134,7 +170,7 @@ export default function PostCard(props) {
         <div className="flex items-center justify-between text-[13px] text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
           <div className="flex items-center gap-2">
             <Link to={`/r/${community}`} className="h-6 w-6">
-              <img src={communityAvatar} className="h-full w-full rounded-full" />
+              <img src={communityAvatar || defaultProfileImg} className="h-full w-full rounded-full" />
             </Link>
 
             <Link to={`/r/${community}`} className="font-semibold text-reddit-text dark:text-reddit-dark_text hover:underline">
@@ -151,14 +187,24 @@ export default function PostCard(props) {
           </div>
 
           <div className="flex items-center gap-2">
-            {!isMember && (
-              <button
-                className="bg-reddit-blue hover:bg-reddit-blue_hover text-white text-xs font-semibold px-3 py-1 rounded-full"
-                onClick={handleJoin}
-              >
-                Join
-              </button>
-            )}
+            {(() => {
+              const isCommunityPage = location.pathname === `/r/${community}`;
+              const isUserProfilePage = location.pathname.startsWith("/u/");
+              return (
+                token &&
+                community &&
+                !isMember &&
+                !isCommunityPage &&
+                !isUserProfilePage && (
+                  <button
+                    className="bg-reddit-blue hover:bg-reddit-blue_hover text-white text-xs font-semibold px-3 py-1 rounded-full"
+                    onClick={handleJoin}
+                  >
+                    Join
+                  </button>
+                )
+              );
+            })()}
 
             <div className="relative" ref={menuRef}>
               <button onClick={() => setMenuOpen(v => !v)} className="p-1 rounded-full hover:bg-[#e8e9eb] dark:hover:bg-[#2c2d2f]">
@@ -174,6 +220,12 @@ export default function PostCard(props) {
                   {token && (
                     <button onClick={toggleSave} className="w-full text-left px-3 py-2 hover:bg-[#e8e9eb] dark:hover:bg-[#2c2d2f]">
                       {saved ? "Unsave" : "Save"}
+                    </button>
+                  )}
+
+                  {token && (
+                    <button onClick={toggleHide} className="w-full text-left px-3 py-2 hover:bg-[#e8e9eb] dark:hover:bg-[#2c2d2f]">
+                      {hidden ? "Unhide" : "Hide"}
                     </button>
                   )}
 
@@ -227,26 +279,36 @@ export default function PostCard(props) {
         )}
 
         {/* ACTION BAR */}
-        <div className="flex items-center gap-4 mt-3 text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
-
-          <VoteButtons postId={id} initialScore={score} initialVote={incoming.yourVote ?? 0} />
+        <div className="flex items-center gap-3 mt-3 text-reddit-text_secondary dark:text-reddit-dark_text_secondary flex-nowrap overflow-x-auto no-scrollbar">
+          <div className="flex-shrink-0">
+            <VoteButtons
+              postId={id}
+              initialScore={scoreState}
+              initialVote={voteState ?? 0}
+              onVoteChange={({ score, yourVote }) => {
+                setScoreState(score);
+                setVoteState(yourVote);
+              }}
+            />
+          </div>
 
           {/* COMMENTS */}
           <button
-            className="flex items-center gap-1 px-3 py-[6px] rounded-full hover:bg-[#e8e9eb] dark:hover:bg-[#2c2d2f]"
+            className="flex items-center gap-2 px-3 py-[6px] rounded-full hover:bg-[#e8e9eb] dark:hover:bg-[#2c2d2f] flex-shrink-0"
             onClick={() => navigate(`/post/${id}`)}
           >
             <ChatBubbleBottomCenterTextIcon className="h-4 w-4" />
+            <span className="text-sm">Comments</span>
             <span>{commentsCount}</span>
           </button>
 
           {/* SHARE */}
           <button
-            className="flex items-center gap-1 px-3 py-[6px] rounded-full hover:bg-[#e8e9eb] dark:hover:bg-[#2c2d2f]"
+            className="flex items-center gap-2 px-3 py-[6px] rounded-full hover:bg-[#e8e9eb] dark:hover:bg-[#2c2d2f] flex-shrink-0"
             onClick={handleShare}
           >
             <ShareOutline className="h-4 w-4" />
-            <span>Share</span>
+            <span className="text-sm">Share</span>
           </button>
         </div>
       </div>

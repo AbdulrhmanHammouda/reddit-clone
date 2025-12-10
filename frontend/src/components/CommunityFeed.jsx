@@ -2,15 +2,16 @@
 import React from "react";
 import PostCard from "./PostCard";
 
-export default function CommunityFeed({ posts = [], createPost, onToggleSave }) {
+export default function CommunityFeed({ posts = [], createPost, onToggleSave, onDelete }) {
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       {posts.map((p) => (
         <PostCard
           key={p._id || p.id}
           post={p}
           onToggleSave={(saved) => onToggleSave(p._id || p.id, saved)}
+          onDelete={onDelete}
         />
       ))}
 

@@ -12,6 +12,8 @@ const Comment = require('../models/Comment');
 const Vote = require('../models/Vote');
 const CommentVote = require('../models/CommentVote');
 const Follow = require('../models/Follow'); 
+const optionalAuth = require("../middleware/optionalAuth");
+const HiddenPost = require("../models/HiddenPost");
 
 // Multer config for avatar uploads
 const upload = multer({
@@ -320,52 +322,189 @@ router.get("/me/communities", auth, async (req, res) => {
 
 
 
-
-
-// GET /api/users/:username/comments → fetch comments by a user
-router.get('/:username/comments', auth, async (req, res) => {
-  try {
-    const user = await User.findOne({ username: req.params.username });
-    if (!user) {
-      return res.status(404).json({ success: false, data: null, error: 'User not found' });
+// Utility to enrich posts with vote/save info
+async function enrichPostsForUser(posts, viewerId) {
+  if (!Array.isArray(posts)) return [];
+  const results = [];
+  for (const p of posts) {
+    const postObj = p.toObject ? p.toObject() : p;
+    let yourVote = 0;
+    let saved = false;
+    if (viewerId) {
+      const v = await Vote.findOne({ user: viewerId, post: postObj._id });
+      if (v) yourVote = v.value;
+      const s = await SavedPost.findOne({ user: viewerId, post: postObj._id });
+      if (s) saved = true;
     }
+    results.push({ ...postObj, yourVote, saved });
+  }
+  return results;
+}
+
+// GET /api/users/:username/posts
+router.get("/:username/posts", optionalAuth, async (req, res) => {
+  try {
+    const { username } = req.params;
+    const page = Number(req.query.page || 1);
+    const limit = Number(req.query.limit || 20);
+
+    const user = await User.findOne({ username });
+    if (!user) return res.status(404).json({ success: false, error: "User not found" });
+
+    const posts = await Post.find({ author: user._id })
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .populate("author", "username avatar")
+      .populate("community", "name title icon isMember isMod");
+
+    const data = await enrichPostsForUser(posts, req.user?._id);
+
+    res.json({ success: true, data: { posts: data } });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/users/:username/comments (paginated)
+router.get("/:username/comments", optionalAuth, async (req, res) => {
+  try {
+    const { username } = req.params;
+    const page = Number(req.query.page || 1);
+    const limit = Number(req.query.limit || 20);
+    const user = await User.findOne({ username });
+    if (!user) return res.status(404).json({ success: false, error: "User not found" });
 
     const comments = await Comment.find({ author: user._id })
-      .populate('author', 'username avatar')
-      .populate({
-        path: 'post',
-        select: 'title community',
-        populate: { path: 'community', select: 'name title icon' },
-      })
-      .sort({ createdAt: -1 });
+      .populate("author", "username avatar")
+      .populate({ path: "post", select: "title community", populate: { path: "community", select: "name title icon" } })
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
 
-    const commentsWithDetails = await Promise.all(
+    const commentsWithVotes = await Promise.all(
       comments.map(async (comment) => {
         let yourVote = 0;
-        if (req.user) {
-          const vote = await CommentVote.findOne({
-            user: req.user._id,
-            comment: comment._id,
-          });
+        if (req.user?._id) {
+          const vote = await CommentVote.findOne({ user: req.user._id, comment: comment._id });
           if (vote) yourVote = vote.value;
         }
-
-        return {
-          ...comment.toObject(),
-          yourVote,
-        };
+        return { ...comment.toObject(), yourVote };
       })
     );
 
-    res.status(200).json({
-      success: true,
-      data: commentsWithDetails,
-      error: null,
-    });
+    res.json({ success: true, data: { comments: commentsWithVotes } });
   } catch (err) {
-    res.status(500).json({ success: false, data: null, error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
+
+// GET /api/users/:username/saved
+router.get("/:username/saved", auth, async (req, res) => {
+  try {
+    const { username } = req.params;
+    const page = Number(req.query.page || 1);
+    const limit = Number(req.query.limit || 20);
+    // saved posts are private; only owner can view
+    if (req.user?.username !== username && req.user?.name !== username) {
+      return res.status(403).json({ success: false, error: "Forbidden" });
+    }
+
+    const user = await User.findOne({ username });
+    if (!user) return res.status(404).json({ success: false, error: "User not found" });
+
+    const saved = await SavedPost.find({ user: user._id })
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .populate({
+        path: "post",
+        populate: [
+          { path: "author", select: "username avatar" },
+          { path: "community", select: "name title icon" },
+        ],
+      });
+
+    const posts = saved.map((s) => s.post).filter(Boolean);
+    const data = await enrichPostsForUser(posts, req.user?._id);
+    res.json({ success: true, data: { posts: data } });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/users/:username/history (stub / placeholder)
+router.get("/:username/history", auth, async (req, res) => {
+  // If you track history, plug it here. For now, return empty list to satisfy UI.
+  return res.json({ success: true, data: { posts: [] } });
+});
+
+// GET /api/users/:username/hidden (stub / placeholder)
+router.get("/:username/hidden", auth, async (req, res) => {
+  try {
+    const { username } = req.params;
+    const page = Number(req.query.page || 1);
+    const limit = Number(req.query.limit || 20);
+
+    // hidden is private; only owner
+    if (req.user?.username !== username && req.user?.name !== username) {
+      return res.status(403).json({ success: false, error: "Forbidden" });
+    }
+
+    const user = await User.findOne({ username });
+    if (!user) return res.status(404).json({ success: false, error: "User not found" });
+
+    const hidden = await HiddenPost.find({ user: user._id })
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .populate({
+        path: "post",
+        populate: [
+          { path: "author", select: "username avatar" },
+          { path: "community", select: "name title icon" },
+        ],
+      });
+
+    const posts = hidden.map((h) => h.post).filter(Boolean);
+    const data = await enrichPostsForUser(posts, req.user?._id);
+    return res.json({ success: true, data: { posts: data } });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/users/:username/votes?type=up|down
+router.get("/:username/votes", optionalAuth, async (req, res) => {
+  try {
+    const { username } = req.params;
+    const type = req.query.type === "down" ? -1 : 1;
+    const page = Number(req.query.page || 1);
+    const limit = Number(req.query.limit || 20);
+
+    const user = await User.findOne({ username });
+    if (!user) return res.status(404).json({ success: false, error: "User not found" });
+
+    const votes = await Vote.find({ user: user._id, value: type })
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .populate({
+        path: "post",
+        populate: [
+          { path: "author", select: "username avatar" },
+          { path: "community", select: "name title icon" },
+        ],
+      });
+
+    const posts = votes.map((v) => v.post).filter(Boolean);
+    const data = await enrichPostsForUser(posts, req.user?._id);
+    res.json({ success: true, data: { posts: data } });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 
 
 module.exports = router;

@@ -6,6 +6,7 @@ import CommunityFeed from "../components/CommunityFeed";
 import CommunitySidebar from "../components/CommunitySidebar";
 import api from "../api/axios";
 import useAuth from "../hooks/useAuth";
+import SortMenu from "../components/SortMenu";
 
 export default function CommunityPage() {
   const { name } = useParams();
@@ -17,6 +18,7 @@ export default function CommunityPage() {
   const [loading, setLoading] = useState(true);
   const [joinLoading, setJoinLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [sort, setSort] = useState("best");
 
   // editing states
   const [editing, setEditing] = useState(false);
@@ -76,6 +78,19 @@ export default function CommunityPage() {
     if (!name) return;
     load();
   }, [name, token, load]);
+
+  const sortedPosts = useMemo(() => {
+    const arr = [...posts];
+    if (sort === "new") {
+      return arr.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
+    if (sort === "top" || sort === "best") {
+      return arr.sort(
+        (a, b) => Number(b.score ?? b.votes ?? 0) - Number(a.score ?? a.votes ?? 0)
+      );
+    }
+    return arr;
+  }, [posts, sort]);
 
   // ---------- join / leave ----------
   async function joinCommunity() {
@@ -308,13 +323,19 @@ export default function CommunityPage() {
         <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 flex justify-center">
             <div className="w-full max-w-[740px]">
+              <div className="mb-4 flex items-center justify-between">
+                <SortMenu value={sort} onChange={setSort} />
+              </div>
               <CommunityFeed
-                posts={posts}
+                posts={sortedPosts}
                 createPost={createPost}
                 onToggleSave={(postId, saved) => {
                   setPosts((prev) =>
                     prev.map((p) => (p._id === postId ? { ...p, saved } : p))
                   );
+                }}
+                onDelete={(postId) => {
+                  setPosts((prev) => prev.filter((p) => p._id !== postId));
                 }}
               />
             </div>

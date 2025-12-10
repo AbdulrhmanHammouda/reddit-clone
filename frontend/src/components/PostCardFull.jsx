@@ -8,6 +8,7 @@ import VoteButtons from "../components/VoteButtons";
 import {
   ChatBubbleBottomCenterTextIcon,
   EllipsisHorizontalIcon,
+  ShareIcon as ShareOutline,
 } from "@heroicons/react/24/outline";
 import useAuth from "../hooks/useAuth";
 import ImageCarousel from "./ImageCarousel";
@@ -227,21 +228,37 @@ export default function PostCardFull({ post: incomingProp, postId: propPostId })
       )}
 
       {/* ACTION BAR */}
-      <div className="mt-4 flex items-center gap-4">
-        <VoteButtons
-          postId={postId}
-          initialScore={incoming.score}
-          initialVote={incoming.yourVote ?? 0}
-        />
+      <div className="mt-4 flex items-center gap-3 flex-nowrap overflow-x-auto no-scrollbar text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
+        <div className="flex-shrink-0">
+          <VoteButtons
+            postId={postId}
+            initialScore={incoming.score}
+            initialVote={incoming.yourVote ?? 0}
+          />
+        </div>
 
         {/* Comments Button */}
         <div
-          className="flex items-center gap-2 px-3 py-2 rounded-full bg-reddit-hover dark:bg-reddit-dark_hover text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary cursor-pointer"
+          className="flex items-center gap-2 px-3 py-2 rounded-full bg-reddit-hover dark:bg-reddit-dark_hover text-sm cursor-pointer flex-shrink-0"
           onClick={() => navigate(`/post/${postId}#comments`)}
         >
           <ChatBubbleBottomCenterTextIcon className="h-4 w-4" />
+          <span>Comments</span>
           <span>{incoming.commentsCount ?? 0}</span>
         </div>
+
+        {/* Share */}
+        <button
+          className="flex items-center gap-2 px-3 py-2 rounded-full bg-reddit-hover dark:bg-reddit-dark_hover text-sm cursor-pointer flex-shrink-0"
+          onClick={() => {
+            if (!postId) return;
+            const url = `${window.location.origin}/post/${postId}`;
+            navigator.clipboard?.writeText(url).catch(() => {});
+          }}
+        >
+          <ShareOutline className="h-4 w-4" />
+          <span>Share</span>
+        </button>
       </div>
 
       {viewerOpen && (

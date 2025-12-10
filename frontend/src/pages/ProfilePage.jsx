@@ -9,6 +9,19 @@ import CommentReplyBox from "../components/CommentReplyBox";
 import SortMenu from "../components/SortMenu";
 import EditProfileModal from "../components/EditProfileModal";
 import defaultProfileImg from "../assets/default_profile.jpeg";
+import { useCallback } from "react";
+import ProfileTabs from "../components/ProfileTabs";
+
+const TABS = [
+  { key: "overview", label: "Overview" },
+  { key: "posts", label: "Posts" },
+  { key: "comments", label: "Comments" },
+  { key: "saved", label: "Saved" },
+  { key: "history", label: "History" },
+  { key: "hidden", label: "Hidden" },
+  { key: "upvoted", label: "Upvoted" },
+  { key: "downvoted", label: "Downvoted" },
+];
 
 function ProfileCard({
   profile,
@@ -182,8 +195,69 @@ export default function ProfilePage() {
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [commentsError, setCommentsError] = useState(null);
 
+  // tabbed data
+  const [tabLoading, setTabLoading] = useState(false);
+  const [tabError, setTabError] = useState(null);
+  const [tabPosts, setTabPosts] = useState([]);
+  const [tabComments, setTabComments] = useState([]);
+  const [tabPage, setTabPage] = useState(1);
+
   const mountedRef = useRef(true);
   const isOwn = authUser?.username === username;
+
+  const tabEndpoint = useCallback((uname, tab, page = 1) => {
+    const base = `/users/${encodeURIComponent(uname)}`;
+    const pageQuery = `?limit=20&page=${page}`;
+    switch (tab) {
+      case "posts":
+        return `${base}/posts${pageQuery}`;
+      case "comments":
+        return `${base}/comments${pageQuery}`;
+      case "saved":
+        return `${base}/saved${pageQuery}`;
+      case "history":
+        return `${base}/history${pageQuery}`;
+      case "hidden":
+        return `${base}/hidden${pageQuery}`;
+      case "upvoted":
+        return `${base}/votes?type=up&page=${page}`;
+      case "downvoted":
+        return `${base}/votes?type=down&page=${page}`;
+      default:
+        return `${base}/posts${pageQuery}`;
+    }
+  }, []);
+
+  const fetchTab = useCallback(
+    async (tab = activeTab, page = 1) => {
+      if (!username) return;
+      setTabLoading(true);
+      setTabError(null);
+      try {
+        if (tab === "overview") {
+          const [pRes, cRes] = await Promise.all([
+            api.get(`/users/${encodeURIComponent(username)}/posts?limit=6&page=1`),
+            api.get(`/users/${encodeURIComponent(username)}/comments?limit=6&page=1`),
+          ]);
+          setTabPosts(pRes.data?.data?.posts || pRes.data?.data || []);
+          setTabComments(cRes.data?.data?.comments || cRes.data?.data || []);
+        } else if (tab === "comments") {
+          const res = await api.get(tabEndpoint(username, tab, page));
+          setTabComments(res.data?.data?.comments || res.data?.data || []);
+        } else {
+          const res = await api.get(tabEndpoint(username, tab, page));
+          setTabPosts(res.data?.data?.posts || res.data?.data || []);
+        }
+      } catch (err) {
+        setTabError(err.response?.data?.error || err.message || "Failed to load");
+        setTabPosts([]);
+        setTabComments([]);
+      } finally {
+        setTabLoading(false);
+      }
+    },
+    [activeTab, tabEndpoint, username]
+  );
 
   // If this is YOUR profile (username === authUser?.username), get your moderated communities via /users/me/communities
   useEffect(() => {
@@ -203,51 +277,12 @@ export default function ProfilePage() {
     return () => (mountedRef.current = false);
   }, [authLoading, authUser, username]);
 
-  // lazy load saved when tab is opened
+  // tab fetcher
   useEffect(() => {
-    let mounted = true;
-    async function fetchSaved() {
-      if (!isOwn) return;               // don't fetch others' saved
-      setSavedLoading(true);
-      setSavedError(null);
-      try {
-        const res = await api.get(`/users/me/saved`); // prefer /users/me/saved for privacy
-        if (!mounted) return;
-        setSavedPosts(res.data?.data || []);
-      } catch (err) {
-        if (!mounted) return;
-        setSavedError(err.response?.data?.error || err.message || 'Failed to load saved');
-      } finally {
-        if (mounted) setSavedLoading(false);
-      }
-    }
-    if (activeTab === 'saved' && savedPosts.length === 0 && isOwn) fetchSaved();
-    return () => { mounted = false; };
-  }, [activeTab, isOwn, savedPosts.length]); // Added savedPosts.length to dependency array
-
-  // lazy load comments when tab opened (if you prefer separate endpoint)
-  useEffect(() => {
-    let mounted = true;
-    async function fetchUserComments() {
-      if (comments.length > 0) return; // Only fetch if comments array is empty
-
-      setCommentsLoading(true);
-      setCommentsError(null);
-      try {
-        const res = await api.get(`/users/${encodeURIComponent(username)}/comments`);
-        if (!mounted) return;
-        setComments(res.data?.data || []);
-      } catch (err) {
-        if (!mounted) return;
-        setCommentsError(err.response?.data?.error || err.message || 'Failed to load comments');
-      } finally {
-        if (mounted) setCommentsLoading(false);
-      }
-    }
-    if (activeTab === 'comments' && comments.length === 0) fetchUserComments();
-    return () => { mounted = false; };
-  }, [activeTab, username, comments.length]); // Added comments.length to dependency array
-
+    if (!username) return;
+    setTabPage(1);
+    fetchTab(activeTab, 1);
+  }, [username, activeTab, fetchTab]);
   // load public profile (/users/:username)
   useEffect(() => {
     mountedRef.current = true;
@@ -330,19 +365,23 @@ export default function ProfilePage() {
   };
 
   const handlePostCardToggleSave = (postId, isSaved) => {
-    if (!isSaved) {
-      setSavedPosts((prevPosts) => prevPosts.filter((post) => post._id !== postId));
-    }
+    setTabPosts((prev) =>
+      prev.map((p) => (p._id === postId ? { ...p, saved: isSaved } : p))
+    );
+  };
+
+  const handlePostDelete = (postId) => {
+    setTabPosts((prev) => prev.filter((p) => p._id !== postId));
   };
 
   const handleCommentDelete = (commentId) => {
-    setComments((prevComments) => prevComments.filter((comment) => comment._id !== commentId));
+    setTabComments((prevComments) => prevComments.filter((comment) => comment._id !== commentId));
   };
 
   if (loading) return <div className="pt-10 text-center text-reddit-text_secondary dark:text-reddit-dark_text_secondary">Loading profile...</div>;
   if (error) return <div className="pt-10 text-center text-red-500">Error: {error}</div>;
 
-  const sortedPosts = Array.isArray(posts) ? [...posts].sort((a, b) => (sort === "top" || sort === "best" ? getPostScore(b) - getPostScore(a) : 0)) : [];
+  const sortedPosts = Array.isArray(tabPosts) ? [...tabPosts].sort((a, b) => (sort === "top" || sort === "best" ? getPostScore(b) - getPostScore(a) : 0)) : [];
 
   return (
     <div className="w-full flex justify-center">
@@ -358,78 +397,93 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="flex gap-2 mb-4">
-            {(isOwn ? ["overview", "posts", "comments", "saved"] : ["overview", "posts", "comments"]).map((tab) => (
-              <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-1.5 rounded-full text-sm font-medium ${activeTab === tab ? "bg-reddit-hover dark:bg-reddit-dark_hover text-reddit-text dark:text-reddit-dark_text" : "text-reddit-text_secondary dark:text-reddit-dark_text_secondary hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"}`}>
-                {tab === "overview" ? "Overview" : tab === "posts" ? "Posts" : tab === "comments" ? "Comments" : "Saved"}
-              </button>
-            ))}
-          </div>
+          <ProfileTabs tabs={TABS} active={activeTab} onChange={setActiveTab} />
 
           <div className="flex items-center gap-3 mb-4">
             <SortMenu value={sort} onChange={setSort} />
           </div>
 
-          {activeTab === "posts" && (
-            <div className="space-y-4">
-              {sortedPosts.length === 0 ? <div className="text-sm text-reddit-text_secondary">No posts yet.</div> : sortedPosts.map((post) => <PostCard key={post._id} post={post} />)}
-            </div>
-          )}
+          <div>
+            {tabLoading && (
+              <div className="text-sm text-reddit-text_secondary">Loading...</div>
+            )}
+            {tabError && (
+              <div className="text-sm text-red-500">Error: {tabError}</div>
+            )}
 
-          {activeTab === "overview" && (
-            <div>
-              <p className="text-sm text-reddit-text_secondary mb-4">Overview</p>
-              {comments.length ? (
-                <>
-                  <CommentReplyBox topLevel onReply={() => {}} onCancel={() => {}} />
-                  <CommentsList comments={comments} onDeleteComment={handleCommentDelete} />
-                </>
-              ) : (
-                <p className="text-sm text-reddit-text_secondary">No recent comments to show.</p>
-              )}
-            </div>
-          )}
-
-          {activeTab === "comments" && (
-            <div>
-              {commentsLoading ? (
-                <div className="text-sm text-reddit-text_secondary">Loading comments...</div>
-              ) : commentsError ? (
-                <div className="text-sm text-red-500">Error loading comments: {commentsError}</div>
-              ) : comments.length ? (
-                <>
-                  <CommentReplyBox topLevel onReply={() => {}} onCancel={() => {}} />
-                  <CommentsList comments={comments} onDeleteComment={handleCommentDelete} />
-                </>
-              ) : (
-                <p className="text-sm text-reddit-text_secondary">No comments yet.</p>
-              )}
-            </div>
-          )}
-
-          {activeTab === "saved" && (
-            <div>
-              {isOwn ? (
-                savedLoading ? (
-                  <div className="text-sm text-reddit-text_secondary">Loading saved posts...</div>
-                ) : savedError ? (
-                  <div className="text-sm text-red-500">Error loading saved posts: {savedError}</div>
-                ) : savedPosts.length === 0 ? (
-                  <div className="text-sm text-reddit-text_secondary">No saved posts yet.</div>
+            {!tabLoading && !tabError && (
+              <>
+                {activeTab === "comments" ? (
+                  tabComments.length ? (
+                    <CommentsList comments={tabComments} onDeleteComment={handleCommentDelete} />
+                  ) : (
+                    <div className="text-sm text-reddit-text_secondary">No comments yet.</div>
+                  )
+                ) : activeTab === "overview" ? (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-sm font-semibold text-reddit-text dark:text-reddit-dark_text mb-2">
+                        Recent Posts
+                      </h3>
+                      {tabPosts.length ? (
+                        <div className="space-y-3">
+                          {tabPosts.map((post) => (
+                            <PostCard
+                              key={post._id}
+                              post={post}
+                              onToggleSave={handlePostCardToggleSave}
+                              onDelete={handlePostDelete}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-reddit-text_secondary">No posts yet.</div>
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-reddit-text dark:text-reddit-dark_text mb-2">
+                        Recent Comments
+                      </h3>
+                      {tabComments.length ? (
+                        <CommentsList comments={tabComments} onDeleteComment={handleCommentDelete} />
+                      ) : (
+                        <div className="text-sm text-reddit-text_secondary">No comments yet.</div>
+                      )}
+                    </div>
+                  </div>
                 ) : (
                   <div className="space-y-4">
-                    {savedPosts.map((post) => (
-                      <PostCard key={post._id} post={post} onToggleSave={handlePostCardToggleSave} />
-                    ))}
+                    {sortedPosts.length === 0 ? (
+                      <div className="text-sm text-reddit-text_secondary">
+                        {activeTab === "saved"
+                          ? "No saved posts yet."
+                          : activeTab === "history"
+                          ? "No history yet."
+                          : activeTab === "hidden"
+                          ? "No hidden posts."
+                          : activeTab === "upvoted"
+                          ? "No upvoted posts yet."
+                          : activeTab === "downvoted"
+                          ? "No downvoted posts yet."
+                          : "No posts yet."}
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {sortedPosts.map((post) => (
+                          <PostCard
+                            key={post._id}
+                            post={post}
+                            onToggleSave={handlePostCardToggleSave}
+                            onDelete={handlePostDelete}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )
-              ) : (
-                <div className="text-sm text-reddit-text_secondary">
-                  This user's saved posts are private.
-                </div>
-              )}
-            </div>
-          )}
+                )}
+              </>
+            )}
+          </div>
         </section>
 
         <aside className="w-full lg:w-80">
