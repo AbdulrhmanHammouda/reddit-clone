@@ -12,6 +12,7 @@ import { Link } from "react-router-dom";
 import ChatSidebar from "./ChatSidebar";
 import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
+import defaultProfileImg from "../assets/default_profile.jpeg";
 
 export default function Navbar({ onToggleSidebar }) {
   const [open, setOpen] = useState(false);
@@ -22,7 +23,7 @@ const navigate = useNavigate();
   const username = userRaw?.username;
 
   // ⬅️ React state for avatar (starts with default)
-  const [userAvatar, setUserAvatar] = useState("/default-avatar.png");
+  const [userAvatar, setUserAvatar] = useState(defaultProfileImg);
 
   // ⬅️ CORRECT: Fetch avatar after component renders
   useEffect(() => {
@@ -34,6 +35,7 @@ const navigate = useNavigate();
       .then((res) => {
         const avatar = res.data?.data?.avatar;
         if (avatar) setUserAvatar(avatar);
+        else setUserAvatar(defaultProfileImg);
       })
       .catch((err) => console.error(err));
   }, [username]);
@@ -105,7 +107,7 @@ const navigate = useNavigate();
           {/* Profile */}
           <div className="relative">
             <img
-              src={userAvatar}
+              src={userAvatar || defaultProfileImg}
               alt="user"
               className="h-8 w-8 rounded-full cursor-pointer"
               onClick={() => setOpen(!open)}

@@ -9,18 +9,20 @@ import {
 import DarkModeToggle from "./DarkModeToggle";
 import api from "../api/axios";
 import useAuth from "../hooks/useAuth"; // your hook that reads AuthContext
+import defaultProfileImg from "../assets/default_profile.jpeg";
 
 export default function ProfileMenu({ onClose }) {
   const menuRef = useRef();
   const navigate = useNavigate();
   const { token, user, logout, updateUser, refreshUser, setUser } = useAuth();
 
-  const [avatar, setAvatar] = useState(user?.avatar || "https://www.redditstatic.com/avatars/avatar_default_07_D4E815.png");
+  const [avatar, setAvatar] = useState(user?.avatar || defaultProfileImg);
   const hasUsername = Boolean(user?.username);
 
   // Keep local avatar in sync when context user changes
   useEffect(() => {
     if (user?.avatar) setAvatar(user.avatar);
+    else setAvatar(defaultProfileImg);
   }, [user]);
 
   // Fetch latest profile once token + username available, then update context
@@ -91,7 +93,7 @@ export default function ProfileMenu({ onClose }) {
           hasUsername ? "" : "opacity-60 cursor-not-allowed"
         }`}
       >
-        <img src={avatar} className="h-10 w-10 rounded-full object-cover" alt="avatar" />
+        <img src={avatar || defaultProfileImg} className="h-10 w-10 rounded-full object-cover" alt="avatar" />
         <div>
           <p className="text-sm font-semibold">View Profile</p>
           <p className="text-xs text-reddit-text_secondary">

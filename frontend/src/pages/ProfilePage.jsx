@@ -8,6 +8,7 @@ import CommentsList from "../components/CommentsList";
 import CommentReplyBox from "../components/CommentReplyBox";
 import SortMenu from "../components/SortMenu";
 import EditProfileModal from "../components/EditProfileModal";
+import defaultProfileImg from "../assets/default_profile.jpeg";
 
 function ProfileCard({
   profile,
@@ -121,7 +122,7 @@ function ProfileCard({
               >
                 <div className="flex items-center gap-2">
                   <img
-                    src={c.icon || "/default-community.png"}
+                    src={c.icon || defaultProfileImg}
                     className="h-7 w-7 rounded-full object-cover"
                     alt="community"
                   />
@@ -349,7 +350,7 @@ export default function ProfilePage() {
         <section className="flex-1 lg:flex-[2]">
           <div className="flex items-center gap-4 mb-4">
             <div className="h-20 w-20 rounded-full overflow-hidden bg-reddit-hover dark:bg-reddit-dark_hover flex-shrink-0">
-              <img src={profile.avatar || "/default-avatar.png"} alt={profile.username} className="h-full w-full object-cover" />
+              <img src={profile.avatar || defaultProfileImg} alt={profile.username} className="h-full w-full object-cover" />
             </div>
             <div>
               <h1 className="text-2xl font-semibold text-reddit-text dark:text-reddit-dark_text">{profile.displayName || profile.username}</h1>
