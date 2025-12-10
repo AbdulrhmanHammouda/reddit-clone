@@ -12,10 +12,13 @@ import defaultProfileImg from "../assets/default_profile.jpeg";
 import { useCallback } from "react";
 import ProfileTabs from "../components/ProfileTabs";
 
-const TABS = [
+const PUBLIC_TABS = [
   { key: "overview", label: "Overview" },
   { key: "posts", label: "Posts" },
   { key: "comments", label: "Comments" },
+];
+
+const PRIVATE_TABS = [
   { key: "saved", label: "Saved" },
   { key: "history", label: "History" },
   { key: "hidden", label: "Hidden" },
@@ -397,7 +400,11 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <ProfileTabs tabs={TABS} active={activeTab} onChange={setActiveTab} />
+          <ProfileTabs 
+            tabs={isOwn ? [...PUBLIC_TABS, ...PRIVATE_TABS] : PUBLIC_TABS} 
+            active={activeTab} 
+            onChange={setActiveTab} 
+          />
 
           <div className="flex items-center gap-3 mb-4">
             <SortMenu value={sort} onChange={setSort} />
