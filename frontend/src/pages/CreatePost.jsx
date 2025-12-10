@@ -31,6 +31,7 @@ export default function CreatePost() {
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const goBack = () => navigate(-1);
 
   // ---------- load communities ----------
   useEffect(() => {
@@ -93,20 +94,38 @@ export default function CreatePost() {
     setSubmitting(true);
     try {
       if (activeTab === "image" && (imageFiles.length > 0 || videoFile)) {
-        const fd = new FormData();
-        fd.append("title", title.trim());
-        fd.append("communityName", selectedCommunity.name);
-        if (body && body.trim()) fd.append("body", body.trim()); // optional caption HTML
-
         if (videoFile) {
-          fd.append("video", videoFile);
-          const res = await api.post("/posts/video", fd, {
-            headers: { "Content-Type": "multipart/form-data" },
+          // Step A: create lightweight post (processing true)
+          const createRes = await api.post("/posts", {
+            title: title.trim(),
+            body: body?.trim() || "",
+            communityName: selectedCommunity.name,
+            isVideo: true,
           });
-          if (!res.data?.success) {
-            throw new Error(res.data?.error || "Failed to create video post");
+          if (!createRes.data?.success) {
+            throw new Error(createRes.data?.error || "Failed to create video post");
           }
+          const newId = createRes.data.data?._id;
+          if (!newId) throw new Error("Missing post id after create");
+
+          // Step B: upload in background (fire and forget)
+          const fd = new FormData();
+          fd.append("video", videoFile);
+          api
+            .post(`/posts/${newId}/videoUpload`, fd, {
+              headers: { "Content-Type": "multipart/form-data" },
+            })
+            .catch((err) => {
+              const msg = err.response?.data?.error || err.message || "Video upload failed";
+              sessionStorage.setItem(`videoUploadError:${newId}`, msg);
+            });
+
+          goBack();
         } else {
+          const fd = new FormData();
+          fd.append("title", title.trim());
+          fd.append("communityName", selectedCommunity.name);
+          if (body && body.trim()) fd.append("body", body.trim()); // optional caption HTML
           imageFiles.forEach((file) => {
             fd.append("images", file); // Append each image file
           });
@@ -117,8 +136,8 @@ export default function CreatePost() {
           if (!res.data?.success) {
             throw new Error(res.data?.error || "Failed to create image post");
           }
+          goBack();
         }
-        navigate(`/r/${selectedCommunity.name}`);
       } else {
         // text or link post
         const payload = {
@@ -133,7 +152,7 @@ export default function CreatePost() {
         if (!res.data?.success) {
           throw new Error(res.data?.error || "Failed to create post");
         }
-        navigate(`/r/${selectedCommunity.name}`);
+        goBack();
       }
     } catch (err) {
       console.error("create post error", err);

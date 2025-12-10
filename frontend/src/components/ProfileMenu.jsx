@@ -13,9 +13,10 @@ import useAuth from "../hooks/useAuth"; // your hook that reads AuthContext
 export default function ProfileMenu({ onClose }) {
   const menuRef = useRef();
   const navigate = useNavigate();
-  const { token, user, logout, updateUser } = useAuth();
+  const { token, user, logout, updateUser, refreshUser, setUser } = useAuth();
 
   const [avatar, setAvatar] = useState(user?.avatar || "https://www.redditstatic.com/avatars/avatar_default_07_D4E815.png");
+  const hasUsername = Boolean(user?.username);
 
   // Keep local avatar in sync when context user changes
   useEffect(() => {
@@ -49,6 +50,20 @@ export default function ProfileMenu({ onClose }) {
     };
   }, [token, user?.username]); // Only re-run when username or token changes
 
+  // If username missing after login/signup, fetch /users/me to hydrate context
+  useEffect(() => {
+    if (!token || hasUsername) return;
+    let mounted = true;
+    (async () => {
+      const me = await refreshUser?.();
+      if (!mounted) return;
+      if (me && setUser) setUser(me);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [token, hasUsername, refreshUser, setUser]);
+
   useEffect(() => {
     function handleClickOutside(e) {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
@@ -70,13 +85,18 @@ export default function ProfileMenu({ onClose }) {
       className="absolute right-0 mt-2 w-72 rounded-xl bg-reddit-card dark:bg-reddit-dark_card shadow-lg border border-reddit-border dark:border-reddit-dark_border overflow-hidden animate-fadeIn z-50"
     >
       <button
-        onClick={() => user?.username && navigate(`/u/${user.username}`)}
-        className="flex items-center gap-3 p-4 w-full text-left hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
+        onClick={() => hasUsername && navigate(`/u/${user.username}`)}
+        disabled={!hasUsername}
+        className={`flex items-center gap-3 p-4 w-full text-left hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover ${
+          hasUsername ? "" : "opacity-60 cursor-not-allowed"
+        }`}
       >
         <img src={avatar} className="h-10 w-10 rounded-full object-cover" alt="avatar" />
         <div>
           <p className="text-sm font-semibold">View Profile</p>
-          <p className="text-xs text-reddit-text_secondary">{`u/${user?.username || ""}`}</p>
+          <p className="text-xs text-reddit-text_secondary">
+            {hasUsername ? `u/${user.username}` : "Fetching profile..."}
+          </p>
         </div>
       </button>
 

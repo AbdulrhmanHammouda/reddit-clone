@@ -19,7 +19,12 @@ function ProfileCard({
   onEdit,
 }) {
   if (!profile) return null;
-  const isOwnProfile = loggedInUser?._id === profile._id;
+  const isOwnProfile =
+    loggedInUser?.username &&
+    profile?.username &&
+    loggedInUser.username === profile.username;
+  // Optional fallback if username is unavailable:
+  // const isOwnProfile = String(loggedInUser?._id) === String(profile?._id);
   const [hover, setHover] = useState(false);
 
   return (

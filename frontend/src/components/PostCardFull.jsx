@@ -208,8 +208,12 @@ export default function PostCardFull({ post: incomingProp, postId: propPostId })
       )}
 
       {/* MEDIA */}
-      {videoUrl ? (
-        <div className="mt-4 rounded-xl overflow-hidden bg-black/60">
+      {incoming.processing ? (
+        <div className="mt-4 rounded-xl bg-black/40 h-[420px] animate-pulse flex items-center justify-center text-white text-lg">
+          Processing video…
+        </div>
+      ) : videoUrl ? (
+        <div className="mt-4 rounded-xl overflow-hidden bg-black/60 no-scrollbar">
           <video
             src={videoUrl}
             controls

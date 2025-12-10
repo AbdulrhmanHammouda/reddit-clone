@@ -22,6 +22,7 @@ export default function AuthProvider({ children }) {
 
   // FULL LOGIN: Always fetch full profile
   const login = async (newToken, basicUser) => {
+    setLoading(true);
     setToken(newToken);
     localStorage.setItem("token", newToken);
 
@@ -35,6 +36,8 @@ export default function AuthProvider({ children }) {
       console.warn("Login: profile fetch failed", err);
       setUser(basicUser);
       localStorage.setItem("user", JSON.stringify(basicUser));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -46,6 +49,43 @@ export default function AuthProvider({ children }) {
     });
   };
 
+  // Expose a setter for immediate updates after signup/login/profile edits
+  const setUserInstant = (newUser) => {
+    setUser(newUser);
+    if (newUser) localStorage.setItem("user", JSON.stringify(newUser));
+    else localStorage.removeItem("user");
+  };
+
+  // Example signup helper (if used elsewhere) can call setUserInstant
+  const signup = async (payload) => {
+    setLoading(true);
+    const res = await api.post("/auth/signup", payload);
+    const { token: newToken, user: newUser } = res.data || {};
+    if (newToken) {
+      setToken(newToken);
+      localStorage.setItem("token", newToken);
+    }
+    if (newUser) {
+      setUserInstant(newUser);
+    }
+    setLoading(false);
+    return res.data;
+  };
+
+  // Optional helper to refresh the current user (e.g., when username missing)
+  const refreshUser = async () => {
+    if (!token) return null;
+    try {
+      const res = await api.get("/users/me");
+      const me = res.data?.data;
+      if (me) setUserInstant(me);
+      return me;
+    } catch (err) {
+      console.debug("AuthContext: refreshUser failed", err);
+      return null;
+    }
+  };
+
   const logout = () => {
     setToken(null);
     setUser(null);
@@ -54,7 +94,20 @@ export default function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ token, user, login, logout, updateUser, loading }}>
+    <AuthContext.Provider
+      value={{
+        token,
+        user,
+        login,
+        signup,
+        logout,
+        updateUser,
+        setUser: setUserInstant,
+        setAuthLoading: setLoading,
+        refreshUser,
+        loading,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -9,6 +9,7 @@ const PostSchema = new mongoose.Schema({
   url: { type: String },
   images: { type: [String], default: [] },
   videoUrl: { type: String, default: null },
+  processing: { type: Boolean, default: false },
   score: { type: Number, default: 0, index: true },
   commentsCount: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },

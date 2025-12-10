@@ -31,8 +31,8 @@ export default function SignupPage() {
       if (token) localStorage.setItem("token", token);
       if (user) localStorage.setItem("user", JSON.stringify(user));
 
-      // Auto-login → redirect to home
-      navigate("/");
+      // Force full app refresh so auth re-hydrates and UI shows the user immediately
+      window.location.reload();
     } catch (err) {
       const msg =
         err.response?.data?.error || "Signup failed. Try again.";

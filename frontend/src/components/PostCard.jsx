@@ -208,7 +208,11 @@ export default function PostCard(props) {
         )}
 
         {/* Media */}
-        {videoUrl ? (
+        {incoming.processing ? (
+          <div className="mt-3 rounded-xl bg-black/40 h-[320px] flex items-center justify-center text-white text-lg font-semibold animate-pulse">
+            Processing video…
+          </div>
+        ) : videoUrl ? (
           <div className="mt-3 rounded-xl overflow-hidden bg-black/60">
             <video
               src={videoUrl}

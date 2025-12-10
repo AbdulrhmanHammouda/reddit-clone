@@ -61,7 +61,7 @@ export default function ImageCarousel({ images = [], onImageClick }) {
       <div
         ref={trackRef}
         onScroll={handleScroll}
-        className="flex w-full h-full overflow-hidden snap-x snap-mandatory scroll-smooth touch-pan-y hide-scrollbar"
+        className="flex w-full h-full overflow-hidden snap-x snap-mandatory scroll-smooth touch-pan-y hide-scrollbar no-scrollbar"
       >
         {images.map((src, idx) => (
           <div
