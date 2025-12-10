@@ -1,7 +1,7 @@
 // src/pages/PostPage.jsx  OR  src/components/PostCardFull.jsx
 // (but make sure you only have ONE default PostCardFull in the project)
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import VoteButtons from "../components/VoteButtons";
@@ -28,6 +28,19 @@ export default function PostCardFull({ post: incomingProp, postId: propPostId })
   const [isMod, setIsMod] = useState(incoming.community?.isMod || false);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
+  const menuRef = useRef(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [menuOpen]);
 
   useEffect(() => {
     if (!incoming) return;
@@ -146,7 +159,7 @@ export default function PostCardFull({ post: incomingProp, postId: propPostId })
         </div>
 
         {/* 3-dot menu */}
-        <div className="ml-2 relative">
+        <div className="ml-2 relative" ref={menuRef}>
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -165,7 +178,7 @@ export default function PostCardFull({ post: incomingProp, postId: propPostId })
                   handleShare();
                   setMenuOpen(false);
                 }}
-                className="w-full text-left px-3 py-2 hover:bg-reddit-hover"
+                className="w-full text-left px-3 py-2 text-reddit-text dark:text-reddit-dark_text hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover transition-colors"
               >
                 Share
               </button>
@@ -177,7 +190,7 @@ export default function PostCardFull({ post: incomingProp, postId: propPostId })
                     toggleSave();
                     setMenuOpen(false);
                   }}
-                  className="w-full text-left px-3 py-2 hover:bg-reddit-hover"
+                  className="w-full text-left px-3 py-2 text-reddit-text dark:text-reddit-dark_text hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover transition-colors"
                 >
                   {saved ? "Unsave" : "Save"}
                 </button>
@@ -190,7 +203,7 @@ export default function PostCardFull({ post: incomingProp, postId: propPostId })
                     onDelete();
                     setMenuOpen(false);
                   }}
-                  className="w-full text-left px-3 py-2 hover:bg-red-600 hover:text-white"
+                  className="w-full text-left px-3 py-2 text-red-500 hover:bg-red-600 hover:text-white transition-colors"
                 >
                   Delete
                 </button>

@@ -73,6 +73,7 @@ export default function ImageCarousel({ images = [], onImageClick }) {
               src={src}
               alt={`post image ${idx + 1}`}
               draggable="false"
+              loading="lazy"
               className="max-h-[420px] w-full h-full object-contain cursor-pointer rounded-lg"
               onClick={() => onImageClick?.(idx)}
             />

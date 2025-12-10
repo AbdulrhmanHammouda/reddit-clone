@@ -34,6 +34,28 @@ export default function VoteButtons({
       return;
     }
 
+    // Calculate optimistic state
+    const prevState = state;
+    const prevCount = count;
+    
+    // Determine new state
+    let newState;
+    if (value === 1) newState = "up";
+    else if (value === -1) newState = "down";
+    else newState = "none";
+    
+    // Calculate optimistic score change
+    let scoreDelta = 0;
+    if (prevState === "up") scoreDelta -= 1;
+    if (prevState === "down") scoreDelta += 1;
+    if (newState === "up") scoreDelta += 1;
+    if (newState === "down") scoreDelta -= 1;
+    
+    // Optimistically update UI immediately
+    setState(newState);
+    setCount(prevCount + scoreDelta);
+    onVoteChange?.({ score: prevCount + scoreDelta, yourVote: value });
+
     try {
       const url = isComment
         ? `/comments/${id}/vote`
@@ -42,12 +64,17 @@ export default function VoteButtons({
       const res = await api.post(url, { value });
       const { score, yourVote } = res.data.data;
 
+      // Sync with actual server response
       setCount(score);
       setState(
         yourVote === 1 ? "up" : yourVote === -1 ? "down" : "none"
       );
       onVoteChange?.({ score, yourVote });
     } catch (err) {
+      // Rollback on error
+      setState(prevState);
+      setCount(prevCount);
+      onVoteChange?.({ score: prevCount, yourVote: prevState === "up" ? 1 : prevState === "down" ? -1 : 0 });
       console.error("Vote error:", err?.response?.data || err);
     }
   }

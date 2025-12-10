@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { XMarkIcon } from "@heroicons/react/24/outline";
 
 // Key for localStorage
 const RECENT_POSTS_KEY = "recentPosts";
@@ -41,6 +40,9 @@ export function addRecentPost(post) {
   ].slice(0, MAX_RECENT_POSTS);
 
   localStorage.setItem(RECENT_POSTS_KEY, JSON.stringify(updated));
+  
+  // Dispatch custom event for instant update (no polling needed)
+  window.dispatchEvent(new CustomEvent("recentPostsUpdated"));
 }
 
 // Helper to clear recent posts
@@ -49,21 +51,20 @@ export function clearRecentPosts() {
 }
 
 export default function RecentPosts() {
-  const [posts, setPosts] = useState([]);
+  const [posts, setPosts] = useState(() => getRecentPosts());
 
   useEffect(() => {
-    setPosts(getRecentPosts());
-
-    // Listen for storage changes (from other tabs or when posts are added)
+    // Listen for storage changes (from other tabs)
     const handleStorage = () => setPosts(getRecentPosts());
     window.addEventListener("storage", handleStorage);
     
-    // Poll for updates every 2 seconds (for same-tab updates)
-    const interval = setInterval(() => setPosts(getRecentPosts()), 2000);
+    // Listen for custom event (same-tab instant updates)
+    const handleUpdate = () => setPosts(getRecentPosts());
+    window.addEventListener("recentPostsUpdated", handleUpdate);
 
     return () => {
       window.removeEventListener("storage", handleStorage);
-      clearInterval(interval);
+      window.removeEventListener("recentPostsUpdated", handleUpdate);
     };
   }, []);
 
@@ -136,12 +137,13 @@ export default function RecentPosts() {
               </div>
             </div>
 
-            {/* Thumbnail */}
+            {/* Thumbnail with lazy loading */}
             {post.thumbnail && (
               <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-reddit-hover dark:bg-reddit-dark_hover">
                 <img
                   src={post.thumbnail}
                   alt=""
+                  loading="lazy"
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -152,3 +154,4 @@ export default function RecentPosts() {
     </div>
   );
 }
+

@@ -58,19 +58,21 @@ export default function Navbar({ onToggleSidebar }) {
     if (!token) return;
 
     const fetchUnreadCount = async () => {
+      // Only fetch if tab is visible
+      if (document.hidden) return;
       try {
         const res = await api.get("/notifications/unread-count");
         if (res.data?.success) {
           setUnreadCount(res.data.data.count);
         }
       } catch (err) {
-        console.error("Failed to fetch unread count:", err);
+        // Silent fail for polling
       }
     };
 
     fetchUnreadCount();
-    // Poll every 30 seconds
-    const interval = setInterval(fetchUnreadCount, 30000);
+    // Poll every 60 seconds (only when visible)
+    const interval = setInterval(fetchUnreadCount, 60000);
     return () => clearInterval(interval);
   }, [token]);
 

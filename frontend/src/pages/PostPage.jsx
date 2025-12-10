@@ -48,23 +48,17 @@ export default function PostPage() {
 
   const fetchPost = useCallback(
     async ({ withLoader = false } = {}) => {
-      console.log("fetchPost called, postId:", postId);
       if (!postId) return null;
       if (withLoader) {
         setPostLoading(true);
         setPostError(null);
       }
       try {
-        console.log("Making API call to:", `/posts/${postId}`);
         const res = await api.get(`/posts/${postId}`);
-        console.log("API response:", res.data);
         if (!mountedRef.current) return null;
         const nextPost = res.data.data;
-        console.log("nextPost:", nextPost);
         const isProcessing = Boolean(nextPost?.processing);
         const wasProcessing = prevProcessingRef.current;
-
-        console.log("Checking processing...", nextPost?.processing);
 
         setPost(nextPost);
         setPostLoading(false);

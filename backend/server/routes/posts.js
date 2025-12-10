@@ -86,7 +86,6 @@ router.post('/image', auth, writeLimiter, upload.array('images', 10), async (req
    - Excludes user's own posts
 --------------------------------------------------------------------------- */
 router.get('/', optionalAuth, async (req, res) => {
-  console.time("home-feed");
   try {
     const VALID_SORTS = ["best", "hot", "new", "top", "rising"];
     const rawSort = (req.query.sort || "best").toLowerCase();
@@ -98,7 +97,6 @@ router.get('/', optionalAuth, async (req, res) => {
 
     // Convert to ObjectId for proper MongoDB matching
     const userId = req.user?._id ? new mongoose.Types.ObjectId(req.user._id) : null;
-    console.log("Home feed - userId:", userId, "raw:", req.user?._id);
 
     // Base match with time window for "top" sort
     const match = { ...timeWindowMatch(sort === "top" ? time : "all") };
@@ -106,7 +104,6 @@ router.get('/', optionalAuth, async (req, res) => {
     // Exclude own posts on home feed
     if (userId) {
       match.author = { $ne: userId };
-      console.log("Excluding posts from author:", userId);
     }
 
     // Build sort stages
@@ -306,8 +303,6 @@ router.get('/', optionalAuth, async (req, res) => {
     const posts = await Post.aggregate(pipeline);
     const total = await Post.countDocuments(match);
 
-    console.timeEnd("home-feed");
-
     res.json({
       success: true,
       data: {
@@ -318,7 +313,6 @@ router.get('/', optionalAuth, async (req, res) => {
       },
     });
   } catch (err) {
-    console.timeEnd("home-feed");
     console.error("GET /api/posts error", err);
     res.status(500).json({ success: false, error: err.message });
   }
