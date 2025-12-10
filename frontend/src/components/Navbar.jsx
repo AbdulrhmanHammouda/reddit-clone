@@ -150,6 +150,8 @@ export default function Navbar({ onToggleSidebar }) {
         return `${user} upvoted your post`;
       case "message":
         return `${user} sent you a message`;
+      case "follow":
+        return `${user} started following you`;
       case "community_invite":
         return `You were invited to join r/${notification.sourceCommunity?.name || "a community"}`;
       default:

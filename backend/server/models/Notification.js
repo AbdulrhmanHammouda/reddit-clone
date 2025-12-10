@@ -8,7 +8,7 @@ const NotificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['reply', 'vote', 'message', 'community_invite'], // Example types
+    enum: ['reply', 'vote', 'message', 'community_invite', 'follow'],
     required: true,
   },
   sourceUser: { // User who triggered the notification (e.g., replied, voted)

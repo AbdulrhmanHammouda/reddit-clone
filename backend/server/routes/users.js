@@ -12,6 +12,7 @@ const Comment = require('../models/Comment');
 const Vote = require('../models/Vote');
 const CommentVote = require('../models/CommentVote');
 const Follow = require('../models/Follow'); 
+const Notification = require('../models/Notification');
 const optionalAuth = require("../middleware/optionalAuth");
 const HiddenPost = require("../models/HiddenPost");
 
@@ -260,6 +261,13 @@ router.post('/:username/follow', auth, async (req, res) => {
     await Follow.create({
       follower: req.user._id,
       following: userToFollow._id
+    });
+
+    // 🔔 Create notification for the user being followed
+    await Notification.create({
+      user: userToFollow._id,
+      type: "follow",
+      sourceUser: req.user._id,
     });
 
     res.json({ success: true, following: true });
