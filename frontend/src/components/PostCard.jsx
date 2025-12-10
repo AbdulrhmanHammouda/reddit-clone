@@ -4,7 +4,7 @@ import {
   ShareIcon as ShareOutline,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation, useParams } from "react-router-dom";
 import VoteButtons from "./VoteButtons";
 import React, { useState, useRef, useEffect } from "react";
 import api from "../api/axios";
@@ -17,6 +17,7 @@ import { toast } from "react-hot-toast";
 export default function PostCard(props) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { communityName, name: routeCommunityName } = useParams();
   const { token, user } = useAuth();
 
   const incoming = props.post ?? props;
@@ -169,21 +170,39 @@ export default function PostCard(props) {
         {/* HEADER */}
         <div className="flex items-center justify-between text-[13px] text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
           <div className="flex items-center gap-2">
-            <Link to={`/r/${community}`} className="h-6 w-6">
-              <img src={communityAvatar || defaultProfileImg} className="h-full w-full rounded-full" />
-            </Link>
+            {(() => {
+              const routeCommunity = routeCommunityName || communityName;
+              const hideCommunityName =
+                routeCommunity &&
+                routeCommunity.toLowerCase() === (community || "").toLowerCase();
+              return (
+                <>
+                  {community && (
+                    <Link to={`/r/${community}`} className="h-6 w-6">
+                      <img src={communityAvatar || defaultProfileImg} className="h-full w-full rounded-full" />
+                    </Link>
+                  )}
 
-            <Link to={`/r/${community}`} className="font-semibold text-reddit-text dark:text-reddit-dark_text hover:underline">
-              r/{community}
-            </Link>
+                  {!hideCommunityName && community && (
+                    <>
+                      <Link
+                        to={`/r/${community}`}
+                        className="font-semibold text-reddit-text dark:text-reddit-dark_text hover:underline"
+                      >
+                        r/{community}
+                      </Link>
+                      <span>•</span>
+                    </>
+                  )}
 
-            <span>•</span>
-            <Link to={`/u/${author}`} className="truncate max-w-[120px] hover:underline">
-              u/{author}
-            </Link>
-
-            <span>•</span>
-            <span>{createdAgo}</span>
+                  <Link to={`/u/${author}`} className="truncate max-w-[120px] hover:underline">
+                    u/{author}
+                  </Link>
+                  <span>•</span>
+                  <span>{createdAgo}</span>
+                </>
+              );
+            })()}
           </div>
 
           <div className="flex items-center gap-2">
