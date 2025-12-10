@@ -5,7 +5,9 @@ import useAuth from "../hooks/useAuth";
 
 function validateName(name) {
   if (!name || name.trim().length === 0) return "Name is required.";
-  if (!/^[A-Za-z0-9_]+$/.test(name)) return "Name may only include letters, numbers, and underscores.";
+  // Allow letters (including Arabic, Chinese, etc.), numbers, and underscores
+  // Using Unicode property escapes: \p{L} matches any letter from any language
+  if (!/^[\p{L}\p{N}_]+$/u.test(name)) return "Name may only include letters, numbers, and underscores.";
   if (name.length < 3) return "Name must be at least 3 characters.";
   if (name.length > 21) return "Name must be 21 characters or fewer.";
   return "";
