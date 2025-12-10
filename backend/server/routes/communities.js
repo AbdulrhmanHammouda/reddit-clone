@@ -73,8 +73,102 @@ router.post("/", auth, writeLimiter, async (req, res) => {
 });
 
 
+/* ---------------------------------------------------------------------------
+   🔥 TRENDING COMMUNITIES - MUST be before /:name route!
+--------------------------------------------------------------------------- */
+router.get("/trending", optionalAuth, async (req, res) => {
+  try {
+    const limit = Math.min(20, Number(req.query.limit) || 10);
+    const userId = req.user?._id;
 
-// 🧭 Get Community Basic Details
+    // Get communities sorted by member count as a simple trending metric
+    const communities = await Community.find()
+      .sort({ membersCount: -1 })
+      .limit(limit)
+      .select("name title description icon membersCount interests");
+
+    // Add isMember flag if user is logged in
+    let result = communities.map(c => c.toObject());
+    if (userId) {
+      const memberOf = await CommunityMember.find({ user: userId }).select("community");
+      const memberIds = new Set(memberOf.map(m => m.community.toString()));
+      result = result.map(c => ({ ...c, isMember: memberIds.has(c._id.toString()) }));
+    } else {
+      result = result.map(c => ({ ...c, isMember: false }));
+    }
+
+    res.json({ success: true, data: result });
+  } catch (err) {
+    console.error("GET /communities/trending error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/* ---------------------------------------------------------------------------
+   🧭 EXPLORE COMMUNITIES - MUST be before /:name route!
+--------------------------------------------------------------------------- */
+router.get("/explore", optionalAuth, async (req, res) => {
+  try {
+    const category = req.query.category || null;
+    const limit = Math.min(50, Number(req.query.limit) || 20);
+    const userId = req.user?._id;
+
+    // Get all unique interests from communities
+    const allInterests = await Community.distinct("interests");
+
+    let communities;
+    
+    if (category && category !== "All") {
+      communities = await Community.find({ interests: category })
+        .sort({ membersCount: -1 })
+        .limit(limit)
+        .select("name title description icon membersCount interests");
+    } else {
+      communities = await Community.find()
+        .sort({ membersCount: -1 })
+        .limit(limit)
+        .select("name title description icon membersCount interests");
+    }
+
+    // Add isMember flag
+    let communitiesWithMembership = communities.map(c => c.toObject());
+    if (userId) {
+      const memberOf = await CommunityMember.find({ user: userId }).select("community");
+      const memberIds = new Set(memberOf.map(m => m.community.toString()));
+      communitiesWithMembership = communitiesWithMembership.map(c => ({
+        ...c,
+        isMember: memberIds.has(c._id.toString())
+      }));
+    } else {
+      communitiesWithMembership = communitiesWithMembership.map(c => ({
+        ...c,
+        isMember: false
+      }));
+    }
+
+    // Group by category
+    let grouped = {};
+    allInterests.forEach(interest => {
+      grouped[interest] = communitiesWithMembership
+        .filter(c => c.interests?.includes(interest))
+        .slice(0, 6);
+    });
+
+    res.json({
+      success: true,
+      data: {
+        categories: allInterests,
+        communities: communitiesWithMembership,
+        grouped: grouped
+      }
+    });
+  } catch (err) {
+    console.error("GET /communities/explore error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 🧭 Get Community Basic Details - MUST be AFTER /trending and /explore!
 router.get("/:name", optionalAuth, async (req, res) => {
   try {
     const finalName = normalizeName(req.params.name);
@@ -134,6 +228,183 @@ router.get("/", async (req, res) => {
 
     res.json({ success: true, data: list });
   } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/* ---------------------------------------------------------------------------
+   🔥 TRENDING COMMUNITIES - Based on recent activity and growth
+   trendingScore = (posts in last 48h × 3) + (new members in last 48h)
+--------------------------------------------------------------------------- */
+router.get("/trending", optionalAuth, async (req, res) => {
+  try {
+    const limit = Math.min(20, Number(req.query.limit) || 10);
+    const userId = req.user?._id;
+
+    const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
+
+    // Get all communities with their recent activity
+    const communities = await Community.aggregate([
+      // Count recent posts
+      {
+        $lookup: {
+          from: "posts",
+          let: { communityId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$community", "$$communityId"] },
+                    { $gte: ["$createdAt", fortyEightHoursAgo] }
+                  ]
+                }
+              }
+            },
+            { $count: "count" }
+          ],
+          as: "recentPosts"
+        }
+      },
+      // Count recent members
+      {
+        $lookup: {
+          from: "communitymembers",
+          let: { communityId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$community", "$$communityId"] },
+                    { $gte: ["$createdAt", fortyEightHoursAgo] }
+                  ]
+                }
+              }
+            },
+            { $count: "count" }
+          ],
+          as: "recentMembers"
+        }
+      },
+      // Calculate trending score
+      {
+        $addFields: {
+          recentPostCount: { $ifNull: [{ $arrayElemAt: ["$recentPosts.count", 0] }, 0] },
+          recentMemberCount: { $ifNull: [{ $arrayElemAt: ["$recentMembers.count", 0] }, 0] }
+        }
+      },
+      {
+        $addFields: {
+          trendingScore: {
+            $add: [
+              { $multiply: ["$recentPostCount", 3] },
+              "$recentMemberCount"
+            ]
+          }
+        }
+      },
+      // Sort and limit
+      { $sort: { trendingScore: -1, membersCount: -1 } },
+      { $limit: limit },
+      // Project only needed fields
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          title: 1,
+          description: 1,
+          icon: 1,
+          membersCount: 1,
+          trendingScore: 1,
+          interests: 1
+        }
+      }
+    ]);
+
+    // Add isMember flag if user is logged in
+    if (userId) {
+      const memberOf = await CommunityMember.find({ user: userId }).select("community");
+      const memberIds = new Set(memberOf.map(m => m.community.toString()));
+      communities.forEach(c => {
+        c.isMember = memberIds.has(c._id.toString());
+      });
+    } else {
+      communities.forEach(c => { c.isMember = false; });
+    }
+
+    res.json({ success: true, data: communities });
+  } catch (err) {
+    console.error("GET /communities/trending error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/* ---------------------------------------------------------------------------
+   🧭 EXPLORE COMMUNITIES - Grouped by interests/categories
+--------------------------------------------------------------------------- */
+router.get("/explore", optionalAuth, async (req, res) => {
+  try {
+    const category = req.query.category || null;
+    const limit = Math.min(50, Number(req.query.limit) || 20);
+    const userId = req.user?._id;
+
+    // Get all unique interests from communities
+    const allInterests = await Community.distinct("interests");
+
+    let communities;
+    
+    if (category && category !== "All") {
+      // Filter by specific category
+      communities = await Community.find({ interests: category })
+        .sort({ membersCount: -1 })
+        .limit(limit)
+        .select("name title description icon membersCount interests");
+    } else {
+      // Get top communities across all categories
+      communities = await Community.find()
+        .sort({ membersCount: -1 })
+        .limit(limit)
+        .select("name title description icon membersCount interests");
+    }
+
+    // Add isMember flag if user is logged in
+    let communitiesWithMembership = communities.map(c => c.toObject());
+    if (userId) {
+      const memberOf = await CommunityMember.find({ user: userId }).select("community");
+      const memberIds = new Set(memberOf.map(m => m.community.toString()));
+      communitiesWithMembership = communitiesWithMembership.map(c => ({
+        ...c,
+        isMember: memberIds.has(c._id.toString())
+      }));
+    } else {
+      communitiesWithMembership = communitiesWithMembership.map(c => ({
+        ...c,
+        isMember: false
+      }));
+    }
+
+    // Group by category if no specific category requested
+    let grouped = null;
+    if (!category || category === "All") {
+      grouped = {};
+      allInterests.forEach(interest => {
+        grouped[interest] = communitiesWithMembership
+          .filter(c => c.interests?.includes(interest))
+          .slice(0, 10);
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        categories: allInterests,
+        communities: communitiesWithMembership,
+        grouped: grouped
+      }
+    });
+  } catch (err) {
+    console.error("GET /communities/explore error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

@@ -319,6 +319,201 @@ router.get('/', optionalAuth, async (req, res) => {
 });
 
 /* ---------------------------------------------------------------------------
+   🔥 POPULAR FEED - Top posts across all communities (excludes NSFW)
+--------------------------------------------------------------------------- */
+router.get('/popular', optionalAuth, async (req, res) => {
+  try {
+    const sort = (req.query.sort || "hot").toLowerCase();
+    const time = (req.query.time || "day").toLowerCase();
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const userId = req.user?._id ? new mongoose.Types.ObjectId(req.user._id) : null;
+
+    // Base match - exclude NSFW communities
+    const match = { 
+      ...timeWindowMatch(sort === "top" ? time : "day"),
+      isNSFW: { $ne: true }
+    };
+
+    const now = new Date();
+    const ageHoursExpr = {
+      $divide: [{ $subtract: [now, "$createdAt"] }, 1000 * 3600],
+    };
+
+    const pipeline = [{ $match: match }];
+
+    // Sorting
+    if (sort === "hot") {
+      pipeline.push({
+        $addFields: {
+          ageHours: ageHoursExpr,
+          hotScore: { $divide: ["$score", { $add: [{ $pow: [{ $add: ["$ageHours", 2] }, 1.5] }, 1] }] },
+        },
+      });
+      pipeline.push({ $sort: { hotScore: -1 } });
+    } else if (sort === "new") {
+      pipeline.push({ $sort: { createdAt: -1 } });
+    } else if (sort === "top") {
+      pipeline.push({ $sort: { score: -1 } });
+    } else if (sort === "rising") {
+      pipeline.push({
+        $addFields: {
+          ageHours: ageHoursExpr,
+          risingScore: { $cond: [{ $lt: ["$ageHours", 12] }, { $multiply: ["$score", 2] }, "$score"] },
+        },
+      });
+      pipeline.push({ $sort: { risingScore: -1, createdAt: -1 } });
+    } else {
+      // best = hot for popular
+      pipeline.push({
+        $addFields: {
+          ageHours: ageHoursExpr,
+          hotScore: { $divide: ["$score", { $add: [{ $pow: [{ $add: ["$ageHours", 2] }, 1.5] }, 1] }] },
+        },
+      });
+      pipeline.push({ $sort: { hotScore: -1 } });
+    }
+
+    pipeline.push({ $skip: skip }, { $limit: limit });
+
+    // Lookups for author and community
+    pipeline.push(
+      { $lookup: { from: "users", localField: "author", foreignField: "_id", as: "author" } },
+      { $unwind: { path: "$author", preserveNullAndEmptyArrays: true } },
+      { $lookup: { from: "communities", localField: "community", foreignField: "_id", as: "community" } },
+      { $unwind: { path: "$community", preserveNullAndEmptyArrays: true } }
+    );
+
+    // User-specific lookups
+    if (userId) {
+      pipeline.push(
+        { $lookup: { from: "votes", let: { pid: "$_id" }, pipeline: [{ $match: { $expr: { $and: [{ $eq: ["$post", "$$pid"] }, { $eq: ["$user", userId] }] } } }], as: "voteDoc" } },
+        { $addFields: { yourVote: { $ifNull: [{ $arrayElemAt: ["$voteDoc.value", 0] }, 0] } } },
+        { $lookup: { from: "savedposts", let: { pid: "$_id" }, pipeline: [{ $match: { $expr: { $and: [{ $eq: ["$post", "$$pid"] }, { $eq: ["$user", userId] }] } } }], as: "savedDoc" } },
+        { $addFields: { saved: { $gt: [{ $size: "$savedDoc" }, 0] } } },
+        { $lookup: { from: "communitymembers", let: { cid: "$community._id" }, pipeline: [{ $match: { $expr: { $and: [{ $eq: ["$community", "$$cid"] }, { $eq: ["$user", userId] }] } } }], as: "memberDoc" } },
+        { $addFields: { "community.isMember": { $gt: [{ $size: "$memberDoc" }, 0] } } }
+      );
+    } else {
+      pipeline.push({ $addFields: { yourVote: 0, saved: false, "community.isMember": false } });
+    }
+
+    pipeline.push({
+      $project: {
+        _id: 1, title: 1, body: 1, images: 1, imageUrl: 1, videoUrl: 1, score: 1, commentsCount: 1, createdAt: 1, yourVote: 1, saved: 1,
+        author: { _id: 1, username: 1, avatar: 1 },
+        community: { _id: 1, name: 1, title: 1, icon: 1, isMember: 1 },
+      },
+    });
+
+    const posts = await Post.aggregate(pipeline);
+    const total = await Post.countDocuments(match);
+
+    res.json({ success: true, data: { posts, page, limit, total } });
+  } catch (err) {
+    console.error("GET /api/posts/popular error", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/* ---------------------------------------------------------------------------
+   🌐 ALL FEED - All posts from all communities (includes everything)
+--------------------------------------------------------------------------- */
+router.get('/all', optionalAuth, async (req, res) => {
+  try {
+    const sort = (req.query.sort || "hot").toLowerCase();
+    const time = (req.query.time || "day").toLowerCase();
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const userId = req.user?._id ? new mongoose.Types.ObjectId(req.user._id) : null;
+
+    // No NSFW filter for /all
+    const match = { ...timeWindowMatch(sort === "top" ? time : "day") };
+
+    const now = new Date();
+    const ageHoursExpr = {
+      $divide: [{ $subtract: [now, "$createdAt"] }, 1000 * 3600],
+    };
+
+    const pipeline = [{ $match: match }];
+
+    // Sorting (same as popular)
+    if (sort === "hot") {
+      pipeline.push({
+        $addFields: {
+          ageHours: ageHoursExpr,
+          hotScore: { $divide: ["$score", { $add: [{ $pow: [{ $add: ["$ageHours", 2] }, 1.5] }, 1] }] },
+        },
+      });
+      pipeline.push({ $sort: { hotScore: -1 } });
+    } else if (sort === "new") {
+      pipeline.push({ $sort: { createdAt: -1 } });
+    } else if (sort === "top") {
+      pipeline.push({ $sort: { score: -1 } });
+    } else if (sort === "rising") {
+      pipeline.push({
+        $addFields: {
+          ageHours: ageHoursExpr,
+          risingScore: { $cond: [{ $lt: ["$ageHours", 12] }, { $multiply: ["$score", 2] }, "$score"] },
+        },
+      });
+      pipeline.push({ $sort: { risingScore: -1, createdAt: -1 } });
+    } else {
+      pipeline.push({
+        $addFields: {
+          ageHours: ageHoursExpr,
+          hotScore: { $divide: ["$score", { $add: [{ $pow: [{ $add: ["$ageHours", 2] }, 1.5] }, 1] }] },
+        },
+      });
+      pipeline.push({ $sort: { hotScore: -1 } });
+    }
+
+    pipeline.push({ $skip: skip }, { $limit: limit });
+
+    // Lookups
+    pipeline.push(
+      { $lookup: { from: "users", localField: "author", foreignField: "_id", as: "author" } },
+      { $unwind: { path: "$author", preserveNullAndEmptyArrays: true } },
+      { $lookup: { from: "communities", localField: "community", foreignField: "_id", as: "community" } },
+      { $unwind: { path: "$community", preserveNullAndEmptyArrays: true } }
+    );
+
+    if (userId) {
+      pipeline.push(
+        { $lookup: { from: "votes", let: { pid: "$_id" }, pipeline: [{ $match: { $expr: { $and: [{ $eq: ["$post", "$$pid"] }, { $eq: ["$user", userId] }] } } }], as: "voteDoc" } },
+        { $addFields: { yourVote: { $ifNull: [{ $arrayElemAt: ["$voteDoc.value", 0] }, 0] } } },
+        { $lookup: { from: "savedposts", let: { pid: "$_id" }, pipeline: [{ $match: { $expr: { $and: [{ $eq: ["$post", "$$pid"] }, { $eq: ["$user", userId] }] } } }], as: "savedDoc" } },
+        { $addFields: { saved: { $gt: [{ $size: "$savedDoc" }, 0] } } },
+        { $lookup: { from: "communitymembers", let: { cid: "$community._id" }, pipeline: [{ $match: { $expr: { $and: [{ $eq: ["$community", "$$cid"] }, { $eq: ["$user", userId] }] } } }], as: "memberDoc" } },
+        { $addFields: { "community.isMember": { $gt: [{ $size: "$memberDoc" }, 0] } } }
+      );
+    } else {
+      pipeline.push({ $addFields: { yourVote: 0, saved: false, "community.isMember": false } });
+    }
+
+    pipeline.push({
+      $project: {
+        _id: 1, title: 1, body: 1, images: 1, imageUrl: 1, videoUrl: 1, score: 1, commentsCount: 1, createdAt: 1, yourVote: 1, saved: 1,
+        author: { _id: 1, username: 1, avatar: 1 },
+        community: { _id: 1, name: 1, title: 1, icon: 1, isMember: 1 },
+      },
+    });
+
+    const posts = await Post.aggregate(pipeline);
+    const total = await Post.countDocuments(match);
+
+    res.json({ success: true, data: { posts, page, limit, total } });
+  } catch (err) {
+    console.error("GET /api/posts/all error", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/* ---------------------------------------------------------------------------
    🎥 LEGACY CREATE VIDEO POST (kept for compatibility)
 --------------------------------------------------------------------------- */
 router.post('/video', auth, writeLimiter, videoUpload.single('video'), async (req, res) => {

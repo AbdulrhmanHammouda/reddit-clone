@@ -1,6 +1,7 @@
 // src/components/CommunityHeader.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import defaultProfileImg from "../assets/default_profile.jpeg";
 
 export default function CommunityHeader({
   community = {},
@@ -34,7 +35,7 @@ export default function CommunityHeader({
         <div className="flex items-center gap-4">
           <div className="bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider rounded-full p-1 shadow-sm">
             <img
-              src={community.icon}
+              src={community.icon && community.icon !== '/default-community.png' ? community.icon : defaultProfileImg}
               alt={community.name}
               className="h-20 w-20 rounded-full object-cover"
             />

@@ -1,116 +1,165 @@
 // src/pages/AllPage.jsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import api from "../api/axios";
 import SortMenu from "../components/SortMenu";
 import PostCard from "../components/PostCard";
-
-/*
- AllPage - similar to Popular, but for the 'All' feed
-*/
-
-const MOCK_POSTS = [
-  {
-    id: 2001,
-    subreddit: "announcements",
-    author: "admin",
-    time: "1d",
-    location: "All",
-    title: "Site updates & improvements",
-    body: "We've made some improvements to the UI and performance.",
-    upvotes: 102,
-    comments: 24,
-    icon: "https://www.redditstatic.com/avatars/avatar_default_04_0099FF.png",
-  },
-  {
-    id: 2002,
-    subreddit: "funny",
-    author: "comedian",
-    time: "8h",
-    location: "All",
-    title: "This made my day",
-    body: "A short, fun post to brighten your day.",
-    upvotes: 512,
-    comments: 120,
-    icon: "https://www.redditstatic.com/avatars/avatar_default_05_000000.png",
-  },
-];
+import TrendingCommunitiesWidget from "../components/TrendingCommunitiesWidget";
 
 export default function AllPage() {
-  const [sort, setSort] = useState("best");
-  const [loading, setLoading] = useState(true);
+  const [sort, setSort] = useState("hot");
+  const [time, setTime] = useState("day");
   const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchPosts = useCallback(async (pageNum = 1, reset = false) => {
+    if (reset) {
+      setLoading(true);
+      setPosts([]);
+    } else if (pageNum > 1) {
+      setLoadingMore(true);
+    }
+
+    try {
+      const res = await api.get(`/posts/all?sort=${sort}&time=${time}&page=${pageNum}&limit=20`);
+      const data = res.data?.data;
+      
+      if (data?.posts) {
+        if (reset || pageNum === 1) {
+          setPosts(data.posts);
+        } else {
+          setPosts(prev => [...prev, ...data.posts]);
+        }
+        setHasMore(data.posts.length === 20);
+        setPage(pageNum);
+      }
+      setError(null);
+    } catch (err) {
+      setError(err.response?.data?.error || "Failed to load posts");
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [sort, time]);
 
   useEffect(() => {
-    setLoading(true);
-    const t = setTimeout(() => {
-      setPosts(MOCK_POSTS);
-      setLoading(false);
-    }, 500);
-    return () => clearTimeout(t);
-  }, []);
+    fetchPosts(1, true);
+  }, [fetchPosts]);
 
-  const sortedPosts = useMemo(() => {
-    const s = [...posts];
-    if (sort === "top") return s.sort((a, b) => b.upvotes - a.upvotes);
-    if (sort === "new") return s.sort((a, b) => b.id - a.id);
-    return s;
-  }, [posts, sort]);
+  const loadMore = () => {
+    if (!loadingMore && hasMore) {
+      fetchPosts(page + 1);
+    }
+  };
+
+  const handleSortChange = (newSort, newTime) => {
+    setSort(newSort);
+    if (newTime) setTime(newTime);
+  };
 
   return (
-    <main className="w-full max-w-[740px] px-4" aria-labelledby="all-heading">
-      <header className="flex items-start justify-between gap-4 mb-4">
-        <div>
-          <h1 id="all-heading" className="text-2xl font-semibold text-reddit-text dark:text-reddit-dark_text">
-            All
-          </h1>
-          <p className="mt-1 text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
-            A mix of posts from across the site.
-          </p>
-        </div>
-
-        <div className="ml-auto">
-          <SortMenu value={sort} onChange={(v) => setSort(v)} />
-        </div>
-      </header>
-
-      <section aria-live="polite" aria-busy={loading} className="space-y-4">
-        {loading ? (
-          [1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="animate-pulse bg-reddit-card dark:bg-reddit-dark_card rounded-xl p-4 border border-reddit-border dark:border-reddit-dark_divider"
-            >
-              <div className="h-4 bg-reddit-hover dark:bg-reddit-dark_hover rounded w-1/3 mb-3" />
-              <div className="h-3 bg-reddit-hover dark:bg-reddit-dark_hover rounded w-full mb-2" />
-              <div className="h-3 bg-reddit-hover dark:bg-reddit-dark_hover rounded w-5/6" />
+    <div className="w-full flex justify-center">
+      <div className="w-full max-w-6xl px-4 md:px-6 pt-6 pb-10 flex flex-col lg:flex-row gap-6">
+        {/* Main Content */}
+        <main className="flex-1 lg:flex-[2]">
+          {/* Header */}
+          <header className="mb-6">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="h-14 w-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                <svg className="h-8 w-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-reddit-text dark:text-reddit-dark_text">
+                  r/all
+                </h1>
+                <p className="text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
+                  The most active posts from across Reddit, including all communities
+                </p>
+              </div>
             </div>
-          ))
-        ) : (
-          <>
-            {sortedPosts.map((p) => (
-              <PostCard key={p.id} {...p} />
-            ))}
 
-            <div className="flex justify-center mt-2">
-              <button
-                type="button"
-                className="px-4 py-2 rounded-md bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider text-sm hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover transition"
-                onClick={() => {
-                  setLoading(true);
-                  setTimeout(() => {
-                    setPosts((s) => [
-                      ...s,
-                      ...MOCK_POSTS.map((m) => ({ ...m, id: m.id + Math.floor(Math.random() * 1000) })),
-                    ]);
-                    setLoading(false);
-                  }, 700);
-                }}
-              >
-                Load more
-              </button>
+            <div className="flex items-center gap-3">
+              <SortMenu 
+                value={sort} 
+                onChange={(s, t) => handleSortChange(s, t)} 
+              />
             </div>
-          </>
-        )}
-      </section>
-    </main>
+          </header>
+
+          {/* Posts */}
+          <section className="space-y-4">
+            {loading ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="animate-pulse bg-reddit-card dark:bg-reddit-dark_card rounded-xl p-4 border border-reddit-border dark:border-reddit-dark_divider"
+                >
+                  <div className="flex gap-3">
+                    <div className="h-10 w-10 bg-reddit-hover dark:bg-reddit-dark_hover rounded-full" />
+                    <div className="flex-1">
+                      <div className="h-4 bg-reddit-hover dark:bg-reddit-dark_hover rounded w-1/3 mb-2" />
+                      <div className="h-5 bg-reddit-hover dark:bg-reddit-dark_hover rounded w-3/4 mb-2" />
+                      <div className="h-3 bg-reddit-hover dark:bg-reddit-dark_hover rounded w-full" />
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : error ? (
+              <div className="text-center py-10">
+                <p className="text-red-500 mb-4">{error}</p>
+                <button
+                  onClick={() => fetchPosts(1, true)}
+                  className="px-4 py-2 rounded-full bg-reddit-blue text-white"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : posts.length === 0 ? (
+              <div className="text-center py-10 text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
+                No posts found
+              </div>
+            ) : (
+              <>
+                {posts.map((post) => (
+                  <PostCard key={post._id} post={post} />
+                ))}
+
+                {hasMore && (
+                  <div className="flex justify-center pt-4">
+                    <button
+                      onClick={loadMore}
+                      disabled={loadingMore}
+                      className="px-6 py-2 rounded-full bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider text-sm font-medium hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover disabled:opacity-50 transition"
+                    >
+                      {loadingMore ? "Loading..." : "Load More"}
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </section>
+        </main>
+
+        {/* Sidebar */}
+        <aside className="w-full lg:w-80 space-y-4">
+          <TrendingCommunitiesWidget />
+          
+          {/* All Info Card */}
+          <div className="bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider rounded-xl p-4">
+            <h3 className="font-semibold text-reddit-text dark:text-reddit-dark_text mb-2">
+              About r/all
+            </h3>
+            <p className="text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
+              r/all shows posts from every community on the site. This is the unfiltered view of everything happening across the platform.
+            </p>
+          </div>
+        </aside>
+      </div>
+    </div>
   );
 }

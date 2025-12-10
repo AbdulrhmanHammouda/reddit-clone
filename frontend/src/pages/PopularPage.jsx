@@ -1,131 +1,167 @@
 // src/pages/PopularPage.jsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { Link } from "react-router-dom";
+import api from "../api/axios";
 import SortMenu from "../components/SortMenu";
 import PostCard from "../components/PostCard";
-import PostsFeed from "../components/PostsFeed";
-
-/*
- PopularPage
- - Reuses PostCard/PostsFeed where possible.
- - Uses mock data for instant preview; replace with API calls in useEffect.
-*/
-
-const MOCK_POSTS = [
-  {
-    id: 1001,
-    subreddit: "javascript",
-    author: "alice",
-    time: "2h",
-    location: "Popular",
-    title: "What's new in modern JS?",
-    body: "Let's discuss the latest additions to the language and tooling.",
-    upvotes: 420,
-    comments: 52,
-    icon: "https://www.redditstatic.com/avatars/avatar_default_02_24A0ED.png",
-  },
-  {
-    id: 1002,
-    subreddit: "webdev",
-    author: "bob",
-    time: "5h",
-    location: "Popular",
-    title: "CSS tricks for layout performance",
-    body: "Small patterns that help with rendering speed and layout shifts.",
-    upvotes: 210,
-    comments: 28,
-    icon: "https://www.redditstatic.com/avatars/avatar_default_03_46A508.png",
-  },
-];
+import TrendingCommunitiesWidget from "../components/TrendingCommunitiesWidget";
 
 export default function PopularPage() {
-  const [sort, setSort] = useState("best"); // "best" | "hot" | "new" | "top" | "rising"
-  const [loading, setLoading] = useState(true);
+  const [sort, setSort] = useState("hot");
+  const [time, setTime] = useState("day");
   const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Replace this effect with a real API call (fetch posts for "popular")
-  useEffect(() => {
-    setLoading(true);
-    const t = setTimeout(() => {
-      setPosts(MOCK_POSTS);
+  const fetchPosts = useCallback(async (pageNum = 1, reset = false) => {
+    if (reset) {
+      setLoading(true);
+      setPosts([]);
+    } else if (pageNum > 1) {
+      setLoadingMore(true);
+    }
+
+    try {
+      const res = await api.get(`/posts/popular?sort=${sort}&time=${time}&page=${pageNum}&limit=20`);
+      const data = res.data?.data;
+      
+      if (data?.posts) {
+        if (reset || pageNum === 1) {
+          setPosts(data.posts);
+        } else {
+          setPosts(prev => [...prev, ...data.posts]);
+        }
+        setHasMore(data.posts.length === 20);
+        setPage(pageNum);
+      }
+      setError(null);
+    } catch (err) {
+      setError(err.response?.data?.error || "Failed to load posts");
+    } finally {
       setLoading(false);
-    }, 600);
-    return () => clearTimeout(t);
-  }, []);
+      setLoadingMore(false);
+    }
+  }, [sort, time]);
 
-  // Example: if PostsFeed accepted a sort prop, we'd pass it like:
-  // <PostsFeed sort={sort} />
-  // Since PostsFeed in this project is local, we render our posts map below to guarantee sort control.
+  useEffect(() => {
+    fetchPosts(1, true);
+  }, [fetchPosts]);
 
-  const sortedPosts = useMemo(() => {
-    // simple client-side mock sorting for demo
-    const s = [...posts];
-    if (sort === "top") return s.sort((a, b) => b.upvotes - a.upvotes);
-    if (sort === "new") return s.sort((a, b) => b.id - a.id);
-    if (sort === "hot") return s; // placeholder
-    if (sort === "rising") return s; // placeholder
-    return s; // best default
-  }, [posts, sort]);
+  const loadMore = () => {
+    if (!loadingMore && hasMore) {
+      fetchPosts(page + 1);
+    }
+  };
+
+  const handleSortChange = (newSort, newTime) => {
+    setSort(newSort);
+    if (newTime) setTime(newTime);
+  };
 
   return (
-    <main className="w-full max-w-[740px] px-4" aria-labelledby="popular-heading">
-      <header className="flex items-start justify-between gap-4 mb-4">
-        <div>
-          <h1 id="popular-heading" className="text-2xl font-semibold text-reddit-text dark:text-reddit-dark_text">
-            Popular
-          </h1>
-          <p className="mt-1 text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
-            The most popular posts across communities.
-          </p>
-        </div>
-
-        <div className="ml-auto">
-          <SortMenu value={sort} onChange={(v) => setSort(v)} />
-        </div>
-      </header>
-
-      <section aria-live="polite" aria-busy={loading} className="space-y-4">
-        {loading ? (
-          // skeleton loaders
-          [1, 2].map((i) => (
-            <div
-              key={i}
-              className="animate-pulse bg-reddit-card dark:bg-reddit-dark_card rounded-xl p-4 border border-reddit-border dark:border-reddit-dark_divider"
-            >
-              <div className="h-4 bg-reddit-hover dark:bg-reddit-dark_hover rounded w-1/3 mb-3" />
-              <div className="h-3 bg-reddit-hover dark:bg-reddit-dark_hover rounded w-full mb-2" />
-              <div className="h-3 bg-reddit-hover dark:bg-reddit-dark_hover rounded w-5/6" />
+    <div className="w-full flex justify-center">
+      <div className="w-full max-w-6xl px-4 md:px-6 pt-6 pb-10 flex flex-col lg:flex-row gap-6">
+        {/* Main Content */}
+        <main className="flex-1 lg:flex-[2]">
+          {/* Header */}
+          <header className="mb-6">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="h-14 w-14 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center">
+                <svg className="h-8 w-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-reddit-text dark:text-reddit-dark_text">
+                  Popular
+                </h1>
+                <p className="text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
+                  The best posts on Reddit for you, pulled from the most active communities
+                </p>
+              </div>
             </div>
-          ))
-        ) : (
-          <>
-            {sortedPosts.map((p) => (
-              <PostCard key={p.id} {...p} />
-            ))}
 
-            <div className="flex justify-center mt-2">
-              <button
-                type="button"
-                className="px-4 py-2 rounded-md bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider text-sm hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover transition"
-                aria-live="polite"
-                aria-label="Load more posts"
-                onClick={() => {
-                  // placeholder: in real app trigger load more API and append results
-                  setLoading(true);
-                  setTimeout(() => {
-                    setPosts((s) => [
-                      ...s,
-                      ...MOCK_POSTS.map((m) => ({ ...m, id: m.id + Math.floor(Math.random() * 1000) })),
-                    ]);
-                    setLoading(false);
-                  }, 700);
-                }}
-              >
-                Load more
-              </button>
+            <div className="flex items-center gap-3">
+              <SortMenu 
+                value={sort} 
+                onChange={(s, t) => handleSortChange(s, t)} 
+              />
             </div>
-          </>
-        )}
-      </section>
-    </main>
+          </header>
+
+          {/* Posts */}
+          <section className="space-y-4">
+            {loading ? (
+              // Skeleton loaders
+              Array.from({ length: 3 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="animate-pulse bg-reddit-card dark:bg-reddit-dark_card rounded-xl p-4 border border-reddit-border dark:border-reddit-dark_divider"
+                >
+                  <div className="flex gap-3">
+                    <div className="h-10 w-10 bg-reddit-hover dark:bg-reddit-dark_hover rounded-full" />
+                    <div className="flex-1">
+                      <div className="h-4 bg-reddit-hover dark:bg-reddit-dark_hover rounded w-1/3 mb-2" />
+                      <div className="h-5 bg-reddit-hover dark:bg-reddit-dark_hover rounded w-3/4 mb-2" />
+                      <div className="h-3 bg-reddit-hover dark:bg-reddit-dark_hover rounded w-full" />
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : error ? (
+              <div className="text-center py-10">
+                <p className="text-red-500 mb-4">{error}</p>
+                <button
+                  onClick={() => fetchPosts(1, true)}
+                  className="px-4 py-2 rounded-full bg-reddit-blue text-white"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : posts.length === 0 ? (
+              <div className="text-center py-10 text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
+                No posts found
+              </div>
+            ) : (
+              <>
+                {posts.map((post) => (
+                  <PostCard key={post._id} post={post} />
+                ))}
+
+                {hasMore && (
+                  <div className="flex justify-center pt-4">
+                    <button
+                      onClick={loadMore}
+                      disabled={loadingMore}
+                      className="px-6 py-2 rounded-full bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider text-sm font-medium hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover disabled:opacity-50 transition"
+                    >
+                      {loadingMore ? "Loading..." : "Load More"}
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </section>
+        </main>
+
+        {/* Sidebar */}
+        <aside className="w-full lg:w-80 space-y-4">
+          <TrendingCommunitiesWidget />
+          
+          {/* Popular Info Card */}
+          <div className="bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider rounded-xl p-4">
+            <h3 className="font-semibold text-reddit-text dark:text-reddit-dark_text mb-2">
+              About Popular
+            </h3>
+            <p className="text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
+              See the best posts from communities across the site. This feed is curated to show trending content from everywhere.
+            </p>
+          </div>
+        </aside>
+      </div>
+    </div>
   );
 }
