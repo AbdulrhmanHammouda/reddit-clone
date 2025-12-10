@@ -262,12 +262,8 @@ export default function PostCardFull({ post: incomingProp, postId: propPostId })
 
         {/* Share */}
         <button
-          className="flex items-center gap-2 px-3 py-2 rounded-full bg-reddit-hover dark:bg-reddit-dark_hover text-sm cursor-pointer flex-shrink-0"
-          onClick={() => {
-            if (!postId) return;
-            const url = `${window.location.origin}/post/${postId}`;
-            navigator.clipboard?.writeText(url).catch(() => {});
-          }}
+          className="flex items-center gap-2 px-3 py-2 rounded-full bg-reddit-hover dark:bg-reddit-dark_hover hover:bg-reddit-border dark:hover:bg-reddit-dark_border text-sm cursor-pointer flex-shrink-0 transition-colors"
+          onClick={handleShare}
         >
           <ShareOutline className="h-4 w-4" />
           <span>Share</span>
