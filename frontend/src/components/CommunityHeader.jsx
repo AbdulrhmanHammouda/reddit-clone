@@ -102,19 +102,6 @@ export default function CommunityHeader({
         </div>
       </div>
 
-      {/* Sort bar */}
-      <div className="mt-4 border-t pt-4 flex justify-between">
-        <div className="flex gap-3 text-sm">
-          <button className="px-3 py-1 rounded-md border">Best</button>
-          <button className="px-3 py-1 rounded-md hover:bg-reddit-hover">
-            Hot
-          </button>
-          <button className="px-3 py-1 rounded-md hover:bg-reddit-hover">
-            New
-          </button>
-        </div>
-        <div className="text-sm opacity-80">Sort: Best</div>
-      </div>
     </div>
   );
 }
