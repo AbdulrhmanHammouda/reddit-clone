@@ -81,10 +81,15 @@ router.post('/image', auth, writeLimiter, upload.array('images', 10), async (req
 
 /* ---------------------------------------------------------------------------
    📥 FEED WITH SORTING (best | hot | new | top | rising)
+   - Optimized: Uses $lookup for isMember/yourVote/saved (no N+1 queries)
+   - Excludes user's own posts
 --------------------------------------------------------------------------- */
 router.get('/', optionalAuth, async (req, res) => {
+  console.time("home-feed");
   try {
-    const sort = (req.query.sort || "best").toLowerCase();
+    const VALID_SORTS = ["best", "hot", "new", "top", "rising"];
+    const rawSort = (req.query.sort || "best").toLowerCase();
+    const sort = VALID_SORTS.includes(rawSort) ? rawSort : "best";
     const time = (req.query.time || "all").toLowerCase();
     const page = Math.max(1, Number(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
@@ -92,36 +97,28 @@ router.get('/', optionalAuth, async (req, res) => {
 
     const userId = req.user?._id;
 
-    // base match (time window for top)
+    // Base match with time window for "top" sort
     const match = { ...timeWindowMatch(sort === "top" ? time : "all") };
 
-    // Exclude own posts on home feed unless includeMine=1 is set
-    if (userId && req.query.includeMine !== "1" && !req.query.community) {
+    // Exclude own posts on home feed
+    if (userId) {
       match.author = { $ne: userId };
     }
 
-    const pipeline = [{ $match: match }];
-
-    // Common addFields for ageHours
+    // Build sort stages
     const now = new Date();
     const ageHoursExpr = {
       $divide: [{ $subtract: [now, "$createdAt"] }, 1000 * 3600],
     };
+
+    const pipeline = [{ $match: match }];
 
     if (sort === "hot") {
       pipeline.push({
         $addFields: {
           ageHours: ageHoursExpr,
           hotScore: {
-            $divide: [
-              "$score",
-              {
-                $pow: [
-                  { $add: ["$ageHours", 2] },
-                  1.5,
-                ],
-              },
-            ],
+            $divide: ["$score", { $pow: [{ $add: ["$ageHours", 2] }, 1.5] }],
           },
         },
       });
@@ -138,32 +135,19 @@ router.get('/', optionalAuth, async (req, res) => {
             $cond: [
               { $lte: ["$ageHours", 0.1] },
               "$score",
-              {
-                $divide: [
-                  "$score",
-                  { $sqrt: { $add: ["$ageHours", 1] } },
-                ],
-              },
+              { $divide: ["$score", { $sqrt: { $add: ["$ageHours", 1] } }] },
             ],
           },
         },
       });
       pipeline.push({ $sort: { risingScore: -1 } });
     } else {
-      // best (default) - score with slight recency bias
+      // best (default)
       pipeline.push({
         $addFields: {
           ageHours: ageHoursExpr,
           bestScore: {
-            $add: [
-              "$score",
-              {
-                $divide: [
-                  "$score",
-                  { $add: ["$ageHours", 10] },
-                ],
-              },
-            ],
+            $add: ["$score", { $divide: ["$score", { $add: ["$ageHours", 10] }] }],
           },
         },
       });
@@ -172,27 +156,153 @@ router.get('/', optionalAuth, async (req, res) => {
 
     pipeline.push({ $skip: skip }, { $limit: limit });
 
+    // $lookup for author
+    pipeline.push({
+      $lookup: {
+        from: "users",
+        localField: "author",
+        foreignField: "_id",
+        as: "authorData",
+      },
+    });
+    pipeline.push({
+      $addFields: {
+        author: {
+          $let: {
+            vars: { a: { $arrayElemAt: ["$authorData", 0] } },
+            in: { _id: "$$a._id", username: "$$a.username", avatar: "$$a.avatar" },
+          },
+        },
+      },
+    });
+    pipeline.push({ $unset: "authorData" });
+
+    // $lookup for community
+    pipeline.push({
+      $lookup: {
+        from: "communities",
+        localField: "community",
+        foreignField: "_id",
+        as: "communityData",
+      },
+    });
+
+    // $lookup for isMember (only if logged in)
+    if (userId) {
+      pipeline.push({
+        $lookup: {
+          from: "communitymembers",
+          let: { communityId: "$community" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$community", "$$communityId"] },
+                    { $eq: ["$user", userId] },
+                  ],
+                },
+              },
+            },
+          ],
+          as: "membership",
+        },
+      });
+
+      // $lookup for yourVote
+      pipeline.push({
+        $lookup: {
+          from: "votes",
+          let: { postId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$post", "$$postId"] },
+                    { $eq: ["$user", userId] },
+                  ],
+                },
+              },
+            },
+          ],
+          as: "voteData",
+        },
+      });
+
+      // $lookup for saved
+      pipeline.push({
+        $lookup: {
+          from: "savedposts",
+          let: { postId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$post", "$$postId"] },
+                    { $eq: ["$user", userId] },
+                  ],
+                },
+              },
+            },
+          ],
+          as: "savedData",
+        },
+      });
+
+      pipeline.push({
+        $addFields: {
+          community: {
+            $let: {
+              vars: { c: { $arrayElemAt: ["$communityData", 0] } },
+              in: {
+                _id: "$$c._id",
+                name: "$$c.name",
+                title: "$$c.title",
+                icon: "$$c.icon",
+                isMember: { $gt: [{ $size: "$membership" }, 0] },
+              },
+            },
+          },
+          yourVote: {
+            $ifNull: [{ $arrayElemAt: ["$voteData.value", 0] }, 0],
+          },
+          saved: { $gt: [{ $size: "$savedData" }, 0] },
+        },
+      });
+
+      pipeline.push({ $unset: ["communityData", "membership", "voteData", "savedData"] });
+    } else {
+      // Not logged in - no membership/vote/saved lookups needed
+      pipeline.push({
+        $addFields: {
+          community: {
+            $let: {
+              vars: { c: { $arrayElemAt: ["$communityData", 0] } },
+              in: {
+                _id: "$$c._id",
+                name: "$$c.name",
+                title: "$$c.title",
+                icon: "$$c.icon",
+                isMember: false,
+              },
+            },
+          },
+          yourVote: 0,
+          saved: false,
+        },
+      });
+      pipeline.push({ $unset: "communityData" });
+    }
+
+    // Clean up computed fields
+    pipeline.push({ $unset: ["ageHours", "hotScore", "bestScore", "risingScore"] });
+
+    const posts = await Post.aggregate(pipeline);
     const total = await Post.countDocuments(match);
 
-    let posts = await Post.aggregate(pipeline);
-
-    // populate author/community on aggregated docs
-    posts = await Post.populate(posts, [
-      { path: "author", select: "username avatar" },
-      { path: "community", select: "name title icon" },
-    ]);
-
-    // attach yourVote/saved flags
-    if (userId) {
-      for (const p of posts) {
-        const vote = await Vote.findOne({ user: userId, post: p._id }).lean();
-        p.yourVote = vote?.value || 0;
-        const savedDoc = await SavedPost.findOne({ user: userId, post: p._id }).lean();
-        p.saved = !!savedDoc;
-      }
-    } else {
-      posts = posts.map((p) => ({ ...p, yourVote: 0, saved: false }));
-    }
+    console.timeEnd("home-feed");
 
     res.json({
       success: true,
@@ -204,6 +314,7 @@ router.get('/', optionalAuth, async (req, res) => {
       },
     });
   } catch (err) {
+    console.timeEnd("home-feed");
     console.error("GET /api/posts error", err);
     res.status(500).json({ success: false, error: err.message });
   }
