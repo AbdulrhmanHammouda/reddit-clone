@@ -227,15 +227,17 @@ export default function Navbar({ onToggleSidebar }) {
     setShowResults(false);
   };
 
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+
   return (
     <>
-      <nav className="w-full h-16 bg-reddit-card dark:bg-reddit-dark_card border-b border-reddit-border dark:border-reddit-dark_divider px-5 flex items-center justify-between sticky top-0 z-50">
+      <nav className="w-full h-14 sm:h-16 bg-reddit-card dark:bg-reddit-dark_card border-b border-reddit-border dark:border-reddit-dark_divider px-3 sm:px-5 flex items-center justify-between sticky top-0 z-50">
         {/* Left Section */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <button
             type="button"
             onClick={onToggleSidebar}
-            className="lg:hidden flex items-center justify-center h-10 w-10 rounded-full bg-reddit-card border border-reddit-border shadow-sm hover:bg-reddit-hover text-reddit-icon focus:outline-none focus:ring-2 focus:ring-reddit-blue"
+            className="lg:hidden flex items-center justify-center h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-reddit-card border border-reddit-border shadow-sm hover:bg-reddit-hover text-reddit-icon focus:outline-none focus:ring-2 focus:ring-reddit-blue"
             aria-label="Open sidebar"
           >
             <Bars3Icon className="h-5 w-5" />
@@ -243,17 +245,17 @@ export default function Navbar({ onToggleSidebar }) {
 
           <Link
             to="/"
-            className="flex items-center gap-2 cursor-pointer select-none"
+            className="flex items-center gap-1 sm:gap-2 cursor-pointer select-none"
           >
-            <img src={logo} alt="Reddit" className="h-8" />
-            <span className="font-bold text-3xl text-reddit-text dark:text-reddit-dark_text">
+            <img src={logo} alt="Reddit" className="h-7 sm:h-8" />
+            <span className="hidden sm:inline font-bold text-2xl sm:text-3xl text-reddit-text dark:text-reddit-dark_text">
               reddit
             </span>
           </Link>
         </div>
 
-        {/* Search */}
-        <div className="flex-1 flex justify-center px-4" ref={searchRef}>
+        {/* Search - Desktop */}
+        <div className="hidden sm:flex flex-1 justify-center px-4" ref={searchRef}>
           <div className="w-full max-w-xl relative">
             <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-5 w-5 text-reddit-icon dark:text-reddit-dark_icon" />
             <input
@@ -382,8 +384,16 @@ export default function Navbar({ onToggleSidebar }) {
           </div>
         </div>
 
+        {/* Mobile Search Icon */}
+        <button
+          onClick={() => setMobileSearchOpen(true)}
+          className="sm:hidden p-2 rounded-full hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
+        >
+          <MagnifyingGlassIcon className="h-5 w-5 text-reddit-icon dark:text-reddit-dark_icon" />
+        </button>
+
         {/* Right Section */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1 sm:gap-4">
           {/* Chat */}
           <div className="relative group">
             <ChatBubbleOvalLeftIcon
@@ -396,10 +406,10 @@ export default function Navbar({ onToggleSidebar }) {
           {/* Create */}
           <div
             onClick={() => navigate("/createpost")}
-            className="group relative flex items-center gap-2 px-3 py-1.5 rounded-full cursor-pointer transition hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
+            className="group relative flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-full cursor-pointer transition hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
           >
             <PlusIcon className="h-5 w-5 text-reddit-icon dark:text-reddit-dark_icon" />
-            <span className="text-sm font-medium text-reddit-text dark:text-reddit-dark_text">
+            <span className="hidden sm:inline text-sm font-medium text-reddit-text dark:text-reddit-dark_text">
               Create
             </span>
           </div>
@@ -410,9 +420,9 @@ export default function Navbar({ onToggleSidebar }) {
               onClick={() => setNotificationsOpen(!notificationsOpen)}
               className="relative p-1 rounded-full cursor-pointer transition hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
             >
-              <BellIcon className="h-6 w-6 text-reddit-icon dark:text-reddit-dark_icon" />
+              <BellIcon className="h-5 w-5 sm:h-6 sm:w-6 text-reddit-icon dark:text-reddit-dark_icon" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-reddit-orange text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-reddit-orange text-white text-[10px] sm:text-xs font-bold rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center">
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}
@@ -420,7 +430,7 @@ export default function Navbar({ onToggleSidebar }) {
 
             {/* Notifications Dropdown */}
             {notificationsOpen && (
-              <div className="absolute right-0 mt-2 w-80 bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider rounded-xl shadow-xl z-50 overflow-hidden">
+              <div className="absolute right-0 sm:right-0 mt-2 w-[calc(100vw-1rem)] sm:w-80 max-w-sm bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider rounded-xl shadow-xl z-50 overflow-hidden -right-2">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-reddit-border dark:border-reddit-dark_divider">
                   <h3 className="font-semibold text-reddit-text dark:text-reddit-dark_text">Notifications</h3>
                   {unreadCount > 0 && (
@@ -488,7 +498,7 @@ export default function Navbar({ onToggleSidebar }) {
             <img
               src={userAvatar || defaultProfileImg}
               alt="user"
-              className="h-8 w-8 rounded-full cursor-pointer"
+              className="h-7 w-7 sm:h-8 sm:w-8 rounded-full cursor-pointer"
               onClick={() => setOpen(!open)}
             />
 
@@ -496,6 +506,110 @@ export default function Navbar({ onToggleSidebar }) {
           </div>
         </div>
       </nav>
+
+      {/* Mobile Search Overlay */}
+      {mobileSearchOpen && (
+        <div className="fixed inset-0 z-[60] bg-reddit-card dark:bg-reddit-dark_card sm:hidden">
+          <div className="flex items-center gap-2 p-3 border-b border-reddit-border dark:border-reddit-dark_divider">
+            <button
+              onClick={() => {
+                setMobileSearchOpen(false);
+                clearSearch();
+              }}
+              className="p-2 rounded-full hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
+            >
+              <XMarkIcon className="h-5 w-5 text-reddit-icon" />
+            </button>
+            <div className="flex-1 relative">
+              <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-5 w-5 text-reddit-icon dark:text-reddit-dark_icon" />
+              <input
+                type="text"
+                placeholder="Search Reddit"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                autoFocus
+                className="w-full bg-reddit-hover dark:bg-reddit-dark_hover border border-reddit-border dark:border-reddit-dark_divider rounded-full pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-reddit-blue text-reddit-text dark:text-reddit-dark_text"
+              />
+            </div>
+          </div>
+          
+          {/* Mobile Search Results */}
+          <div className="overflow-y-auto max-h-[calc(100vh-60px)]">
+            {searchLoading && (
+              <div className="p-4 text-center text-reddit-text_secondary">
+                Searching...
+              </div>
+            )}
+            
+            {searchResults && !searchLoading && (
+              <>
+                {searchResults.communities?.length > 0 && (
+                  <div className="p-2">
+                    <div className="text-xs font-semibold text-reddit-text_secondary px-3 py-1">COMMUNITIES</div>
+                    {searchResults.communities.map((c) => (
+                      <button
+                        key={c._id}
+                        onClick={() => {
+                          handleResultClick("community", c);
+                          setMobileSearchOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover rounded-lg flex items-center gap-3"
+                      >
+                        <div className="h-8 w-8 bg-reddit-blue rounded-full flex items-center justify-center text-white font-bold text-sm">r/</div>
+                        <div>
+                          <div className="text-sm font-medium text-reddit-text dark:text-reddit-dark_text">r/{c.name}</div>
+                          <div className="text-xs text-reddit-text_secondary">{c.membersCount || 0} members</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {searchResults.users?.length > 0 && (
+                  <div className="p-2 border-t border-reddit-border dark:border-reddit-dark_divider">
+                    <div className="text-xs font-semibold text-reddit-text_secondary px-3 py-1">USERS</div>
+                    {searchResults.users.map((u) => (
+                      <button
+                        key={u._id}
+                        onClick={() => {
+                          handleResultClick("user", u);
+                          setMobileSearchOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover rounded-lg flex items-center gap-3"
+                      >
+                        <img src={u.avatar || defaultProfileImg} alt={u.username} className="h-8 w-8 rounded-full object-cover" />
+                        <div>
+                          <div className="text-sm font-medium text-reddit-text dark:text-reddit-dark_text">u/{u.username}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {searchResults.posts?.length > 0 && (
+                  <div className="p-2 border-t border-reddit-border dark:border-reddit-dark_divider">
+                    <div className="text-xs font-semibold text-reddit-text_secondary px-3 py-1">POSTS</div>
+                    {searchResults.posts.map((p) => (
+                      <button
+                        key={p._id}
+                        onClick={() => {
+                          handleResultClick("post", p);
+                          setMobileSearchOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover rounded-lg"
+                      >
+                        <div className="text-sm font-medium text-reddit-text dark:text-reddit-dark_text line-clamp-1">{p.title}</div>
+                        <div className="text-xs text-reddit-text_secondary mt-0.5">r/{p.community?.name || "unknown"}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {!searchResults.communities?.length && !searchResults.users?.length && !searchResults.posts?.length && searchQuery && (
+                  <div className="p-4 text-center text-reddit-text_secondary">No results found</div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }

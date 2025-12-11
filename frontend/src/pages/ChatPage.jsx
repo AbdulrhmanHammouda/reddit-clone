@@ -23,6 +23,7 @@ export default function ChatPage() {
   const [showNewChat, setShowNewChat] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
+  const [showMobileSidebar, setShowMobileSidebar] = useState(true);
   const [loading, setLoading] = useState(true);
   
   // Refs
@@ -141,19 +142,19 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#0B1416] text-gray-100 flex font-sans">
+    <div className="fixed inset-0 z-50 bg-[#0B1416] text-gray-100 flex flex-col md:flex-row font-sans">
       
       {/* 1. LEFT SIDEBAR */}
-      <div className="w-[350px] border-r border-[#1e2324] bg-[#0f1112] flex flex-col">
+      <div className={`${selectedUser && !showMobileSidebar ? 'hidden' : 'flex'} md:flex w-full md:w-[300px] lg:w-[350px] border-r border-[#1e2324] bg-[#0f1112] flex-col`}>
         {/* Header */}
-        <div className="h-16 px-5 flex items-center justify-between border-b border-[#1e2324] shrink-0">
-           <h2 className="font-bold text-xl tracking-tight">Chats</h2>
+        <div className="h-14 md:h-16 px-4 md:px-5 flex items-center justify-between border-b border-[#1e2324] shrink-0">
+           <h2 className="font-bold text-lg md:text-xl tracking-tight">Chats</h2>
            <button 
              onClick={() => setShowNewChat(true)} 
              className="p-2 hover:bg-[#1e2324] rounded-full transition-colors"
              title="New Chat"
            >
-             <PlusIcon className="w-6 h-6 text-gray-400" />
+             <PlusIcon className="w-5 h-5 md:w-6 md:h-6 text-gray-400" />
            </button>
         </div>
         
@@ -169,14 +170,17 @@ export default function ChatPage() {
             return (
               <div
                 key={convo.participant._id}
-                onClick={() => setSelectedUser(convo.participant)}
-                className={`group flex items-center gap-4 p-3 rounded-xl cursor-pointer transition-all duration-200 ${
+                onClick={() => {
+                  setSelectedUser(convo.participant);
+                  setShowMobileSidebar(false);
+                }}
+                className={`group flex items-center gap-3 md:gap-4 p-2.5 md:p-3 rounded-xl cursor-pointer transition-all duration-200 ${
                   isActive ? 'bg-[#2A3437]' : 'hover:bg-[#191C1D]'
                 }`}
               >
                 <div className="relative">
-                  <img src={convo.participant.avatar || defaultProfileImg} className="w-12 h-12 rounded-full object-cover ring-2 ring-[#0f1112]" />
-                  {convo.unreadCount > 0 && <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-[#0f1112]" />}
+                  <img src={convo.participant.avatar || defaultProfileImg} className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover ring-2 ring-[#0f1112]" />
+                  {convo.unreadCount > 0 && <div className="absolute bottom-0 right-0 w-3 h-3 md:w-3.5 md:h-3.5 bg-red-500 rounded-full border-2 border-[#0f1112]" />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline mb-1">
@@ -199,39 +203,46 @@ export default function ChatPage() {
       </div>
 
       {/* 2. MAIN CHAT AREA */}
-      <div className="flex-1 flex flex-col bg-[#0B1416] relative">
+      <div className={`${!selectedUser || showMobileSidebar ? 'hidden' : 'flex'} md:flex flex-1 flex-col bg-[#0B1416] relative`}>
         {selectedUser ? (
           <>
             {/* Header */}
-            <div className="h-16 px-6 border-b border-[#1e2324] flex items-center gap-4 bg-[#0B1416]/90 backdrop-blur shrink-0 sticky top-0 z-10">
+            <div className="h-14 md:h-16 px-4 md:px-6 border-b border-[#1e2324] flex items-center gap-3 md:gap-4 bg-[#0B1416]/90 backdrop-blur shrink-0 sticky top-0 z-10">
+              {/* Back button for mobile */}
+              <button
+                onClick={() => setShowMobileSidebar(true)}
+                className="md:hidden p-2 -ml-2 rounded-full hover:bg-[#1e2324] transition-colors"
+              >
+                <ArrowLeftIcon className="w-5 h-5 text-gray-400" />
+              </button>
               <div className="relative">
-                 <img src={selectedUser.avatar || defaultProfileImg} className="w-10 h-10 rounded-full object-cover ring-2 ring-[#1e2324]" />
-                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#0B1416]"></div>
+                 <img src={selectedUser.avatar || defaultProfileImg} className="w-9 h-9 md:w-10 md:h-10 rounded-full object-cover ring-2 ring-[#1e2324]" />
+                 <div className="absolute bottom-0 right-0 w-2.5 h-2.5 md:w-3 md:h-3 bg-green-500 rounded-full border-2 border-[#0B1416]"></div>
               </div>
               <div className="flex flex-col">
-                 <span className="font-bold text-lg leading-tight">{selectedUser.username}</span>
+                 <span className="font-bold text-base md:text-lg leading-tight">{selectedUser.username}</span>
                  <span className="text-xs text-green-500 font-medium">Online</span>
               </div>
             </div>
 
             {/* Messages Feed */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              <div className="flex flex-col items-center justify-center my-10 space-y-3 opacity-50">
-                <img src={selectedUser.avatar || defaultProfileImg} className="w-24 h-24 rounded-full object-cover" />
-                <p className="text-gray-400">This is the start of your history with <span className="font-bold text-white">{selectedUser.username}</span></p>
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6">
+              <div className="flex flex-col items-center justify-center my-6 md:my-10 space-y-2 md:space-y-3 opacity-50">
+                <img src={selectedUser.avatar || defaultProfileImg} className="w-16 h-16 md:w-24 md:h-24 rounded-full object-cover" />
+                <p className="text-gray-400 text-sm md:text-base text-center">This is the start of your history with <span className="font-bold text-white">{selectedUser.username}</span></p>
               </div>
 
               {messages.map((msg, idx) => {
                 const isMe = msg.sender._id === user?._id || msg.sender === user?._id;
                 return (
                   <div key={idx} className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'} group`}>
-                    <div className={`flex max-w-[65%] gap-3 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                    <div className={`flex max-w-[85%] md:max-w-[65%] gap-2 md:gap-3 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
                        {!isMe && (
-                         <img src={selectedUser.avatar || defaultProfileImg} className="w-8 h-8 rounded-full object-cover self-end mb-1" />
+                         <img src={selectedUser.avatar || defaultProfileImg} className="w-7 h-7 md:w-8 md:h-8 rounded-full object-cover self-end mb-1" />
                        )}
                        
                        <div className="flex flex-col gap-1">
-                          <div className={`px-5 py-3 text-[15px] leading-relaxed shadow-sm break-words ${
+                          <div className={`px-4 py-2.5 md:px-5 md:py-3 text-sm md:text-[15px] leading-relaxed shadow-sm break-words ${
                             isMe 
                             ? 'bg-blue-600 text-white rounded-2xl rounded-tr-sm' 
                             : 'bg-[#1e2324] text-gray-100 border border-[#2A3437] rounded-2xl rounded-tl-sm'
@@ -277,13 +288,13 @@ export default function ChatPage() {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-[#0B1416]">
-             <div className="w-32 h-32 bg-[#1e2324] rounded-full flex items-center justify-center mb-6 shadow-inner">
-                <PaperAirplaneIcon className="w-16 h-16 text-gray-600" />
+          <div className="hidden md:flex flex-1 flex-col items-center justify-center p-8 text-center bg-[#0B1416]">
+             <div className="w-24 h-24 md:w-32 md:h-32 bg-[#1e2324] rounded-full flex items-center justify-center mb-6 shadow-inner">
+                <PaperAirplaneIcon className="w-12 h-12 md:w-16 md:h-16 text-gray-600" />
              </div>
-             <h2 className="text-3xl font-bold text-white mb-3">Welcome to your inbox</h2> 
-             <p className="text-gray-400 max-w-md text-lg">Select a chat from the left or start a new conversation to begin messaging effortlessly.</p>
-             <button onClick={() => setShowNewChat(true)} className="mt-8 px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-full transition-all">
+             <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">Welcome to your inbox</h2> 
+             <p className="text-gray-400 max-w-md text-base md:text-lg">Select a chat from the left or start a new conversation to begin messaging effortlessly.</p>
+             <button onClick={() => setShowNewChat(true)} className="mt-8 px-6 md:px-8 py-2.5 md:py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-full transition-all">
                 Start New Chat
              </button>
           </div>
@@ -314,10 +325,10 @@ export default function ChatPage() {
                 />
               </div>
 
-              <div className="overflow-y-auto max-h-[400px] space-y-2">
+              <div className="overflow-y-auto max-h-[calc(100vh-150px)] md:max-h-[400px] space-y-2">
                 {searchResults.map(u => (
-                  <div key={u._id} onClick={() => startNewChat(u)} className="flex items-center gap-4 p-3 hover:bg-[#272729] rounded-xl cursor-pointer">
-                    <img src={u.avatar || defaultProfileImg} className="w-12 h-12 rounded-full object-cover" />
+                  <div key={u._id} onClick={() => { startNewChat(u); setShowMobileSidebar(false); }} className="flex items-center gap-3 md:gap-4 p-2.5 md:p-3 hover:bg-[#272729] rounded-xl cursor-pointer">
+                    <img src={u.avatar || defaultProfileImg} className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover" />
                     <div>
                       <div className="font-bold text-gray-100">{u.username}</div>
                       <div className="text-sm text-gray-500">u/{u.username}</div>
@@ -332,9 +343,9 @@ export default function ChatPage() {
       )}
       
       {/* Close button */}
-      <button className="absolute top-6 right-6 text-gray-500 hover:text-white p-2 rounded-full hover:bg-[#1e2324] transition-colors" onClick={() => navigate("/")}>
+      <button className="absolute top-4 right-4 md:top-6 md:right-6 text-gray-500 hover:text-white p-2 rounded-full hover:bg-[#1e2324] transition-colors" onClick={() => navigate("/")}>
         <div className="sr-only">Close</div>
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+        <svg className="w-6 h-6 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
       </button>
     </div>
   );

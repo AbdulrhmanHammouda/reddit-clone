@@ -304,19 +304,19 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
+    <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
       {/* Page Title */}
-      <h1 className="text-2xl font-bold text-reddit-text dark:text-reddit-dark_text mb-6">
+      <h1 className="text-xl sm:text-2xl font-bold text-reddit-text dark:text-reddit-dark_text mb-4 sm:mb-6">
         Settings
       </h1>
 
       {/* Tabs Navigation */}
-      <div className="flex gap-1 border-b border-reddit-border dark:border-reddit-dark_divider mb-6 overflow-x-auto">
+      <div className="flex gap-1 border-b border-reddit-border dark:border-reddit-dark_divider mb-4 sm:mb-6 overflow-x-auto scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => handleTabClick(t.key)}
-            className={`px-4 py-3 text-sm font-medium whitespace-nowrap transition ${
+            className={`px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium whitespace-nowrap transition ${
               activeTab === t.key
                 ? "text-reddit-text dark:text-reddit-dark_text border-b-2 border-reddit-blue"
                 : "text-reddit-text_secondary dark:text-reddit-dark_text_secondary hover:text-reddit-text dark:hover:text-reddit-dark_text"
@@ -328,7 +328,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Tab Content */}
-      <div className="bg-reddit-card dark:bg-reddit-dark_card rounded-xl border border-reddit-border dark:border-reddit-dark_divider p-4">
+      <div className="bg-reddit-card dark:bg-reddit-dark_card rounded-xl border border-reddit-border dark:border-reddit-dark_divider p-3 sm:p-4">
         {/* Account Tab */}
         {activeTab === "account" && settings && (
           <div>
@@ -367,11 +367,11 @@ export default function SettingsPage() {
           <div>
             <SectionHeader title="Profile Information" />
             
-            <div className="flex items-center gap-4 py-4">
+            <div className="flex items-center gap-3 sm:gap-4 py-3 sm:py-4">
               <img
                 src={settings.avatar || defaultProfileImg}
                 alt="Avatar"
-                className="h-16 w-16 rounded-full object-cover"
+                className="h-12 w-12 sm:h-16 sm:w-16 rounded-full object-cover"
               />
               <div>
                 <div className="text-sm font-medium text-reddit-text dark:text-reddit-dark_text">

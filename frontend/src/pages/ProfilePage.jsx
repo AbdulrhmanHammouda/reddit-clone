@@ -422,7 +422,7 @@ export default function ProfilePage() {
     <div className="w-full flex justify-center">
       <div className="w-full max-w-6xl px-4 md:px-6 pb-10">
         {/* Banner Section */}
-        <div className="w-full h-32 rounded-xl overflow-hidden bg-gradient-to-r from-reddit-blue to-purple-600 relative">
+        <div className="w-full h-24 sm:h-32 rounded-xl overflow-hidden bg-gradient-to-r from-reddit-blue to-purple-600 relative">
           <img
             src={profile.banner || defaultBanner}
             alt="Profile banner"
@@ -433,37 +433,37 @@ export default function ProfilePage() {
         </div>
 
         {/* Profile Info Section */}
-        <div className="px-4 -mt-12 relative">
-          <div className="flex flex-col md:flex-row md:items-end gap-4">
+        <div className="px-2 sm:px-4 -mt-10 sm:-mt-12 relative">
+          <div className="flex flex-col md:flex-row md:items-end gap-3 sm:gap-4">
             {/* Avatar */}
             <div className="bg-reddit-card dark:bg-reddit-dark_card border-4 border-reddit-card dark:border-reddit-dark_card rounded-full shadow-lg">
               <img
                 src={profile.avatar || defaultProfileImg}
                 alt={profile.username}
-                className="h-24 w-24 rounded-full object-cover"
+                className="h-20 w-20 sm:h-24 sm:w-24 rounded-full object-cover"
               />
             </div>
 
             {/* Info */}
             <div className="flex-1 pb-2">
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl md:text-3xl font-bold text-reddit-text dark:text-reddit-dark_text">
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-reddit-text dark:text-reddit-dark_text">
                   {profile.displayName || profile.username}
                 </h1>
                 {isOwn && (
                   <button
                     onClick={() => setEditOpen(true)}
-                    className="px-3 py-1 text-sm rounded-full border border-reddit-border dark:border-reddit-dark_divider hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover transition-colors"
+                    className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-full border border-reddit-border dark:border-reddit-dark_divider hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover transition-colors"
                   >
                     Edit
                   </button>
                 )}
               </div>
-              <p className="text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
+              <p className="text-xs sm:text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
                 u/{profile.username}
               </p>
               {profile.bio && (
-                <p className="mt-2 text-sm text-reddit-text dark:text-reddit-dark_text max-w-xl">
+                <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-reddit-text dark:text-reddit-dark_text max-w-xl">
                   {profile.bio}
                 </p>
               )}
@@ -486,9 +486,9 @@ export default function ProfilePage() {
           </div>
 
           {/* Stats Bar */}
-          <div className="flex flex-wrap gap-6 mt-4 py-3 border-b border-reddit-border dark:border-reddit-dark_divider">
-            <div className="flex items-center gap-2">
-              <UserGroupIcon className="h-5 w-5 text-reddit-text_secondary" />
+          <div className="flex flex-wrap gap-3 sm:gap-6 mt-3 sm:mt-4 py-2 sm:py-3 border-b border-reddit-border dark:border-reddit-dark_divider text-xs sm:text-sm">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <UserGroupIcon className="h-4 w-4 sm:h-5 sm:w-5 text-reddit-text_secondary" />
               <span className="font-semibold text-reddit-text dark:text-reddit-dark_text">
                 {profile.followersCount ?? 0}
               </span>
@@ -525,7 +525,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Content Grid */}
-        <div className="mt-6 flex flex-col lg:flex-row gap-6">
+        <div className="mt-4 sm:mt-6 flex flex-col lg:flex-row gap-4 sm:gap-6">
         <section className="flex-1 lg:flex-[2]">
 
           <ProfileTabs 

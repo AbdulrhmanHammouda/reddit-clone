@@ -171,10 +171,10 @@ const PostCard = memo(function PostCard(props) {
 
   return (
     <>
-      <div className="w-full max-w-[740px] bg-reddit-card dark:bg-reddit-dark_card rounded-xl p-4 border border-reddit-border dark:border-reddit-dark_divider shadow-sm transition-colors">
+      <div className="w-full max-w-[740px] bg-reddit-card dark:bg-reddit-dark_card rounded-xl p-3 sm:p-4 border border-reddit-border dark:border-reddit-dark_divider shadow-sm transition-colors">
 
         {/* HEADER */}
-        <div className="flex items-center justify-between text-[13px] text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
+        <div className="flex items-center justify-between text-[12px] sm:text-[13px] text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
           <div className="flex items-center gap-2">
             {community && (
               <>
@@ -257,7 +257,7 @@ const PostCard = memo(function PostCard(props) {
 
         {/* TITLE */}
         <h2
-          className="mt-2 text-[18px] font-semibold text-reddit-text dark:text-reddit-dark_text leading-6 cursor-pointer hover:underline"
+          className="mt-2 text-[16px] sm:text-[18px] font-semibold text-reddit-text dark:text-reddit-dark_text leading-tight sm:leading-6 cursor-pointer hover:underline"
           onClick={() => navigate(`/post/${id}`)}
         >
           {title}
@@ -291,7 +291,7 @@ const PostCard = memo(function PostCard(props) {
         )}
 
         {/* ACTION BAR */}
-        <div className="flex items-center gap-3 mt-3 text-reddit-text_secondary dark:text-reddit-dark_text_secondary flex-nowrap overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-2 sm:gap-3 mt-3 text-reddit-text_secondary dark:text-reddit-dark_text_secondary flex-nowrap overflow-x-auto no-scrollbar">
           <div className="flex-shrink-0">
             <VoteButtons
               postId={id}
@@ -306,21 +306,21 @@ const PostCard = memo(function PostCard(props) {
 
           {/* COMMENTS */}
           <button
-            className="flex items-center gap-2 px-3 py-[6px] rounded-full hover:bg-[#e8e9eb] dark:hover:bg-[#2c2d2f] flex-shrink-0"
+            className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-[5px] sm:py-[6px] rounded-full hover:bg-[#e8e9eb] dark:hover:bg-[#2c2d2f] flex-shrink-0"
             onClick={() => navigate(`/post/${id}`)}
           >
             <ChatBubbleBottomCenterTextIcon className="h-4 w-4" />
-            <span className="text-sm">Comments</span>
-            <span>{commentsCount}</span>
+            <span className="text-xs sm:text-sm">Comments</span>
+            <span className="text-xs sm:text-sm">{commentsCount}</span>
           </button>
 
           {/* SHARE */}
           <button
-            className="flex items-center gap-2 px-3 py-[6px] rounded-full hover:bg-[#e8e9eb] dark:hover:bg-[#2c2d2f] flex-shrink-0"
+            className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-[5px] sm:py-[6px] rounded-full hover:bg-[#e8e9eb] dark:hover:bg-[#2c2d2f] flex-shrink-0"
             onClick={handleShare}
           >
             <ShareOutline className="h-4 w-4" />
-            <span className="text-sm">Share</span>
+            <span className="text-xs sm:text-sm">Share</span>
           </button>
         </div>
       </div>
@@ -335,8 +335,8 @@ const PostCard = memo(function PostCard(props) {
 
       {/* DELETE MODAL */}
       {showDeleteModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-[#0b1113] p-6 rounded-2xl w-[430px] relative text-white">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#0b1113] p-4 sm:p-6 rounded-2xl w-full max-w-[430px] relative text-white">
             <button className="absolute top-3 right-3 p-1" onClick={() => setShowDeleteModal(false)}>
               <XMarkIcon className="h-5 w-5" />
             </button>

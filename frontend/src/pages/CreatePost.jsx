@@ -185,21 +185,21 @@ export default function CreatePost() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-reddit-page to-reddit-hover dark:from-reddit-dark_bg dark:to-reddit-dark_hover">
-      <div className="mx-auto max-w-3xl px-4 py-8">
+      <div className="mx-auto max-w-3xl px-3 sm:px-4 py-4 sm:py-8">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-reddit-text dark:text-reddit-dark_text flex items-center gap-2">
-            <SparklesIcon className="h-7 w-7 text-reddit-blue" />
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-xl sm:text-2xl font-bold text-reddit-text dark:text-reddit-dark_text flex items-center gap-2">
+            <SparklesIcon className="h-6 w-6 sm:h-7 sm:w-7 text-reddit-blue" />
             Create a post
           </h1>
-          <p className="text-sm text-reddit-text_secondary mt-1">
+          <p className="text-xs sm:text-sm text-reddit-text_secondary mt-1">
             Share something with your community
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           {/* Community Selector */}
-          <div className="bg-reddit-card dark:bg-reddit-dark_card rounded-2xl p-4 border border-reddit-border dark:border-reddit-dark_divider shadow-sm">
+          <div className="bg-reddit-card dark:bg-reddit-dark_card rounded-2xl p-3 sm:p-4 border border-reddit-border dark:border-reddit-dark_divider shadow-sm">
             <label className="block text-xs font-semibold uppercase mb-2 text-reddit-text_secondary">
               Choose a community
             </label>
@@ -491,18 +491,18 @@ export default function CreatePost() {
           )}
 
           {/* Action Buttons */}
-          <div className="flex justify-end gap-3">
+          <div className="flex justify-end gap-2 sm:gap-3">
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="px-6 py-3 rounded-full border border-reddit-border dark:border-reddit-dark_divider font-semibold hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover transition-colors"
+              className="px-4 sm:px-6 py-2.5 sm:py-3 rounded-full border border-reddit-border dark:border-reddit-dark_divider font-semibold text-sm sm:text-base hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting || !selectedCommunity || !title.trim()}
-              className="px-8 py-3 rounded-full bg-reddit-blue hover:bg-reddit-blue_hover text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-5 sm:px-8 py-2.5 sm:py-3 rounded-full bg-reddit-blue hover:bg-reddit-blue_hover text-white font-semibold text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {submitting ? (
                 <span className="flex items-center gap-2">

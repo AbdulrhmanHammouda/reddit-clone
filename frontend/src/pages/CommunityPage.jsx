@@ -320,9 +320,9 @@ export default function CommunityPage() {
   if (isPrivateRestricted && community) {
     return (
       <div className="bg-reddit-page dark:bg-reddit-dark_bg min-h-screen">
-        <div className="mx-auto w-full max-w-[800px] px-4 lg:px-6">
+        <div className="mx-auto w-full max-w-[800px] px-3 sm:px-4 lg:px-6">
           {/* Banner */}
-          <div className="w-full h-40 rounded-b-xl overflow-hidden bg-gradient-to-r from-reddit-blue to-purple-600 relative">
+          <div className="w-full h-28 sm:h-40 rounded-b-xl overflow-hidden bg-gradient-to-r from-reddit-blue to-purple-600 relative">
             <img
               src={community.banner || defaultBanner}
               alt="Community banner"
@@ -333,25 +333,25 @@ export default function CommunityPage() {
           </div>
 
           {/* Content Card */}
-          <div className="relative -mt-16 mx-4">
-            <div className="bg-reddit-card dark:bg-reddit-dark_card rounded-2xl p-8 border border-reddit-border dark:border-reddit-dark_divider shadow-xl text-center">
+          <div className="relative -mt-12 sm:-mt-16 mx-2 sm:mx-4">
+            <div className="bg-reddit-card dark:bg-reddit-dark_card rounded-2xl p-5 sm:p-8 border border-reddit-border dark:border-reddit-dark_divider shadow-xl text-center">
               {/* Icon with lock badge */}
-              <div className="relative inline-block mb-4">
+              <div className="relative inline-block mb-3 sm:mb-4">
                 <img
                   src={community.icon && community.icon !== "/default-community.png" ? community.icon : defaultProfileImg}
                   alt={community.name}
-                  className="h-24 w-24 rounded-xl object-cover border-4 border-reddit-card dark:border-reddit-dark_card shadow-lg mx-auto"
+                  className="h-18 w-18 sm:h-24 sm:w-24 rounded-xl object-cover border-4 border-reddit-card dark:border-reddit-dark_card shadow-lg mx-auto"
                 />
-                <div className="absolute -bottom-2 -right-2 p-2 rounded-full bg-reddit-text dark:bg-reddit-dark_text text-white dark:text-reddit-dark_bg shadow-lg">
-                  <LockClosedIcon className="h-5 w-5" />
+                <div className="absolute -bottom-2 -right-2 p-1.5 sm:p-2 rounded-full bg-reddit-text dark:bg-reddit-dark_text text-white dark:text-reddit-dark_bg shadow-lg">
+                  <LockClosedIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
               </div>
 
               {/* Community Info */}
-              <h1 className="text-2xl font-bold text-reddit-text dark:text-reddit-dark_text mb-1">
+              <h1 className="text-xl sm:text-2xl font-bold text-reddit-text dark:text-reddit-dark_text mb-1">
                 r/{community.name}
               </h1>
-              <h2 className="text-lg text-reddit-text_secondary dark:text-reddit-dark_text_secondary mb-4">
+              <h2 className="text-base sm:text-lg text-reddit-text_secondary dark:text-reddit-dark_text_secondary mb-3 sm:mb-4">
                 {community.title || community.name}
               </h2>
 
@@ -423,7 +423,7 @@ export default function CommunityPage() {
 
   return (
     <div className="bg-reddit-page dark:bg-reddit-dark_bg text-reddit-text dark:text-reddit-dark_text min-h-screen">
-      <div className="mx-auto w-full max-w-[1200px] px-4 lg:px-6">
+      <div className="mx-auto w-full max-w-[1200px] px-2 sm:px-4 lg:px-6">
         <CommunityHeader
           community={community}
           onJoin={headerOnJoin}
@@ -438,7 +438,7 @@ export default function CommunityPage() {
 
         {/* owner quick controls under header */}
 
-        <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="mt-4 sm:mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           <div className="lg:col-span-2 flex justify-center">
             <div className="w-full max-w-[740px]">
               <div className="mb-4 flex items-center justify-between">
