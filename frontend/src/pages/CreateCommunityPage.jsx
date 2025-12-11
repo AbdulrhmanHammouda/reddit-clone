@@ -1,13 +1,23 @@
-import { useMemo, useState } from "react";
+// src/pages/CreateCommunityPage.jsx
+import { useMemo, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-hot-toast";
 import api from "../api/axios";
 import useAuth from "../hooks/useAuth";
+import {
+  CameraIcon,
+  GlobeAltIcon,
+  LockClosedIcon,
+  SparklesIcon,
+  XMarkIcon,
+  CheckIcon,
+} from "@heroicons/react/24/outline";
+import defaultProfileImg from "../assets/default_profile.jpeg";
+import defaultBanner from "../assets/default_banner.jpeg";
 
 function validateName(name) {
   if (!name || name.trim().length === 0) return "Name is required.";
-  // Allow letters (including Arabic, Chinese, etc.), numbers, and underscores
-  // Using Unicode property escapes: \p{L} matches any letter from any language
-  if (!/^[\p{L}\p{N}_]+$/u.test(name)) return "Name may only include letters, numbers, and underscores.";
+  if (!/^[\p{L}\p{N}_]+$/u.test(name)) return "Only letters, numbers, and underscores allowed.";
   if (name.length < 3) return "Name must be at least 3 characters.";
   if (name.length > 21) return "Name must be 21 characters or fewer.";
   return "";
@@ -20,257 +30,384 @@ export default function CreateCommunityPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
-  const [topics, setTopics] = useState([]); // Added topics state for interests
-  const [icon, setIcon] = useState(null); // Logo
-  const [banner, setBanner] = useState(null); // Banner
+  const [topics, setTopics] = useState([]);
+  const [icon, setIcon] = useState(null);
+  const [banner, setBanner] = useState(null);
+  const [iconPreview, setIconPreview] = useState(null);
+  const [bannerPreview, setBannerPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
-  const [successMessage, setSuccessMessage] = useState("");
 
-  const vanity = useMemo(() => `/r/${name ? name.trim() : "your_community"}`, [name]);
+  const iconInputRef = useRef(null);
+  const bannerInputRef = useRef(null);
+
+  const vanity = useMemo(() => name ? name.trim().toLowerCase() : "your_community", [name]);
 
   const availableTopics = [
-    "Anime & Manga", "Cosplay", "Art", "Architecture", "Design", "Photography", "Filmmaking", "Performing Arts",
-    "Digital Art", "Film", "Music", "Tech", "Gaming", "Lifestyle"
+    { name: "Gaming", emoji: "🎮" },
+    { name: "Tech", emoji: "💻" },
+    { name: "Music", emoji: "🎵" },
+    { name: "Art", emoji: "🎨" },
+    { name: "Anime & Manga", emoji: "🎌" },
+    { name: "Film", emoji: "🎬" },
+    { name: "Photography", emoji: "📷" },
+    { name: "Design", emoji: "✨" },
+    { name: "Lifestyle", emoji: "🌿" },
+    { name: "Sports", emoji: "⚽" },
+    { name: "Science", emoji: "🔬" },
+    { name: "News", emoji: "📰" },
+    { name: "Memes", emoji: "😂" },
+    { name: "Food", emoji: "🍕" },
   ];
 
-  const handleTopicSelect = (topic) => {
-    if (!topics.includes(topic) && topics.length < 3) {
+  const handleTopicToggle = (topic) => {
+    if (topics.includes(topic)) {
+      setTopics(topics.filter((t) => t !== topic));
+    } else if (topics.length < 3) {
       setTopics([...topics, topic]);
     }
   };
 
-  const handleTopicRemove = (topic) => {
-    setTopics(topics.filter((t) => t !== topic));
+  const handleIconChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setIcon(file);
+      setIconPreview(URL.createObjectURL(file));
+    }
   };
 
-const onSubmit = async (e) => {
-  e.preventDefault();
-
-  const nameErr = validateName(name);
-  const descErr = description.length > 500 ? "Description too long" : "";
-
-  const newErrors = {};
-  if (nameErr) newErrors.name = nameErr;
-  if (descErr) newErrors.description = descErr;
-  if (topics.length < 1) newErrors.topics = "At least one interest is required.";
-
-  setErrors(newErrors);
-  if (Object.keys(newErrors).length > 0) return;
-
-  const effectiveToken = token || localStorage.getItem("token");
-  if (!effectiveToken) return navigate("/login");
-
-  setLoading(true);
-  setErrors({});
-  setSuccessMessage("");
-
-  try {
-    // 1️⃣ Create the community JSON first
-    const body = {
-      name: name.trim().toLowerCase(),
-      title: name.trim(),
-      description: description.trim(),
-      isPrivate,
-      interests: topics,
-    };
-
-    const res = await api.post("/communities", body, {
-      headers: {
-        Authorization: `Bearer ${effectiveToken}`,
-      },
-    });
-
-    const created = res.data.data; // community object with .name
-    const communityName = created.name;
-
-    // 2️⃣ Upload icon if exists
-    if (icon) {
-      const formIcon = new FormData();
-      formIcon.append("icon", icon);
-
-      await api.post(`/communities/${encodeURIComponent(communityName)}/icon`, formIcon, {
-        headers: {
-          Authorization: `Bearer ${effectiveToken}`,
-        },
-      });
+  const handleBannerChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setBanner(file);
+      setBannerPreview(URL.createObjectURL(file));
     }
+  };
 
-    // 3️⃣ Upload banner if exists
-    if (banner) {
-      const formBanner = new FormData();
-      formBanner.append("banner", banner);
+  const onSubmit = async (e) => {
+    e.preventDefault();
 
-      await api.post(`/communities/${encodeURIComponent(communityName)}/banner`, formBanner, {
-        headers: {
-          Authorization: `Bearer ${effectiveToken}`,
-        },
+    const nameErr = validateName(name);
+    const descErr = description.length > 500 ? "Description too long" : "";
+
+    const newErrors = {};
+    if (nameErr) newErrors.name = nameErr;
+    if (descErr) newErrors.description = descErr;
+    if (topics.length < 1) newErrors.topics = "Select at least one topic.";
+
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
+
+    const effectiveToken = token || localStorage.getItem("token");
+    if (!effectiveToken) return navigate("/login");
+
+    setLoading(true);
+    setErrors({});
+
+    try {
+      const body = {
+        name: name.trim().toLowerCase(),
+        title: name.trim(),
+        description: description.trim(),
+        isPrivate,
+        interests: topics,
+      };
+
+      const res = await api.post("/communities", body, {
+        headers: { Authorization: `Bearer ${effectiveToken}` },
       });
+
+      const communityName = res.data.data.name;
+
+      if (icon) {
+        const formIcon = new FormData();
+        formIcon.append("icon", icon);
+        await api.post(`/communities/${encodeURIComponent(communityName)}/icon`, formIcon, {
+          headers: { Authorization: `Bearer ${effectiveToken}` },
+        });
+      }
+
+      if (banner) {
+        const formBanner = new FormData();
+        formBanner.append("banner", banner);
+        await api.post(`/communities/${encodeURIComponent(communityName)}/banner`, formBanner, {
+          headers: { Authorization: `Bearer ${effectiveToken}` },
+        });
+      }
+
+      toast.success("Community created!");
+      navigate(`/r/${communityName}`);
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Failed to create community");
+      setErrors({ name: err.response?.data?.error || "Failed to create community" });
+    } finally {
+      setLoading(false);
     }
-
-    // 4️⃣ Navigate to community page
-    navigate(`/r/${communityName}`);
-
-  } catch (err) {
-    setErrors({
-      name: err.response?.data?.error || "Failed to create community",
-    });
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   return (
-    <main className="w-full max-w-[740px] px-4" aria-labelledby="create-community-heading">
-      <header className="mb-4">
-        <h1 id="create-community-heading" className="text-2xl font-semibold text-reddit-text dark:text-reddit-dark_text">
+    <div className="w-full max-w-4xl mx-auto px-4 py-8">
+      {/* Header */}
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-reddit-text dark:text-reddit-dark_text">
           Create a Community
         </h1>
-        <p className="mt-1 text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
-          Create a place where people can share and discuss a topic.
+        <p className="mt-2 text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
+          Build a home for your community on Reddit
         </p>
-      </header>
+      </div>
 
-      {/* Live preview header */}
-      <section className="mb-6">
-        <div className="bg-reddit-card dark:bg-reddit-dark_card rounded-lg p-4 border border-reddit-border dark:border-reddit-dark_divider">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-md bg-reddit-hover dark:bg-reddit-dark_hover flex items-center justify-center text-reddit-text dark:text-reddit-dark_text font-semibold">
-              {name ? name[0].toUpperCase() : "R"}
-            </div>
-            <div>
-              <div className="text-lg font-semibold text-reddit-text dark:text-reddit-dark_text">
-                {name ? `r/${name}` : "r/your_community"}
-              </div>
-              <div className="text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
-                {description || "Community description preview"}
-              </div>
-            </div>
-            <div className="ml-auto text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
-              {isPrivate ? "Private" : "Public"}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <form onSubmit={onSubmit} noValidate>
-        <div className="space-y-4">
-          {/* Name */}
-          <div>
-            <label className="block text-sm font-medium">Community Name</label>
-            <div className="mt-1 flex items-center gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Form Section */}
+        <form onSubmit={onSubmit} className="space-y-6">
+          {/* Community Name */}
+          <div className="bg-reddit-card dark:bg-reddit-dark_card rounded-xl p-5 border border-reddit-border dark:border-reddit-dark_divider">
+            <label className="block text-sm font-semibold uppercase tracking-wider mb-3 text-reddit-text_secondary">
+              Community Name
+            </label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-reddit-text_secondary font-medium">
+                r/
+              </span>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-3 py-2 rounded-md bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider"
+                maxLength={21}
+                placeholder="community_name"
+                className="w-full pl-10 pr-4 py-3 rounded-lg bg-reddit-hover dark:bg-reddit-dark_hover border border-reddit-border dark:border-reddit-dark_divider text-reddit-text dark:text-reddit-dark_text placeholder:text-reddit-text_secondary focus:outline-none focus:ring-2 focus:ring-reddit-blue focus:border-transparent"
               />
-              <div className="text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary select-none">
-                Preview: {vanity}
-              </div>
             </div>
-            {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
+            <div className="flex justify-between mt-2 text-xs text-reddit-text_secondary">
+              <span>{name.length}/21 characters</span>
+              {name && !errors.name && <span className="text-green-500">✓ Looks good!</span>}
+            </div>
+            {errors.name && <p className="mt-2 text-sm text-red-500">{errors.name}</p>}
           </div>
 
           {/* Description */}
-          <div>
-            <label className="block text-sm font-medium">Description</label>
+          <div className="bg-reddit-card dark:bg-reddit-dark_card rounded-xl p-5 border border-reddit-border dark:border-reddit-dark_divider">
+            <label className="block text-sm font-semibold uppercase tracking-wider mb-3 text-reddit-text_secondary">
+              Description
+            </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              className="w-full mt-1 px-3 py-2 rounded-md bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider"
+              maxLength={500}
+              rows={4}
+              placeholder="What is your community about?"
+              className="w-full px-4 py-3 rounded-lg bg-reddit-hover dark:bg-reddit-dark_hover border border-reddit-border dark:border-reddit-dark_divider text-reddit-text dark:text-reddit-dark_text placeholder:text-reddit-text_secondary focus:outline-none focus:ring-2 focus:ring-reddit-blue focus:border-transparent resize-none"
             />
-            {errors.description && <p className="mt-1 text-sm text-red-500">{errors.description}</p>}
+            <div className="text-right mt-2 text-xs text-reddit-text_secondary">
+              {description.length}/500
+            </div>
+            {errors.description && <p className="mt-2 text-sm text-red-500">{errors.description}</p>}
           </div>
 
-          {/* Interests */}
-          <div>
-            <label className="block text-sm font-medium">Interests</label>
-            <div className="mt-4 flex gap-2 flex-wrap">
+          {/* Topics */}
+          <div className="bg-reddit-card dark:bg-reddit-dark_card rounded-xl p-5 border border-reddit-border dark:border-reddit-dark_divider">
+            <label className="block text-sm font-semibold uppercase tracking-wider mb-1 text-reddit-text_secondary">
+              Topics
+            </label>
+            <p className="text-xs text-reddit-text_secondary mb-4">
+              Select up to 3 topics that describe your community
+            </p>
+            <div className="flex flex-wrap gap-2">
               {availableTopics.map((topic) => (
                 <button
-                  key={topic}
-                  onClick={() => handleTopicSelect(topic)}
-                  className={`px-4 py-2 rounded-md border ${topics.includes(topic) ? "bg-gray-300 text-gray-500" : "bg-gray-200 text-gray-700"}`}
-                  disabled={topics.includes(topic)}
+                  key={topic.name}
+                  type="button"
+                  onClick={() => handleTopicToggle(topic.name)}
+                  className={`px-3 py-2 rounded-full text-sm font-medium transition-all ${
+                    topics.includes(topic.name)
+                      ? "bg-reddit-blue text-white"
+                      : "bg-reddit-hover dark:bg-reddit-dark_hover text-reddit-text dark:text-reddit-dark_text hover:bg-reddit-border dark:hover:bg-reddit-dark_divider"
+                  }`}
                 >
-                  {topic}
+                  {topic.emoji} {topic.name}
                 </button>
               ))}
             </div>
-            {errors.topics && <p className="mt-1 text-sm text-red-500">{errors.topics}</p>}
+            {errors.topics && <p className="mt-3 text-sm text-red-500">{errors.topics}</p>}
           </div>
 
-          {/* Type */}
-          <div>
-            <label className="block text-sm font-medium">Type</label>
-            <div className="mt-1 flex gap-2">
-              <label className="inline-flex gap-2 text-sm">
-                <input type="radio" checked={!isPrivate} onChange={() => setIsPrivate(false)} />
-                Public
-              </label>
-              <label className="inline-flex gap-2 text-sm">
-                <input type="radio" checked={isPrivate} onChange={() => setIsPrivate(true)} />
-                Private
-              </label>
+          {/* Community Type */}
+          <div className="bg-reddit-card dark:bg-reddit-dark_card rounded-xl p-5 border border-reddit-border dark:border-reddit-dark_divider">
+            <label className="block text-sm font-semibold uppercase tracking-wider mb-4 text-reddit-text_secondary">
+              Community Type
+            </label>
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => setIsPrivate(false)}
+                className={`w-full flex items-center gap-4 p-4 rounded-lg border transition-all ${
+                  !isPrivate
+                    ? "border-reddit-blue bg-reddit-blue/10"
+                    : "border-reddit-border dark:border-reddit-dark_divider hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
+                }`}
+              >
+                <div className={`p-2 rounded-lg ${!isPrivate ? "bg-reddit-blue text-white" : "bg-reddit-hover dark:bg-reddit-dark_hover"}`}>
+                  <GlobeAltIcon className="h-6 w-6" />
+                </div>
+                <div className="text-left">
+                  <div className="font-semibold text-reddit-text dark:text-reddit-dark_text">Public</div>
+                  <div className="text-sm text-reddit-text_secondary">Anyone can view, post, and comment</div>
+                </div>
+                {!isPrivate && <CheckIcon className="h-5 w-5 text-reddit-blue ml-auto" />}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsPrivate(true)}
+                className={`w-full flex items-center gap-4 p-4 rounded-lg border transition-all ${
+                  isPrivate
+                    ? "border-reddit-blue bg-reddit-blue/10"
+                    : "border-reddit-border dark:border-reddit-dark_divider hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
+                }`}
+              >
+                <div className={`p-2 rounded-lg ${isPrivate ? "bg-reddit-blue text-white" : "bg-reddit-hover dark:bg-reddit-dark_hover"}`}>
+                  <LockClosedIcon className="h-6 w-6" />
+                </div>
+                <div className="text-left">
+                  <div className="font-semibold text-reddit-text dark:text-reddit-dark_text">Private</div>
+                  <div className="text-sm text-reddit-text_secondary">Only approved members can view and post</div>
+                </div>
+                {isPrivate && <CheckIcon className="h-5 w-5 text-reddit-blue ml-auto" />}
+              </button>
             </div>
           </div>
 
-          {/* Logo */}
-          <div>
-            <label className="block text-sm font-medium">Logo</label>
-            <input
-              type="file"
-              onChange={(e) => setIcon(e.target.files[0])}
-              className="w-full px-3 py-2 rounded-md bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider"
-            />
-            {icon && <p>{icon.name}</p>}
-          </div>
-
-          {/* Banner */}
-          <div>
-            <label className="block text-sm font-medium">Banner</label>
-            <input
-              type="file"
-              onChange={(e) => setBanner(e.target.files[0])}
-              className="w-full px-3 py-2 rounded-md bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider"
-            />
-            {banner && <p>{banner.name}</p>}
-          </div>
-
-          {/* Submit */}
-          <div className="flex items-center gap-3">
-            <button
-              type="submit"
-              disabled={loading || topics.length < 1} // Disable if no topics selected
-              className="px-4 py-2 rounded-md bg-reddit-blue text-white font-semibold disabled:opacity-60"
-            >
-              {loading ? "Creating…" : "Create Community"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setName("");
-                setDescription("");
-                setIsPrivate(false);
-                setTopics([]);
-                setIcon(null);
-                setBanner(null);
-                setErrors({});
-              }}
-              className="px-4 py-2 rounded-md bg-reddit-card dark:bg-reddit-dark_card border text-sm"
-            >
-              Reset
-            </button>
-
-            {successMessage && (
-              <div className="ml-4 text-sm text-green-600">{successMessage}</div>
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-4 rounded-full bg-reddit-blue hover:bg-reddit-blue_hover text-white font-semibold text-lg disabled:opacity-50 transition-colors"
+          >
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Creating...
+              </span>
+            ) : (
+              "Create Community"
             )}
+          </button>
+        </form>
+
+        {/* Preview Section */}
+        <div className="lg:sticky lg:top-20 h-fit">
+          <div className="bg-reddit-card dark:bg-reddit-dark_card rounded-xl border border-reddit-border dark:border-reddit-dark_divider overflow-hidden">
+            {/* Banner Preview */}
+            <div className="relative h-28 bg-gradient-to-r from-reddit-blue to-purple-600">
+              <img
+                src={bannerPreview || defaultBanner}
+                alt="Banner preview"
+                className="w-full h-full object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => bannerInputRef.current?.click()}
+                className="absolute bottom-2 right-2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/50 text-white text-xs font-medium hover:bg-black/70 transition-colors"
+              >
+                <CameraIcon className="h-4 w-4" />
+                Add Banner
+              </button>
+              <input
+                ref={bannerInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleBannerChange}
+                className="hidden"
+              />
+            </div>
+
+            {/* Icon Preview */}
+            <div className="relative px-4 -mt-10">
+              <div className="relative inline-block">
+                <div className="h-20 w-20 rounded-xl border-4 border-reddit-card dark:border-reddit-dark_card overflow-hidden bg-reddit-hover dark:bg-reddit-dark_hover shadow-lg">
+                  <img
+                    src={iconPreview || defaultProfileImg}
+                    alt="Icon preview"
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => iconInputRef.current?.click()}
+                  className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-reddit-blue text-white shadow-lg hover:bg-reddit-blue_hover transition-colors"
+                >
+                  <CameraIcon className="h-3.5 w-3.5" />
+                </button>
+                <input
+                  ref={iconInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleIconChange}
+                  className="hidden"
+                />
+              </div>
+            </div>
+
+            {/* Community Info */}
+            <div className="p-4 pt-2">
+              <h2 className="text-xl font-bold text-reddit-text dark:text-reddit-dark_text">
+                r/{vanity}
+              </h2>
+              <p className="text-sm text-reddit-text_secondary mt-1">
+                {description || "Your community description will appear here..."}
+              </p>
+
+              {/* Topics Preview */}
+              {topics.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                  {topics.map((topic) => (
+                    <span
+                      key={topic}
+                      className="px-2 py-1 text-xs rounded-full bg-reddit-hover dark:bg-reddit-dark_hover text-reddit-text_secondary"
+                    >
+                      {topic}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Type Badge */}
+              <div className="flex items-center gap-2 mt-4 text-sm text-reddit-text_secondary">
+                {isPrivate ? (
+                  <>
+                    <LockClosedIcon className="h-4 w-4" />
+                    <span>Private community</span>
+                  </>
+                ) : (
+                  <>
+                    <GlobeAltIcon className="h-4 w-4" />
+                    <span>Public community</span>
+                  </>
+                )}
+              </div>
+
+              {/* Stats Preview */}
+              <div className="flex gap-6 mt-4 pt-4 border-t border-reddit-border dark:border-reddit-dark_divider text-sm">
+                <div>
+                  <div className="font-semibold text-reddit-text dark:text-reddit-dark_text">1</div>
+                  <div className="text-reddit-text_secondary">Member</div>
+                </div>
+                <div>
+                  <div className="font-semibold text-reddit-text dark:text-reddit-dark_text">0</div>
+                  <div className="text-reddit-text_secondary">Online</div>
+                </div>
+              </div>
+            </div>
           </div>
+
+          <p className="text-center text-xs text-reddit-text_secondary mt-4">
+            <SparklesIcon className="h-4 w-4 inline mr-1" />
+            Live preview of your community
+          </p>
         </div>
-      </form>
-    </main>
+      </div>
+    </div>
   );
 }
