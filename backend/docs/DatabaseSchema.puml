@@ -227,18 +227,15 @@ User ||--o{ CommunityMember : "belongs to"
 User ||--o{ JoinRequest : "requests join"
 User ||--o{ Community : "creates"
 
-' --- Community relationships ---
 Community ||--o{ Post : "contains"
 Community ||--o{ CommunityMember : "membership"
 Community ||--o{ JoinRequest : "receives join requests"
 
-' --- Post relationships ---
 Post ||--o{ Comment : "has"
 Post ||--o{ Vote : "receives votes"
 Post ||--o{ SavedPost : "can be saved"
 Post ||--o{ HiddenPost : "can be hidden"
 
-' --- Comment relationships ---
 Comment ||--o{ Comment : "replies"
 Comment ||--o{ CommentVote : "receives votes"
 Comment ||--o{ SavedComment : "can be saved"
