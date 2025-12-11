@@ -64,6 +64,40 @@ router.post('/upload-avatar', auth, writeLimiter, upload.single('image'), async 
   }
 });
 
+// POST /api/users/upload-banner
+router.post('/upload-banner', auth, writeLimiter, upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file || !req.file.path)
+      return res.status(400).json({ success: false, data: null, error: 'No file uploaded' });
+
+    const url = req.file.path;
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { banner: url },
+      { new: true }
+    ).select('-passwordHash');
+
+    res.status(200).json({
+      success: true,
+      data: {
+        id: user._id,
+        username: user.username,
+        banner: user.banner,
+      },
+      error: null,
+    });
+
+  } catch (err) {
+    if (err?.code === 'LIMIT_FILE_SIZE')
+      return res.status(400).json({ success: false, data: null, error: 'File too large (max 5MB)' });
+
+    if (err?.message === 'Invalid file type')
+      return res.status(400).json({ success: false, data: null, error: 'Invalid file type' });
+
+    res.status(500).json({ success: false, data: null, error: err.message });
+  }
+});
+
 // GET /api/users/me → logged-in user
 router.get('/me', auth, async (req, res) => {
   try {
