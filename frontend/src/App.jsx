@@ -14,6 +14,7 @@ import ProfilePage from "./pages/ProfilePage";
 import CreatePost from "./pages/CreatePost";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
+import SettingsPage from "./pages/SettingsPage";
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
@@ -133,6 +134,27 @@ export default function App() {
             <ProtectedRoute>
               <MainLayout noRightSidebar={true}>
                 <CreatePost />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <MainLayout noRightSidebar={true}>
+                <SettingsPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings/:tab"
+          element={
+            <ProtectedRoute>
+              <MainLayout noRightSidebar={true}>
+                <SettingsPage />
               </MainLayout>
             </ProtectedRoute>
           }

@@ -1,6 +1,7 @@
 // src/pages/ProfilePage.jsx
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
+import { toast } from "react-hot-toast";
 import api from "../api/axios";
 import useAuth from "../hooks/useAuth";
 import PostCard from "../components/PostCard";
@@ -9,7 +10,6 @@ import CommentReplyBox from "../components/CommentReplyBox";
 import SortMenu from "../components/SortMenu";
 import EditProfileModal from "../components/EditProfileModal";
 import defaultProfileImg from "../assets/default_profile.jpeg";
-import { useCallback } from "react";
 import ProfileTabs from "../components/ProfileTabs";
 
 const PUBLIC_TABS = [
@@ -66,6 +66,13 @@ function ProfileCard({
           onClick={onEdit}
         >
           Edit Profile
+        </button>
+      ) : !profile.allowFollowers ? (
+        <button
+          disabled
+          className="w-full mb-4 py-1.5 rounded-full bg-reddit-hover dark:bg-reddit-dark_hover text-reddit-text_secondary dark:text-reddit-dark_text_secondary text-[13px] font-semibold cursor-not-allowed opacity-60"
+        >
+          Follows Disabled
         </button>
       ) : (
         <button
@@ -359,6 +366,12 @@ export default function ProfilePage() {
         setIsFollowing(fresh.isFollowing ?? false);
       }
     } catch (err) {
+      // Check if user doesn't allow followers
+      if (err.response?.status === 403) {
+        toast.error(err.response?.data?.error || "This user does not allow followers");
+      } else {
+        toast.error("Failed to update follow status");
+      }
       // rollback
       setIsFollowing(currentlyFollowing);
       setProfile((p) => ({ ...p, followersCount: Math.max(0, (p.followersCount||0) + (currentlyFollowing ? 1 : -1)) }));

@@ -19,18 +19,29 @@ router.post('/', auth, async (req, res) => {
       return res.status(404).json({ success: false, data: null, error: 'Receiver not found' });
     }
 
+    // Check if receiver allows direct messages
+    if (receiver.settings?.allowDirectMessages === false) {
+      return res.status(403).json({ 
+        success: false, 
+        data: null, 
+        error: 'This user does not accept direct messages' 
+      });
+    }
+
     const message = await Message.create({
       sender: req.user._id,
       receiver: receiverId,
       content,
     });
 
-    // 🔔 Create notification for receiver
-    await createNotification({
-      user: receiverId,
-      type: 'message',
-      sourceUser: req.user._id
-    });
+    // 🔔 Create notification for receiver only if they have enabled chatMessageNotifications
+    if (receiver.settings?.chatMessageNotifications !== false) {
+      await createNotification({
+        user: receiverId,
+        type: 'message',
+        sourceUser: req.user._id
+      });
+    }
 
     res.status(201).json({ success: true, data: message, error: null });
   } catch (err) {

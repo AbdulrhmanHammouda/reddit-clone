@@ -104,7 +104,7 @@ export default function ProfileMenu({ onClose }) {
 
       <div className="flex flex-col py-2">
         <MenuItem icon={<DocumentTextIcon className="h-5 w-5" />} label="Drafts" />
-        <MenuItem icon={<Cog6ToothIcon className="h-5 w-5" />} label="Settings" />
+        <MenuItem icon={<Cog6ToothIcon className="h-5 w-5" />} label="Settings" onClick={() => { navigate('/settings'); onClose(); }} />
         <DarkModeToggle />
         <MenuItem
           icon={<ArrowLeftStartOnRectangleIcon className="h-5 w-5" />}

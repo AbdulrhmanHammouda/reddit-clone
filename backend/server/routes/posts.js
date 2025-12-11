@@ -15,6 +15,7 @@ const Comment = require('../models/Comment');
 const SavedPost = require('../models/SavedPost');
 const HiddenPost = require('../models/HiddenPost');
 const Notification = require('../models/Notification');
+const createNotification = require('../utils/createNotification');
 const mongoose = require('mongoose');
 
 const multer = require('multer');
@@ -738,21 +739,21 @@ router.post('/:id/vote', auth, validateObjectId('id'), async (req, res) => {
 
     await post.save();
 
-    // 🔔 Create notification for upvote (not on own post, not for downvotes)
+    // 🔔 Create notification for upvote (respects user preferences)
     if (isNewUpvote && post.author.toString() !== userId.toString()) {
       // Check if similar notification exists recently (within 1 hour) to avoid spam
       const recentNotif = await Notification.findOne({
         user: post.author,
-        type: "vote",
+        type: "upvote",
         sourceUser: userId,
         sourcePost: postId,
         createdAt: { $gte: new Date(Date.now() - 3600000) }
       });
       
       if (!recentNotif) {
-        await Notification.create({
+        await createNotification({
           user: post.author,
-          type: "vote",
+          type: "upvote",
           sourceUser: userId,
           sourcePost: postId,
         });

@@ -94,7 +94,284 @@ router.patch('/me', auth, writeLimiter, async (req, res) => {
   }
 });
 
+// GET /api/users/me/settings → get user settings
+router.get('/me/settings', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('settings email displayName bio avatar');
+    
+    // Return default settings if none exist
+    const settings = user.settings || {
+      allowFollowers: true,
+      showOnlineStatus: true,
+      allowDirectMessages: true,
+      showInSearchResults: true,
+      showNSFW: false,
+      blurNSFW: true,
+      autoplayMedia: true,
+      reduceMotion: false,
+      showRecommendations: true,
+      emailNotifications: true,
+      commentReplyNotifications: true,
+      mentionNotifications: true,
+      upvoteNotifications: false,
+      newFollowerNotifications: true,
+      chatMessageNotifications: true
+    };
 
+    res.status(200).json({
+      success: true,
+      data: {
+        email: user.email,
+        displayName: user.displayName,
+        bio: user.bio,
+        avatar: user.avatar,
+        ...settings
+      },
+      error: null
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, data: null, error: err.message });
+  }
+});
+
+// PATCH /api/users/me/settings → update user settings
+router.patch('/me/settings', auth, writeLimiter, async (req, res) => {
+  try {
+    const allowedSettings = [
+      'allowFollowers', 'showOnlineStatus', 'allowDirectMessages', 'showInSearchResults',
+      'showNSFW', 'blurNSFW', 'autoplayMedia', 'reduceMotion', 'showRecommendations',
+      'emailNotifications', 'commentReplyNotifications', 'mentionNotifications',
+      'upvoteNotifications', 'newFollowerNotifications', 'chatMessageNotifications'
+    ];
+    
+    const allowedProfile = ['displayName', 'bio'];
+    
+    const updates = {};
+    const settingsUpdates = {};
+    
+    // Handle profile fields
+    allowedProfile.forEach((k) => {
+      if (req.body[k] !== undefined) updates[k] = req.body[k];
+    });
+    
+    // Handle settings fields
+    allowedSettings.forEach((k) => {
+      if (req.body[k] !== undefined) settingsUpdates[`settings.${k}`] = req.body[k];
+    });
+
+    const allUpdates = { ...updates, ...settingsUpdates };
+    
+    if (Object.keys(allUpdates).length === 0) {
+      return res.status(400).json({ success: false, data: null, error: 'No valid fields to update' });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { $set: allUpdates },
+      { new: true }
+    ).select('-passwordHash');
+
+    res.status(200).json({ success: true, data: user, error: null });
+  } catch (err) {
+    res.status(500).json({ success: false, data: null, error: err.message });
+  }
+});
+
+// POST /api/users/me/change-password → change password
+const bcrypt = require('bcryptjs');
+
+router.post('/me/change-password', auth, writeLimiter, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ 
+        success: false, 
+        data: null, 
+        error: 'Current password and new password are required' 
+      });
+    }
+    
+    if (newPassword.length < 6) {
+      return res.status(400).json({ 
+        success: false, 
+        data: null, 
+        error: 'New password must be at least 6 characters' 
+      });
+    }
+    
+    // Get user with password hash
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, data: null, error: 'User not found' });
+    }
+    
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isMatch) {
+      return res.status(400).json({ 
+        success: false, 
+        data: null, 
+        error: 'Current password is incorrect' 
+      });
+    }
+    
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const newPasswordHash = await bcrypt.hash(newPassword, salt);
+    
+    // Update password
+    await User.findByIdAndUpdate(req.user._id, { passwordHash: newPasswordHash });
+    
+    res.status(200).json({ 
+      success: true, 
+      data: { message: 'Password changed successfully' }, 
+      error: null 
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, data: null, error: err.message });
+  }
+});
+
+// PATCH /api/users/me/email → update email
+router.patch('/me/email', auth, writeLimiter, async (req, res) => {
+  try {
+    const { newEmail, password } = req.body;
+    
+    if (!newEmail || !password) {
+      return res.status(400).json({ 
+        success: false, 
+        data: null, 
+        error: 'New email and password are required' 
+      });
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail)) {
+      return res.status(400).json({ 
+        success: false, 
+        data: null, 
+        error: 'Invalid email format' 
+      });
+    }
+    
+    // Get user with password hash
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, data: null, error: 'User not found' });
+    }
+    
+    // Verify password
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!isMatch) {
+      return res.status(400).json({ 
+        success: false, 
+        data: null, 
+        error: 'Password is incorrect' 
+      });
+    }
+    
+    // Check if email already exists
+    const existingUser = await User.findOne({ email: newEmail });
+    if (existingUser && existingUser._id.toString() !== user._id.toString()) {
+      return res.status(400).json({ 
+        success: false, 
+        data: null, 
+        error: 'Email already in use' 
+      });
+    }
+    
+    // Update email
+    await User.findByIdAndUpdate(req.user._id, { email: newEmail });
+    
+    res.status(200).json({ 
+      success: true, 
+      data: { email: newEmail, message: 'Email updated successfully' }, 
+      error: null 
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, data: null, error: err.message });
+  }
+});
+
+// DELETE /api/users/me/account → delete account
+router.delete('/me/account', auth, writeLimiter, async (req, res) => {
+  try {
+    const { password, confirmText } = req.body;
+    
+    if (!password) {
+      return res.status(400).json({ 
+        success: false, 
+        data: null, 
+        error: 'Password is required to delete account' 
+      });
+    }
+    
+    if (confirmText !== 'DELETE') {
+      return res.status(400).json({ 
+        success: false, 
+        data: null, 
+        error: 'Please type DELETE to confirm account deletion' 
+      });
+    }
+    
+    // Get user with password hash
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, data: null, error: 'User not found' });
+    }
+    
+    // Verify password
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!isMatch) {
+      return res.status(400).json({ 
+        success: false, 
+        data: null, 
+        error: 'Password is incorrect' 
+      });
+    }
+    
+    // Delete related data (cascade delete)
+    const userId = req.user._id;
+    
+    // Delete user's posts
+    await Post.deleteMany({ author: userId });
+    
+    // Delete user's comments
+    await Comment.deleteMany({ author: userId });
+    
+    // Delete user's votes
+    await Vote.deleteMany({ user: userId });
+    await CommentVote.deleteMany({ user: userId });
+    
+    // Delete user's follows
+    await Follow.deleteMany({ $or: [{ follower: userId }, { following: userId }] });
+    
+    // Delete user's saved posts
+    await SavedPost.deleteMany({ user: userId });
+    
+    // Delete user's notifications
+    await Notification.deleteMany({ $or: [{ user: userId }, { sourceUser: userId }] });
+    
+    // Delete user's community memberships
+    await CommunityMember.deleteMany({ user: userId });
+    
+    // Delete user's hidden posts
+    await HiddenPost.deleteMany({ user: userId });
+    
+    // Finally, delete the user
+    await User.findByIdAndDelete(userId);
+    
+    res.status(200).json({ 
+      success: true, 
+      data: { message: 'Account deleted successfully' }, 
+      error: null 
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, data: null, error: err.message });
+  }
+});
 
 
 // GET /api/users/me/saved → saved posts
@@ -218,7 +495,8 @@ router.get('/:username', auth, async (req, res) => {
         ...user.toObject(),
         followersCount,
         followingCount,
-        isFollowing, 
+        isFollowing,
+        allowFollowers: user.settings?.allowFollowers !== false,
         karma,
         contributions,
         commentCount,
@@ -249,6 +527,14 @@ router.post('/:username/follow', auth, async (req, res) => {
       return res.status(400).json({ error: "You can't follow yourself" });
     }
 
+    // Check if user allows followers
+    if (userToFollow.settings?.allowFollowers === false) {
+      return res.status(403).json({ 
+        success: false, 
+        error: "This user does not allow followers" 
+      });
+    }
+
     const existing = await Follow.findOne({ 
       follower: req.user._id, 
       following: userToFollow._id 
@@ -263,12 +549,14 @@ router.post('/:username/follow', auth, async (req, res) => {
       following: userToFollow._id
     });
 
-    // 🔔 Create notification for the user being followed
-    await Notification.create({
-      user: userToFollow._id,
-      type: "follow",
-      sourceUser: req.user._id,
-    });
+    // 🔔 Create notification only if user has enabled newFollowerNotifications
+    if (userToFollow.settings?.newFollowerNotifications !== false) {
+      await Notification.create({
+        user: userToFollow._id,
+        type: "follow",
+        sourceUser: req.user._id,
+      });
+    }
 
     res.json({ success: true, following: true });
   } catch (err) {

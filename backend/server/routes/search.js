@@ -27,12 +27,21 @@ router.get('/', async (req, res) => {
     .limit(10); // Limit results for each category
     searchResults.posts = posts;
 
-    // Search Users
+    // Search Users (only those who allow search visibility)
     const users = await User.find({
-      $or: [
-        { username: searchOptions },
-        { displayName: searchOptions },
-      ],
+      $and: [
+        {
+          $or: [
+            { username: searchOptions },
+            { displayName: searchOptions },
+          ],
+        },
+        // Only include users who allow being found in search OR have no settings yet
+        { $or: [
+          { 'settings.showInSearchResults': { $ne: false } },
+          { 'settings.showInSearchResults': { $exists: false } }
+        ]}
+      ]
     })
     .select('username displayName avatar')
     .limit(5);

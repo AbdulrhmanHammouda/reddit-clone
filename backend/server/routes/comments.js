@@ -8,6 +8,7 @@ const Post = require("../models/Post");
 const CommentVote = require("../models/CommentVote");
 const SavedComment = require("../models/SavedComment");
 const Notification = require("../models/Notification");
+const createNotification = require("../utils/createNotification");
 const auth = require("../middleware/authMiddleware");
 const { writeLimiter } = require("../middleware/rateLimiter");
 
@@ -137,7 +138,7 @@ router.post("/", auth, writeLimiter, upload.single("images"), async (req, res) =
 
     // 🔔 Create notification for post author (if not commenting on own post)
     if (post.author.toString() !== req.user._id.toString()) {
-      await Notification.create({
+      await createNotification({
         user: post.author,
         type: "reply",
         sourceUser: req.user._id,
@@ -150,9 +151,9 @@ router.post("/", auth, writeLimiter, upload.single("images"), async (req, res) =
     if (parent && mongoose.isValidObjectId(parent)) {
       const parentComment = await Comment.findById(parent);
       if (parentComment && parentComment.author.toString() !== req.user._id.toString()) {
-        await Notification.create({
+        await createNotification({
           user: parentComment.author,
-          type: "reply",
+          type: "comment_reply",
           sourceUser: req.user._id,
           sourcePost: postId,
           sourceComment: comment._id,
