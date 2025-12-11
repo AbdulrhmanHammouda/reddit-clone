@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import MainLayout from "./layout/MainLayout";
-import EditCommunityPage from "./pages/EditCommunityPage";
+
 // Pages
 import Home from "./pages/Home";
 import PostPage from "./pages/PostPage";
@@ -16,10 +16,30 @@ import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import SettingsPage from "./pages/SettingsPage";
 
+// Protected Route Wrapper
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
   return token ? children : <Navigate to="/login" replace />;
 }
+
+// Route configuration for cleaner code
+const protectedRoutes = [
+  // With right sidebar
+  { path: "/", element: <Home />, noRightSidebar: false },
+  { path: "/post/:id", element: <PostPage />, noRightSidebar: false },
+  { path: "/all", element: <AllPage />, noRightSidebar: false },
+  
+  // Without right sidebar
+  { path: "/r/:name", element: <CommunityPage />, noRightSidebar: true },
+  { path: "/u/:username", element: <ProfilePage />, noRightSidebar: true },
+  { path: "/popular", element: <PopularPage />, noRightSidebar: true },
+  { path: "/chat", element: <ChatPage />, noRightSidebar: true },
+  { path: "/explore", element: <ExplorePage />, noRightSidebar: true },
+  { path: "/create-community", element: <CreateCommunityPage />, noRightSidebar: true },
+  { path: "/createpost", element: <CreatePost />, noRightSidebar: true },
+  { path: "/settings", element: <SettingsPage />, noRightSidebar: true },
+  { path: "/settings/:tab", element: <SettingsPage />, noRightSidebar: true },
+];
 
 export default function App() {
   const token = localStorage.getItem("token");
@@ -27,7 +47,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public */}
+        {/* Public Auth Routes */}
         <Route
           path="/login"
           element={!token ? <LoginPage /> : <Navigate to="/" replace />}
@@ -36,129 +56,22 @@ export default function App() {
           path="/signup"
           element={!token ? <SignupPage /> : <Navigate to="/" replace />}
         />
-        {/* Protected */}
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <MainLayout>
-                <Home />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/post/:id"
-          element={
-            <ProtectedRoute>
-              <MainLayout>
-                <PostPage />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/r/:name"
-          element={
-            <ProtectedRoute>
-              <MainLayout noRightSidebar={true}>
-                <CommunityPage />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/u/:username"
-          element={
-            <ProtectedRoute>
-              <MainLayout noRightSidebar={true}>
-                <ProfilePage />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/popular"
-          element={
-            <ProtectedRoute>
-              <MainLayout noRightSidebar={true}>
-                <PopularPage />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/chat"
-          element={
-            <ProtectedRoute>
-              <MainLayout noRightSidebar={true}>
-                <ChatPage />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/all"
-          element={
-            <ProtectedRoute>
-              <MainLayout>
-                <AllPage />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/explore"
-          element={
-            <ProtectedRoute>
-              <MainLayout noRightSidebar={true}>
-                <ExplorePage />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/create-community"
-          element={
-            <ProtectedRoute>
-              <MainLayout noRightSidebar={true}>
-                <CreateCommunityPage />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
 
-        <Route
-          path="/createpost"
-          element={
-            <ProtectedRoute>
-              <MainLayout noRightSidebar={true}>
-                <CreatePost />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
+        {/* Protected Routes - Generated from config */}
+        {protectedRoutes.map(({ path, element, noRightSidebar }) => (
+          <Route
+            key={path}
+            path={path}
+            element={
+              <ProtectedRoute>
+                <MainLayout noRightSidebar={noRightSidebar}>
+                  {element}
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+        ))}
 
-        <Route
-          path="/settings"
-          element={
-            <ProtectedRoute>
-              <MainLayout noRightSidebar={true}>
-                <SettingsPage />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/settings/:tab"
-          element={
-            <ProtectedRoute>
-              <MainLayout noRightSidebar={true}>
-                <SettingsPage />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

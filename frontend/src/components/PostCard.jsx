@@ -6,7 +6,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { Link, useNavigate, useLocation, useParams } from "react-router-dom";
 import VoteButtons from "./VoteButtons";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, memo } from "react";
 import api from "../api/axios";
 import useAuth from "../hooks/useAuth";
 import ImageCarousel from "./ImageCarousel";
@@ -14,7 +14,7 @@ import FullscreenImageViewer from "./FullscreenImageViewer";
 import defaultProfileImg from "../assets/default_profile.jpeg";
 import { toast } from "react-hot-toast";
 
-export default function PostCard(props) {
+const PostCard = memo(function PostCard(props) {
   const navigate = useNavigate();
   const location = useLocation();
   const { communityName, name: routeCommunityName } = useParams();
@@ -360,4 +360,6 @@ export default function PostCard(props) {
       )}
     </>
   );
-}
+});
+
+export default PostCard;

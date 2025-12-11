@@ -2,6 +2,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import defaultProfileImg from "../assets/default_profile.jpeg";
+import defaultBanner from "../assets/default_banner.jpeg";
 
 export default function CommunityHeader({
   community = {},
@@ -19,15 +20,12 @@ export default function CommunityHeader({
     <div className="mt-6">
       {/* banner */}
       <div className="w-full h-36 rounded-md overflow-hidden bg-reddit-hover dark:bg-reddit-dark_hover border border-reddit-border dark:border-reddit-dark_divider">
-        {community.banner ? (
-          <img
-            src={community.banner}
-            alt="banner"
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full" />
-        )}
+        <img
+          src={community.banner || defaultBanner}
+          alt="banner"
+          className="w-full h-full object-cover"
+          loading="lazy"
+        />
       </div>
 
       {/* avatar + name + actions */}

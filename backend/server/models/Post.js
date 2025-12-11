@@ -12,8 +12,14 @@ const PostSchema = new mongoose.Schema({
   processing: { type: Boolean, default: false },
   score: { type: Number, default: 0, index: true },
   commentsCount: { type: Number, default: 0 },
-  createdAt: { type: Date, default: Date.now },
+  createdAt: { type: Date, default: Date.now, index: true },
   updatedAt: { type: Date },
 });
+
+// Compound indexes for common queries
+PostSchema.index({ community: 1, createdAt: -1 }); // Community feed sorted by date
+PostSchema.index({ author: 1, createdAt: -1 });    // User profile posts
+PostSchema.index({ community: 1, score: -1 });     // Community feed sorted by score
+PostSchema.index({ title: 'text', body: 'text' }); // Text search
 
 module.exports = mongoose.model("Post", PostSchema);
