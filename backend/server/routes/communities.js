@@ -535,6 +535,20 @@ router.get("/:name/posts", optionalAuth, async (req, res) => {
       }
     }
 
+    // Fetch moderators (owner + moderators)
+    const moderatorMembers = await CommunityMember.find({
+      community: community._id,
+      role: { $in: ["owner", "moderator"] },
+    })
+      .populate("user", "username avatar")
+      .limit(10);
+
+    const moderators = moderatorMembers.map((m) => ({
+      username: m.user?.username || "Unknown",
+      avatar: m.user?.avatar || null,
+      role: m.role,
+    }));
+
     const sort = (req.query.sort || "best").toLowerCase();
     const time = (req.query.time || "all").toLowerCase();
     const page = Math.max(1, Number(req.query.page) || 1);
@@ -638,6 +652,7 @@ router.get("/:name/posts", optionalAuth, async (req, res) => {
           isMember,
           isOwner,
           memberRole,
+          moderators, // Include moderators list
         },
         posts: postsWithVotes,
         page,

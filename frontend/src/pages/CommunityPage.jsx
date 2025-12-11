@@ -4,9 +4,11 @@ import { useParams, useNavigate } from "react-router-dom";
 import CommunityHeader from "../components/CommunityHeader";
 import CommunityFeed from "../components/CommunityFeed";
 import CommunitySidebar from "../components/CommunitySidebar";
+import CommunityPageSkeleton from "../components/CommunityPageSkeleton";
 import SortMenu from "../components/SortMenu";
 import api from "../api/axios";
 import useAuth from "../hooks/useAuth";
+import { DocumentTextIcon, PlusIcon } from "@heroicons/react/24/outline";
 
 export default function CommunityPage() {
   const { name } = useParams();
@@ -287,17 +289,19 @@ export default function CommunityPage() {
   // ---------- Render ----------
 
   if (loading) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center text-reddit-text dark:text-reddit-dark_text">
-        Loading community...
-      </div>
-    );
+    return <CommunityPageSkeleton />;
   }
 
   if (error) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center text-reddit-text dark:text-reddit-dark_text">
-        <div className="text-red-500">Error: {error}</div>
+        <div className="text-red-500 mb-4">Error: {error}</div>
+        <button
+          onClick={load}
+          className="px-4 py-2 rounded-full bg-reddit-blue text-white font-medium hover:bg-reddit-blue_hover transition-colors"
+        >
+          Try Again
+        </button>
       </div>
     );
   }

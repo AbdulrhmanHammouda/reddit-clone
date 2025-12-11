@@ -9,8 +9,17 @@ import CommentsList from "../components/CommentsList";
 import CommentReplyBox from "../components/CommentReplyBox";
 import SortMenu from "../components/SortMenu";
 import EditProfileModal from "../components/EditProfileModal";
+import ProfilePageSkeleton from "../components/ProfilePageSkeleton";
 import defaultProfileImg from "../assets/default_profile.jpeg";
+import defaultBanner from "../assets/default_banner.jpeg";
 import ProfileTabs from "../components/ProfileTabs";
+import {
+  CalendarIcon,
+  UserGroupIcon,
+  SparklesIcon,
+  DocumentTextIcon,
+  EllipsisHorizontalIcon,
+} from "@heroicons/react/24/outline";
 
 const PUBLIC_TABS = [
   { key: "overview", label: "Overview" },
@@ -394,24 +403,130 @@ export default function ProfilePage() {
     setTabComments((prevComments) => prevComments.filter((comment) => comment._id !== commentId));
   };
 
-  if (loading) return <div className="pt-10 text-center text-reddit-text_secondary dark:text-reddit-dark_text_secondary">Loading profile...</div>;
-  if (error) return <div className="pt-10 text-center text-red-500">Error: {error}</div>;
+  if (loading) return <ProfilePageSkeleton />;
+  if (error) return (
+    <div className="pt-10 flex flex-col items-center justify-center text-reddit-text dark:text-reddit-dark_text">
+      <div className="text-red-500 mb-4">Error: {error}</div>
+      <button
+        onClick={() => window.location.reload()}
+        className="px-4 py-2 rounded-full bg-reddit-blue text-white font-medium hover:bg-reddit-blue_hover transition-colors"
+      >
+        Try Again
+      </button>
+    </div>
+  );
 
   const sortedPosts = Array.isArray(tabPosts) ? [...tabPosts].sort((a, b) => (sort === "top" || sort === "best" ? getPostScore(b) - getPostScore(a) : 0)) : [];
 
   return (
     <div className="w-full flex justify-center">
-      <div className="w-full max-w-6xl px-4 md:px-6 pt-6 pb-10 flex flex-col lg:flex-row gap-6">
-        <section className="flex-1 lg:flex-[2]">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="h-20 w-20 rounded-full overflow-hidden bg-reddit-hover dark:bg-reddit-dark_hover flex-shrink-0">
-              <img src={profile.avatar || defaultProfileImg} alt={profile.username} className="h-full w-full object-cover" />
+      <div className="w-full max-w-6xl px-4 md:px-6 pb-10">
+        {/* Banner Section */}
+        <div className="w-full h-32 rounded-xl overflow-hidden bg-gradient-to-r from-reddit-blue to-purple-600 relative">
+          <img
+            src={profile.banner || defaultBanner}
+            alt="Profile banner"
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+        </div>
+
+        {/* Profile Info Section */}
+        <div className="px-4 -mt-12 relative">
+          <div className="flex flex-col md:flex-row md:items-end gap-4">
+            {/* Avatar */}
+            <div className="bg-reddit-card dark:bg-reddit-dark_card border-4 border-reddit-card dark:border-reddit-dark_card rounded-full shadow-lg">
+              <img
+                src={profile.avatar || defaultProfileImg}
+                alt={profile.username}
+                className="h-24 w-24 rounded-full object-cover"
+              />
             </div>
-            <div>
-              <h1 className="text-2xl font-semibold text-reddit-text dark:text-reddit-dark_text">{profile.displayName || profile.username}</h1>
-              <span className="text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary">u/{profile.username}</span>
+
+            {/* Info */}
+            <div className="flex-1 pb-2">
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl md:text-3xl font-bold text-reddit-text dark:text-reddit-dark_text">
+                  {profile.displayName || profile.username}
+                </h1>
+                {isOwn && (
+                  <button
+                    onClick={() => setEditOpen(true)}
+                    className="px-3 py-1 text-sm rounded-full border border-reddit-border dark:border-reddit-dark_divider hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover transition-colors"
+                  >
+                    Edit
+                  </button>
+                )}
+              </div>
+              <p className="text-sm text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
+                u/{profile.username}
+              </p>
+              {profile.bio && (
+                <p className="mt-2 text-sm text-reddit-text dark:text-reddit-dark_text max-w-xl">
+                  {profile.bio}
+                </p>
+              )}
             </div>
+
+            {/* Follow Button (for other users) */}
+            {!isOwn && profile.allowFollowers !== false && (
+              <button
+                onClick={handleFollowToggle}
+                disabled={followLoading}
+                className={`px-6 py-2 rounded-full text-sm font-semibold transition-all ${
+                  isFollowing
+                    ? "border border-reddit-border dark:border-reddit-dark_divider bg-reddit-card dark:bg-reddit-dark_card hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
+                    : "bg-reddit-blue text-white hover:bg-reddit-blue_hover"
+                } ${followLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                {followLoading ? "..." : isFollowing ? "Following" : "Follow"}
+              </button>
+            )}
           </div>
+
+          {/* Stats Bar */}
+          <div className="flex flex-wrap gap-6 mt-4 py-3 border-b border-reddit-border dark:border-reddit-dark_divider">
+            <div className="flex items-center gap-2">
+              <UserGroupIcon className="h-5 w-5 text-reddit-text_secondary" />
+              <span className="font-semibold text-reddit-text dark:text-reddit-dark_text">
+                {profile.followersCount ?? 0}
+              </span>
+              <span className="text-sm text-reddit-text_secondary">followers</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <SparklesIcon className="h-5 w-5 text-reddit-text_secondary" />
+              <span className="font-semibold text-reddit-text dark:text-reddit-dark_text">
+                {(profile.karma ?? 0).toLocaleString()}
+              </span>
+              <span className="text-sm text-reddit-text_secondary">karma</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <DocumentTextIcon className="h-5 w-5 text-reddit-text_secondary" />
+              <span className="font-semibold text-reddit-text dark:text-reddit-dark_text">
+                {profile.contributions ?? 0}
+              </span>
+              <span className="text-sm text-reddit-text_secondary">contributions</span>
+            </div>
+            {profile.createdAt && (
+              <div className="flex items-center gap-2 text-sm text-reddit-text_secondary">
+                <CalendarIcon className="h-4 w-4" />
+                <span>
+                  Joined{" "}
+                  {new Date(profile.createdAt).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Content Grid */}
+        <div className="mt-6 flex flex-col lg:flex-row gap-6">
+        <section className="flex-1 lg:flex-[2]">
 
           <ProfileTabs 
             tabs={isOwn ? [...PUBLIC_TABS, ...PRIVATE_TABS] : PUBLIC_TABS} 
@@ -517,6 +632,7 @@ export default function ProfilePage() {
             onEdit={() => setEditOpen(true)}
           />
         </aside>
+        </div>
       </div>
 
       {editOpen && <EditProfileModal profile={profile} onClose={() => setEditOpen(false)} onUpdated={() => window.location.reload()} />}
