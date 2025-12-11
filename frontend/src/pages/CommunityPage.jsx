@@ -1,6 +1,7 @@
 // src/pages/CommunityPage.jsx
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { toast } from "react-hot-toast";
 import CommunityHeader from "../components/CommunityHeader";
 import CommunityFeed from "../components/CommunityFeed";
 import CommunitySidebar from "../components/CommunitySidebar";
@@ -9,6 +10,9 @@ import EditCommunityModal from "../components/EditCommunityModal";
 import SortMenu from "../components/SortMenu";
 import api from "../api/axios";
 import useAuth from "../hooks/useAuth";
+import { LockClosedIcon, UserGroupIcon, ClockIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
+import defaultBanner from "../assets/default_banner.jpeg";
+import defaultProfileImg from "../assets/default_profile.jpeg";
 
 export default function CommunityPage() {
   const { name } = useParams();
@@ -22,6 +26,7 @@ export default function CommunityPage() {
   const [error, setError] = useState(null);
   const [sort, setSort] = useState("best");
   const [time, setTime] = useState("all");
+  const [isPrivateRestricted, setIsPrivateRestricted] = useState(false);
 
   // editing state
   const [editing, setEditing] = useState(false);
@@ -56,12 +61,21 @@ export default function CommunityPage() {
         return;
       }
 
-      const { community: c, posts: p } = res.data.data;
+      const { community: c, posts: p, isPrivateRestricted: restricted } = res.data.data;
 
+      // Check if this is a private restricted response
+      if (restricted) {
+        setCommunity(c);
+        setPosts([]);
+        setIsPrivateRestricted(true);
+        return;
+      }
+
+      setIsPrivateRestricted(false);
       const normalized = (p || []).map((post) => ({
         ...post,
-        saved: !!post.saved, // ensure boolean
-        yourVote: post.yourVote ?? 0, // ensure number
+        saved: !!post.saved,
+        yourVote: post.yourVote ?? 0,
       }));
 
       setCommunity(c);
@@ -103,14 +117,25 @@ export default function CommunityPage() {
         `/communities/${encodeURIComponent(community.name)}/join`
       );
       if (res?.data?.success) {
-        setCommunity((c) => ({
-          ...c,
-          membersCount: res.data.membersCount,
-          isMember: true,
-          memberRole: c.memberRole || "member",
-        }));
+        // Check if this was a join request for private community
+        if (res.data.requestPending) {
+          toast.success(res.data.message || "Join request submitted!");
+          setCommunity((c) => ({
+            ...c,
+            requestPending: true,
+          }));
+        } else {
+          toast.success("Joined community!");
+          setCommunity((c) => ({
+            ...c,
+            membersCount: res.data.membersCount,
+            isMember: true,
+            memberRole: c.memberRole || "member",
+          }));
+        }
       }
     } catch (err) {
+      toast.error(err.response?.data?.error || "Failed to join");
       console.error("Join error", err);
     } finally {
       setJoinLoading(false);
@@ -287,6 +312,103 @@ export default function CommunityPage() {
         >
           Try Again
         </button>
+      </div>
+    );
+  }
+
+  // 🔒 Private Community Restricted View
+  if (isPrivateRestricted && community) {
+    return (
+      <div className="bg-reddit-page dark:bg-reddit-dark_bg min-h-screen">
+        <div className="mx-auto w-full max-w-[800px] px-4 lg:px-6">
+          {/* Banner */}
+          <div className="w-full h-40 rounded-b-xl overflow-hidden bg-gradient-to-r from-reddit-blue to-purple-600 relative">
+            <img
+              src={community.banner || defaultBanner}
+              alt="Community banner"
+              className="w-full h-full object-cover opacity-50"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+          </div>
+
+          {/* Content Card */}
+          <div className="relative -mt-16 mx-4">
+            <div className="bg-reddit-card dark:bg-reddit-dark_card rounded-2xl p-8 border border-reddit-border dark:border-reddit-dark_divider shadow-xl text-center">
+              {/* Icon with lock badge */}
+              <div className="relative inline-block mb-4">
+                <img
+                  src={community.icon && community.icon !== "/default-community.png" ? community.icon : defaultProfileImg}
+                  alt={community.name}
+                  className="h-24 w-24 rounded-xl object-cover border-4 border-reddit-card dark:border-reddit-dark_card shadow-lg mx-auto"
+                />
+                <div className="absolute -bottom-2 -right-2 p-2 rounded-full bg-reddit-text dark:bg-reddit-dark_text text-white dark:text-reddit-dark_bg shadow-lg">
+                  <LockClosedIcon className="h-5 w-5" />
+                </div>
+              </div>
+
+              {/* Community Info */}
+              <h1 className="text-2xl font-bold text-reddit-text dark:text-reddit-dark_text mb-1">
+                r/{community.name}
+              </h1>
+              <h2 className="text-lg text-reddit-text_secondary dark:text-reddit-dark_text_secondary mb-4">
+                {community.title || community.name}
+              </h2>
+
+              {/* Private Badge */}
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-reddit-hover dark:bg-reddit-dark_hover text-reddit-text_secondary mb-6">
+                <LockClosedIcon className="h-4 w-4" />
+                <span className="font-medium">Private Community</span>
+              </div>
+
+              {/* Description */}
+              <p className="text-reddit-text_secondary dark:text-reddit-dark_text_secondary mb-6 max-w-md mx-auto">
+                This is a private community. Only approved members can view posts and participate.
+              </p>
+
+              {/* Stats */}
+              <div className="flex justify-center gap-8 mb-6 text-sm">
+                <div className="flex items-center gap-2">
+                  <UserGroupIcon className="h-5 w-5 text-reddit-text_secondary" />
+                  <span className="font-semibold text-reddit-text dark:text-reddit-dark_text">
+                    {community.membersCount ?? 0}
+                  </span>
+                  <span className="text-reddit-text_secondary">members</span>
+                </div>
+              </div>
+
+              {/* Request Access Button */}
+              {token ? (
+                community.requestPending ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 font-semibold">
+                      <ClockIcon className="h-5 w-5" />
+                      Request Pending
+                    </div>
+                    <p className="text-sm text-reddit-text_secondary">
+                      A moderator will review your request
+                    </p>
+                  </div>
+                ) : (
+                  <button
+                    onClick={joinCommunity}
+                    disabled={joinLoading}
+                    className="px-8 py-3 rounded-full bg-reddit-blue hover:bg-reddit-blue_hover text-white font-semibold transition-colors disabled:opacity-50"
+                  >
+                    {joinLoading ? "Requesting..." : "Request to Join"}
+                  </button>
+                )
+              ) : (
+                <button
+                  onClick={() => navigate("/login")}
+                  className="px-8 py-3 rounded-full bg-reddit-blue hover:bg-reddit-blue_hover text-white font-semibold transition-colors"
+                >
+                  Log in to Request Access
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

@@ -4,6 +4,7 @@ const router = express.Router();
 const upload = require("../middleware/upload");
 const Community = require("../models/Community");
 const CommunityMember = require("../models/CommunityMember");
+const JoinRequest = require("../models/JoinRequest");
 const Post = require("../models/Post");
 const Vote = require("../models/Vote");
 const SavedPost = require("../models/SavedPost");
@@ -409,7 +410,7 @@ router.get("/explore", optionalAuth, async (req, res) => {
   }
 });
 
-// ➕ Join Community
+// ➕ Join Community (or Request to Join for Private)
 router.post("/:name/join", auth, writeLimiter, async (req, res) => {
   try {
     const finalName = normalizeName(req.params.name);
@@ -431,21 +432,60 @@ router.post("/:name/join", auth, writeLimiter, async (req, res) => {
       });
     }
 
+    // Check if already a member
     const existing = await CommunityMember.findOne({
       user: userId,
       community: community._id,
     });
 
-    if (!existing) {
-      await CommunityMember.create({
+    if (existing) {
+      return res.json({
+        success: true,
+        joined: true,
+        membersCount: community.membersCount,
+      });
+    }
+
+    // For PRIVATE communities, create a join request instead
+    if (community.isPrivate) {
+      // Check if there's already a pending request
+      const existingRequest = await JoinRequest.findOne({
         user: userId,
         community: community._id,
-        role: "member",
+        status: 'pending',
       });
 
-      community.membersCount++;
-      await community.save();
+      if (existingRequest) {
+        return res.json({
+          success: true,
+          requestPending: true,
+          message: "Your request is pending approval",
+        });
+      }
+
+      // Create new join request
+      await JoinRequest.create({
+        user: userId,
+        community: community._id,
+        message: req.body.message || '',
+      });
+
+      return res.json({
+        success: true,
+        requestPending: true,
+        message: "Join request submitted",
+      });
     }
+
+    // For PUBLIC communities, join directly
+    await CommunityMember.create({
+      user: userId,
+      community: community._id,
+      role: "member",
+    });
+
+    community.membersCount++;
+    await community.save();
 
     res.json({
       success: true,
@@ -493,6 +533,167 @@ router.post("/:name/leave", auth, writeLimiter, async (req, res) => {
       success: true,
       joined: false,
       membersCount: community.membersCount,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 📋 Get Pending Join Requests (Moderators/Owners only)
+router.get("/:name/join-requests", auth, async (req, res) => {
+  try {
+    const finalName = normalizeName(req.params.name);
+    const community = await Community.findOne({ name: finalName });
+    if (!community) {
+      return res.status(404).json({ success: false, error: "Community not found" });
+    }
+
+    const userId = req.user._id;
+
+    // Check if user is owner or moderator
+    const isOwner = community.createdBy.toString() === userId.toString();
+    const membership = await CommunityMember.findOne({
+      user: userId,
+      community: community._id,
+      role: { $in: ["owner", "moderator"] },
+    });
+
+    if (!isOwner && !membership) {
+      return res.status(403).json({ success: false, error: "Not authorized" });
+    }
+
+    const requests = await JoinRequest.find({
+      community: community._id,
+      status: "pending",
+    })
+      .populate("user", "username avatar createdAt")
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      data: requests.map((r) => ({
+        _id: r._id,
+        user: {
+          _id: r.user._id,
+          username: r.user.username,
+          avatar: r.user.avatar,
+          createdAt: r.user.createdAt,
+        },
+        message: r.message,
+        createdAt: r.createdAt,
+      })),
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ✅ Approve Join Request
+router.post("/:name/join-requests/:requestId/approve", auth, writeLimiter, async (req, res) => {
+  try {
+    const finalName = normalizeName(req.params.name);
+    const community = await Community.findOne({ name: finalName });
+    if (!community) {
+      return res.status(404).json({ success: false, error: "Community not found" });
+    }
+
+    const userId = req.user._id;
+
+    // Check if user is owner or moderator
+    const isOwner = community.createdBy.toString() === userId.toString();
+    const membership = await CommunityMember.findOne({
+      user: userId,
+      community: community._id,
+      role: { $in: ["owner", "moderator"] },
+    });
+
+    if (!isOwner && !membership) {
+      return res.status(403).json({ success: false, error: "Not authorized" });
+    }
+
+    const request = await JoinRequest.findById(req.params.requestId);
+    if (!request || request.community.toString() !== community._id.toString()) {
+      return res.status(404).json({ success: false, error: "Request not found" });
+    }
+
+    if (request.status !== "pending") {
+      return res.status(400).json({ success: false, error: "Request already processed" });
+    }
+
+    // Update request status
+    request.status = "approved";
+    request.reviewedBy = userId;
+    request.reviewedAt = new Date();
+    await request.save();
+
+    // Add user as member
+    const existingMember = await CommunityMember.findOne({
+      user: request.user,
+      community: community._id,
+    });
+
+    if (!existingMember) {
+      await CommunityMember.create({
+        user: request.user,
+        community: community._id,
+        role: "member",
+      });
+
+      community.membersCount++;
+      await community.save();
+    }
+
+    res.json({
+      success: true,
+      message: "Request approved",
+      membersCount: community.membersCount,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ❌ Reject Join Request
+router.post("/:name/join-requests/:requestId/reject", auth, writeLimiter, async (req, res) => {
+  try {
+    const finalName = normalizeName(req.params.name);
+    const community = await Community.findOne({ name: finalName });
+    if (!community) {
+      return res.status(404).json({ success: false, error: "Community not found" });
+    }
+
+    const userId = req.user._id;
+
+    // Check if user is owner or moderator
+    const isOwner = community.createdBy.toString() === userId.toString();
+    const membership = await CommunityMember.findOne({
+      user: userId,
+      community: community._id,
+      role: { $in: ["owner", "moderator"] },
+    });
+
+    if (!isOwner && !membership) {
+      return res.status(403).json({ success: false, error: "Not authorized" });
+    }
+
+    const request = await JoinRequest.findById(req.params.requestId);
+    if (!request || request.community.toString() !== community._id.toString()) {
+      return res.status(404).json({ success: false, error: "Request not found" });
+    }
+
+    if (request.status !== "pending") {
+      return res.status(400).json({ success: false, error: "Request already processed" });
+    }
+
+    // Update request status
+    request.status = "rejected";
+    request.reviewedBy = userId;
+    request.reviewedAt = new Date();
+    await request.save();
+
+    res.json({
+      success: true,
+      message: "Request rejected",
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -548,6 +749,45 @@ router.get("/:name/posts", optionalAuth, async (req, res) => {
       avatar: m.user?.avatar || null,
       role: m.role,
     }));
+
+    // 🔒 Private Community Access Control
+    if (community.isPrivate && !isMember) {
+      // Check if user has a pending request
+      let requestPending = false;
+      if (userId) {
+        const pendingRequest = await JoinRequest.findOne({
+          user: userId,
+          community: community._id,
+          status: 'pending',
+        });
+        requestPending = !!pendingRequest;
+      }
+
+      return res.json({
+        success: true,
+        data: {
+          community: {
+            _id: community._id,
+            name: community.name,
+            title: community.title,
+            icon: community.icon,
+            banner: community.banner,
+            membersCount: community.membersCount,
+            createdAt: community.createdAt,
+            isPrivate: true,
+            isMember: false,
+            isOwner: false,
+            memberRole: null,
+            moderators: [],
+            requestPending, // Tell frontend if request is pending
+          },
+          posts: [],
+          isPrivateRestricted: true,
+          page: 1,
+          limit: 20,
+        },
+      });
+    }
 
     const sort = (req.query.sort || "best").toLowerCase();
     const time = (req.query.time || "all").toLowerCase();

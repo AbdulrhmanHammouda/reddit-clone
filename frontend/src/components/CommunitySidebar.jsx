@@ -10,8 +10,10 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
   PlusIcon,
+  LockClosedIcon,
 } from "@heroicons/react/24/outline";
 import defaultProfileImg from "../assets/default_profile.jpeg";
+import JoinRequestsPanel from "./JoinRequestsPanel";
 
 // Format member count
 function formatCount(num) {
@@ -217,6 +219,11 @@ export default function CommunitySidebar({ community, onCreatePost }) {
             </button>
           </div>
         </Card>
+      )}
+
+      {/* Join Requests Panel for Private Communities */}
+      {community.isPrivate && (isOwner || community.memberRole === "moderator") && (
+        <JoinRequestsPanel communityName={community.name} />
       )}
     </div>
   );
