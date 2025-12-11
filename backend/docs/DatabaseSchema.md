@@ -458,22 +458,22 @@ Post.find({ community: communityId })
     .limit(25);
 
 
-Top posts in a community
+// Top posts in a community
 Post.find({ community: communityId })
     .sort({ score: -1 })
     .limit(25);
 
-Root-level comments
+// Root-level comments
 Comment.find({ post: postId, parent: null })
        .sort({ createdAt: 1 });
 
-Saved posts for a user
+// Saved posts for a user
 SavedPost.find({ user: userId }).populate('post');
 
-Check community membership
+// Check community membership
 CommunityMember.findOne({ user: userId, community: communityId });
 
-Unread notifications
+// Unread notifications
 Notification.find({ user: userId, read: false })
             .sort({ createdAt: -1 });
 ```
