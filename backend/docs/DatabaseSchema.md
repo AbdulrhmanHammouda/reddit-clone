@@ -164,7 +164,7 @@ Determines:
 
 ---
 
-## 2.4 🟧 JoinRequest
+## 2.4 JoinRequest
 
 Request to join private communities.
 
