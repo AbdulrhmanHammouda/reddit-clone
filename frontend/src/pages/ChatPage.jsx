@@ -303,8 +303,8 @@ export default function ChatPage() {
 
       {/* 3. NEW CHAT MODAL */}
       {showNewChat && (
-        <div className="absolute inset-0 z-[60] bg-black/80 backdrop-blur-sm flex justify-center pt-32" onClick={() => setShowNewChat(false)}>
-          <div className="w-[500px] h-[600px] bg-[#1a1a1b] rounded-2xl border border-[#343536] shadow-2xl flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="absolute inset-0 z-[60] bg-black/80 backdrop-blur-sm flex justify-center items-start pt-10 md:pt-32 px-4" onClick={() => setShowNewChat(false)}>
+          <div className="w-full max-w-[500px] h-[80vh] md:h-[600px] bg-[#1a1a1b] rounded-2xl border border-[#343536] shadow-2xl flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="px-6 py-5 border-b border-[#343536] flex items-center gap-4">
               <h3 className="text-xl font-bold flex-1">New Message</h3>
               <button onClick={() => setShowNewChat(false)} className="p-1 hover:bg-[#272729] rounded-full">
