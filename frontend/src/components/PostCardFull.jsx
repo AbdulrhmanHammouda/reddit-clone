@@ -19,6 +19,7 @@ import FullscreenImageViewer from "./FullscreenImageViewer";
 import RichTextEditor from "./RichTextEditor";
 import { toast } from "react-hot-toast";
 import AISummaryModal from "./AISummaryModal";
+import defaultProfileImg from "../assets/default_profile.jpeg";
 
 export default function PostCardFull({ post: incomingProp, postId: propPostId, onPostUpdate }) {
   const params = useParams(); // from /post/:id
@@ -178,9 +179,10 @@ export default function PostCardFull({ post: incomingProp, postId: propPostId, o
       <header className="flex items-start gap-3">
         <Link to={`/r/${community}`} className="h-10 w-10 block">
           <img
-            src={incoming.community?.icon}
+            src={(incoming.community?.icon && incoming.community.icon.trim()) || defaultProfileImg}
             className="h-full w-full rounded-full object-cover"
             alt="community icon"
+            onError={(e) => { e.target.src = defaultProfileImg; }}
           />
         </Link>
 

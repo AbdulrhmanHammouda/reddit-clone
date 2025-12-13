@@ -39,9 +39,9 @@ const PostCard = memo(function PostCard(props) {
   const community = communityObj.name ?? communityObj.title ?? "unknown";
 
   const communityAvatar =
-    communityObj.avatar ??
-    communityObj.icon ??
-    "https://www.redditstatic.com/avatars/avatar_default_02_46D160.png";
+    (communityObj.icon && communityObj.icon.trim()) ||
+    (communityObj.avatar && communityObj.avatar.trim()) ||
+    defaultProfileImg;
 
   const authorObj =
     typeof incoming.author === "string"
@@ -224,7 +224,12 @@ const PostCard = memo(function PostCard(props) {
             {community && (
               <>
                 <Link to={`/r/${community}`} className="h-6 w-6">
-                  <img src={communityAvatar || defaultProfileImg} className="h-full w-full rounded-full" />
+                  <img 
+                    src={communityAvatar || defaultProfileImg} 
+                    className="h-full w-full rounded-full object-cover" 
+                    alt="community"
+                    onError={(e) => { e.target.src = defaultProfileImg; }}
+                  />
                 </Link>
                 <Link
                   to={`/r/${community}`}
