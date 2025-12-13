@@ -216,7 +216,7 @@ const PostCard = memo(function PostCard(props) {
 
   return (
     <>
-      <div className="w-full max-w-[740px] bg-reddit-card dark:bg-reddit-dark_card rounded-xl p-3 sm:p-4 border border-reddit-border dark:border-reddit-dark_divider shadow-sm transition-colors">
+      <div className="w-full bg-reddit-card dark:bg-reddit-dark_card rounded-xl p-3 sm:p-4 border border-reddit-border dark:border-reddit-dark_divider shadow-sm transition-colors overflow-hidden">
 
         {/* HEADER */}
         <div className="flex items-center justify-between text-[12px] sm:text-[13px] text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
@@ -311,7 +311,7 @@ const PostCard = memo(function PostCard(props) {
 
         {/* TITLE */}
         <h2
-          className="mt-2 text-[16px] sm:text-[18px] font-semibold text-reddit-text dark:text-reddit-dark_text leading-tight sm:leading-6 cursor-pointer hover:underline"
+          className="mt-2 text-[16px] sm:text-[18px] font-semibold text-reddit-text dark:text-reddit-dark_text leading-tight sm:leading-6 cursor-pointer hover:underline break-words overflow-hidden"
           onClick={() => navigate(`/post/${id}`)}
         >
           {currentTitle}
@@ -320,7 +320,7 @@ const PostCard = memo(function PostCard(props) {
         {/* BODY */}
         {currentBody && (
           <div
-            className="mt-3 text-[15px] text-reddit-text_light dark:text-reddit-dark_text_light whitespace-pre-wrap"
+            className="mt-3 text-[14px] sm:text-[15px] text-reddit-text_light dark:text-reddit-dark_text_light whitespace-pre-wrap break-words overflow-hidden line-clamp-4 sm:line-clamp-6"
             dangerouslySetInnerHTML={{ __html: currentBody }}
           />
         )}
