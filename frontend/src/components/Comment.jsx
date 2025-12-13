@@ -4,6 +4,7 @@ import VoteButtons from "./VoteButtons";
 import CommentReplyBox from "./CommentReplyBox";
 import api from "../api/axios";
 import useAuth from "../hooks/useAuth";
+import { toast } from "react-hot-toast";
 
 // Collapse icons
 import {
@@ -16,6 +17,7 @@ import {
 import {
   ShareIcon as ShareOutline,
   XMarkIcon,
+  PencilIcon,
 } from "@heroicons/react/24/outline";
 
 export default function Comment({ comment, postId, onDelete }) {
@@ -28,6 +30,12 @@ export default function Comment({ comment, postId, onDelete }) {
   const [menuOpen, setMenuOpen] = useState(false); // State for ellipsis menu
   const [saved, setSaved] = useState(comment.saved || false); // State for saved status
   const [showDeleteModal, setShowDeleteModal] = useState(false); // State for delete modal
+
+  // Edit comment state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editBody, setEditBody] = useState(comment.body || "");
+  const [editLoading, setEditLoading] = useState(false);
+  const [currentBody, setCurrentBody] = useState(comment.body || "");
 
   const menuRef = useRef(null); // Ref for ellipsis menu
 
@@ -123,6 +131,32 @@ async function handleReply(text, images = []) {
     }
   }
 
+  function onEditClick() {
+    setEditBody(currentBody);
+    setShowEditModal(true);
+    setMenuOpen(false);
+  }
+
+  async function onEditSave() {
+    if (!token || !editBody.trim()) return;
+    setEditLoading(true);
+    try {
+      const res = await api.patch(`/comments/${commentId}`, {
+        body: editBody.trim(),
+      });
+      if (res.data?.success) {
+        setCurrentBody(editBody.trim());
+        setShowEditModal(false);
+        toast.success("Comment updated!");
+      }
+    } catch (err) {
+      console.error("Edit error:", err);
+      toast.error(err.response?.data?.error || "Failed to update comment");
+    } finally {
+      setEditLoading(false);
+    }
+  }
+
 
   const created =
     comment.createdAt && !isNaN(Date.parse(comment.createdAt))
@@ -181,6 +215,16 @@ async function handleReply(text, images = []) {
                     </button>
                   )}
 
+                  {/* Edit button - only show if current user is the author */}
+                  {user && comment.author?._id === user._id && (
+                    <button
+                      onClick={onEditClick}
+                      className="w-full text-left px-3 py-2 hover:bg-[#e8e9eb] dark:hover:bg-[#2c2d2f] flex items-center gap-2"
+                    >
+                      <PencilIcon className="h-4 w-4" /> Edit
+                    </button>
+                  )}
+
                   {/* Only show delete if current user is the author */}
                   {user && comment.author?._id === user._id && (
                     <button
@@ -197,7 +241,7 @@ async function handleReply(text, images = []) {
 
           {/* Comment text */}
           <div className="mt-2 whitespace-pre-wrap text-reddit-text_light dark:text-reddit-dark_text_light">
-            {comment.body}
+            {currentBody}
           </div>
 
           {/* Images */}
@@ -275,15 +319,15 @@ async function handleReply(text, images = []) {
 
       {/* DELETE MODAL */}
       {showDeleteModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-[#0b1113] p-6 rounded-2xl w-[430px] relative text-white">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#0b1113] p-4 sm:p-6 rounded-2xl w-full max-w-[430px] relative text-white">
             <button className="absolute top-3 right-3 p-1" onClick={() => setShowDeleteModal(false)}>
               <XMarkIcon className="h-5 w-5" />
             </button>
 
             <h3 className="text-lg font-semibold mb-2">Delete comment?</h3>
             <p className="text-sm opacity-60 mb-6">
-              Once you delete this comment, it can’t be restored.
+              Once you delete this comment, it can't be restored.
             </p>
 
             <div className="flex justify-end gap-3">
@@ -293,6 +337,56 @@ async function handleReply(text, images = []) {
 
               <button className="px-5 py-2 rounded-full bg-red-600 hover:bg-red-700 text-white" onClick={onDeleteConfirm}>
                 Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT MODAL */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-reddit-card dark:bg-reddit-dark_card p-4 sm:p-6 rounded-2xl w-full max-w-[500px] relative text-reddit-text dark:text-reddit-dark_text">
+            <button className="absolute top-3 right-3 p-1 hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover rounded-full" onClick={() => setShowEditModal(false)}>
+              <XMarkIcon className="h-5 w-5" />
+            </button>
+
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <PencilIcon className="h-5 w-5 text-reddit-blue" />
+              Edit Comment
+            </h3>
+
+            <div>
+              <textarea
+                value={editBody}
+                onChange={(e) => setEditBody(e.target.value)}
+                rows={4}
+                className="w-full px-4 py-3 rounded-xl bg-reddit-hover dark:bg-reddit-dark_hover border border-reddit-border dark:border-reddit-dark_divider focus:border-reddit-blue outline-none resize-none transition-colors"
+                placeholder="Edit your comment..."
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 mt-4">
+              <button 
+                className="px-5 py-2 rounded-full bg-reddit-hover dark:bg-reddit-dark_hover hover:bg-reddit-border dark:hover:bg-reddit-dark_border transition-colors" 
+                onClick={() => setShowEditModal(false)}
+                disabled={editLoading}
+              >
+                Cancel
+              </button>
+              <button 
+                className="px-5 py-2 rounded-full bg-reddit-blue hover:bg-reddit-blue_hover text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                onClick={onEditSave}
+                disabled={editLoading || !editBody.trim()}
+              >
+                {editLoading ? (
+                  <span className="flex items-center gap-2">
+                    <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Saving...
+                  </span>
+                ) : (
+                  "Save Changes"
+                )}
               </button>
             </div>
           </div>

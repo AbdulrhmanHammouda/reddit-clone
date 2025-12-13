@@ -3,6 +3,7 @@ import {
   EllipsisHorizontalIcon,
   ShareIcon as ShareOutline,
   XMarkIcon,
+  PencilIcon,
 } from "@heroicons/react/24/outline";
 import { Link, useNavigate, useLocation, useParams } from "react-router-dom";
 import VoteButtons from "./VoteButtons";
@@ -13,6 +14,7 @@ import ImageCarousel from "./ImageCarousel";
 import FullscreenImageViewer from "./FullscreenImageViewer";
 import defaultProfileImg from "../assets/default_profile.jpeg";
 import { toast } from "react-hot-toast";
+import RichTextEditor from "./RichTextEditor";
 
 const PostCard = memo(function PostCard(props) {
   const navigate = useNavigate();
@@ -71,6 +73,14 @@ const PostCard = memo(function PostCard(props) {
   const [scoreState, setScoreState] = useState(score);
   const [voteState, setVoteState] = useState(incoming.yourVote ?? 0);
   const [joinLoading, setJoinLoading] = useState(false);
+  
+  // Edit post state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editTitle, setEditTitle] = useState(title);
+  const [editBody, setEditBody] = useState(body);
+  const [editLoading, setEditLoading] = useState(false);
+  const [currentTitle, setCurrentTitle] = useState(title);
+  const [currentBody, setCurrentBody] = useState(body);
 
   const menuRef = useRef(null);
 
@@ -167,6 +177,36 @@ const PostCard = memo(function PostCard(props) {
     }
   }
 
+  function onEditClick() {
+    setEditTitle(currentTitle);
+    setEditBody(currentBody);
+    setShowEditModal(true);
+    setMenuOpen(false);
+  }
+
+  async function onEditSave() {
+    if (!token || !editTitle.trim()) return;
+    setEditLoading(true);
+    try {
+      const res = await api.patch(`/posts/${id}`, {
+        title: editTitle.trim(),
+        body: editBody,
+      });
+      if (res.data?.success) {
+        setCurrentTitle(editTitle.trim());
+        setCurrentBody(editBody);
+        setShowEditModal(false);
+        toast.success("Post updated!");
+        props.onEdit?.(id, { title: editTitle.trim(), body: editBody });
+      }
+    } catch (err) {
+      console.error("Edit error:", err);
+      toast.error(err.response?.data?.error || "Failed to update post");
+    } finally {
+      setEditLoading(false);
+    }
+  }
+
   if (hidden) return null;
 
   return (
@@ -241,6 +281,15 @@ const PostCard = memo(function PostCard(props) {
                     </button>
                   )}
 
+                  {user && user._id === incoming.author?._id && (
+                    <button
+                      onClick={onEditClick}
+                      className="w-full text-left px-3 py-2 hover:bg-[#e8e9eb] dark:hover:bg-[#2c2d2f] flex items-center gap-2"
+                    >
+                      <PencilIcon className="h-4 w-4" /> Edit
+                    </button>
+                  )}
+
                   {(user && (user._id === incoming.author?._id || isMod)) && (
                     <button
                       onClick={onDeleteClick}
@@ -260,14 +309,14 @@ const PostCard = memo(function PostCard(props) {
           className="mt-2 text-[16px] sm:text-[18px] font-semibold text-reddit-text dark:text-reddit-dark_text leading-tight sm:leading-6 cursor-pointer hover:underline"
           onClick={() => navigate(`/post/${id}`)}
         >
-          {title}
+          {currentTitle}
         </h2>
 
         {/* BODY */}
-        {body && (
+        {currentBody && (
           <div
             className="mt-3 text-[15px] text-reddit-text_light dark:text-reddit-dark_text_light whitespace-pre-wrap"
-            dangerouslySetInnerHTML={{ __html: body }}
+            dangerouslySetInnerHTML={{ __html: currentBody }}
           />
         )}
 
@@ -343,7 +392,7 @@ const PostCard = memo(function PostCard(props) {
 
             <h3 className="text-lg font-semibold mb-2">Delete post?</h3>
             <p className="text-sm opacity-60 mb-6">
-              Once you delete this post, it can’t be restored.
+              Once you delete this post, it can't be restored.
             </p>
 
             <div className="flex justify-end gap-3">
@@ -353,6 +402,64 @@ const PostCard = memo(function PostCard(props) {
 
               <button className="px-5 py-2 rounded-full bg-red-600 hover:bg-red-700 text-white" onClick={onDeleteConfirm}>
                 Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT MODAL */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-reddit-card dark:bg-reddit-dark_card p-4 sm:p-6 rounded-2xl w-full max-w-[600px] relative text-reddit-text dark:text-reddit-dark_text max-h-[90vh] overflow-y-auto">
+            <button className="absolute top-3 right-3 p-1 hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover rounded-full" onClick={() => setShowEditModal(false)}>
+              <XMarkIcon className="h-5 w-5" />
+            </button>
+
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <PencilIcon className="h-5 w-5 text-reddit-blue" />
+              Edit Post
+            </h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Title</label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-reddit-hover dark:bg-reddit-dark_hover border border-reddit-border dark:border-reddit-dark_divider focus:border-reddit-blue outline-none transition-colors"
+                  placeholder="Post title..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Body</label>
+                <RichTextEditor value={editBody} onChange={setEditBody} />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button 
+                className="px-5 py-2 rounded-full bg-reddit-hover dark:bg-reddit-dark_hover hover:bg-reddit-border dark:hover:bg-reddit-dark_border transition-colors" 
+                onClick={() => setShowEditModal(false)}
+                disabled={editLoading}
+              >
+                Cancel
+              </button>
+              <button 
+                className="px-5 py-2 rounded-full bg-reddit-blue hover:bg-reddit-blue_hover text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                onClick={onEditSave}
+                disabled={editLoading || !editTitle.trim()}
+              >
+                {editLoading ? (
+                  <span className="flex items-center gap-2">
+                    <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Saving...
+                  </span>
+                ) : (
+                  "Save Changes"
+                )}
               </button>
             </div>
           </div>

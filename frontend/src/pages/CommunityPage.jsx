@@ -1,6 +1,6 @@
 // src/pages/CommunityPage.jsx
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import CommunityHeader from "../components/CommunityHeader";
 import CommunityFeed from "../components/CommunityFeed";
@@ -17,14 +17,18 @@ import defaultProfileImg from "../assets/default_profile.jpeg";
 export default function CommunityPage() {
   const { name } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { token } = useAuth();
+
+  // Get initial sort from URL query (e.g., when navigating from CreatePost)
+  const initialSort = searchParams.get("sort") || "best";
 
   const [community, setCommunity] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [joinLoading, setJoinLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [sort, setSort] = useState("best");
+  const [sort, setSort] = useState(initialSort);
   const [time, setTime] = useState("all");
   const [isPrivateRestricted, setIsPrivateRestricted] = useState(false);
 
