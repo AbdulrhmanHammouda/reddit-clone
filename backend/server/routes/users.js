@@ -457,7 +457,7 @@ router.get('/me/saved', auth, async (req, res) => {
 router.get('/:username', auth, async (req, res) => {
   try {
     const user = await User.findOne({ username: req.params.username })
-      .select('username displayName bio avatar createdAt');
+      .select('username displayName bio avatar banner createdAt');
 
     if (!user) {
       return res.status(404).json({

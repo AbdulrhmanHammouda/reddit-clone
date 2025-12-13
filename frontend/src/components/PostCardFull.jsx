@@ -11,12 +11,14 @@ import {
   ShareIcon as ShareOutline,
   PencilIcon,
   XMarkIcon,
+  SparklesIcon,
 } from "@heroicons/react/24/outline";
 import useAuth from "../hooks/useAuth";
 import ImageCarousel from "./ImageCarousel";
 import FullscreenImageViewer from "./FullscreenImageViewer";
 import RichTextEditor from "./RichTextEditor";
 import { toast } from "react-hot-toast";
+import AISummaryModal from "./AISummaryModal";
 
 export default function PostCardFull({ post: incomingProp, postId: propPostId, onPostUpdate }) {
   const params = useParams(); // from /post/:id
@@ -41,6 +43,9 @@ export default function PostCardFull({ post: incomingProp, postId: propPostId, o
   const [editLoading, setEditLoading] = useState(false);
   const [currentTitle, setCurrentTitle] = useState(incoming.title || "");
   const [currentBody, setCurrentBody] = useState(incoming.body || "");
+
+  // AI Summary state
+  const [showAISummary, setShowAISummary] = useState(false);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -324,6 +329,16 @@ export default function PostCardFull({ post: incomingProp, postId: propPostId, o
           <ShareOutline className="h-4 w-4" />
           <span>Share</span>
         </button>
+
+        {/* AI Summarize */}
+        <button
+          className="flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-purple-500/10 to-indigo-500/10 hover:from-purple-500/20 hover:to-indigo-500/20 border border-purple-500/20 text-purple-600 dark:text-purple-400 text-sm cursor-pointer flex-shrink-0 transition-all"
+          onClick={() => setShowAISummary(true)}
+          title="Summarize with AI"
+        >
+          <SparklesIcon className="h-4 w-4" />
+          <span className="font-medium">Summarize</span>
+        </button>
       </div>
 
       {viewerOpen && (
@@ -391,6 +406,14 @@ export default function PostCardFull({ post: incomingProp, postId: propPostId, o
           </div>
         </div>
       )}
+
+      {/* AI SUMMARY MODAL */}
+      <AISummaryModal
+        isOpen={showAISummary}
+        onClose={() => setShowAISummary(false)}
+        postId={incoming._id}
+        postTitle={currentTitle}
+      />
     </article>
   );
 }

@@ -17,6 +17,7 @@ const postsImageRoutes = require('./routes/postsImage');
 const notificationsRoutes = require('./routes/notifications');
 const searchRoutes = require('./routes/search');
 const messagesRoutes = require('./routes/messages'); // New import
+const aiRoutes = require('./routes/ai'); // AI integration
 const requireAuth = require('./middleware/authMiddleware');
 
 
@@ -41,6 +42,7 @@ app.use('/api/posts', postsImageRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/messages', messagesRoutes); // New route
+app.use('/api/ai', aiRoutes); // AI integration routes
 
 // app.use('/api/auth', authLimiter, authRoutes); // only public routes
 

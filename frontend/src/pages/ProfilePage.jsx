@@ -154,9 +154,10 @@ function ProfileCard({
               >
                 <div className="flex items-center gap-2">
                   <img
-                    src={c.icon || defaultProfileImg}
+                    src={c.icon && c.icon.trim() ? c.icon : defaultProfileImg}
                     className="h-7 w-7 rounded-full object-cover"
                     alt="community"
+                    onError={(e) => { e.target.src = defaultProfileImg; }}
                   />
                   <div className="flex flex-col">
                     <span className="text-reddit-text dark:text-reddit-dark_text">

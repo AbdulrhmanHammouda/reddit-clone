@@ -4,6 +4,7 @@ import {
   ShareIcon as ShareOutline,
   XMarkIcon,
   PencilIcon,
+  SparklesIcon,
 } from "@heroicons/react/24/outline";
 import { Link, useNavigate, useLocation, useParams } from "react-router-dom";
 import VoteButtons from "./VoteButtons";
@@ -15,6 +16,7 @@ import FullscreenImageViewer from "./FullscreenImageViewer";
 import defaultProfileImg from "../assets/default_profile.jpeg";
 import { toast } from "react-hot-toast";
 import RichTextEditor from "./RichTextEditor";
+import AISummaryModal from "./AISummaryModal";
 
 const PostCard = memo(function PostCard(props) {
   const navigate = useNavigate();
@@ -81,6 +83,9 @@ const PostCard = memo(function PostCard(props) {
   const [editLoading, setEditLoading] = useState(false);
   const [currentTitle, setCurrentTitle] = useState(title);
   const [currentBody, setCurrentBody] = useState(body);
+
+  // AI Summary state
+  const [showAISummary, setShowAISummary] = useState(false);
 
   const menuRef = useRef(null);
 
@@ -371,6 +376,16 @@ const PostCard = memo(function PostCard(props) {
             <ShareOutline className="h-4 w-4" />
             <span className="text-xs sm:text-sm">Share</span>
           </button>
+
+          {/* AI SUMMARIZE */}
+          <button
+            className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-[5px] sm:py-[6px] rounded-full bg-gradient-to-r from-purple-500/10 to-indigo-500/10 hover:from-purple-500/20 hover:to-indigo-500/20 border border-purple-500/20 text-purple-600 dark:text-purple-400 flex-shrink-0 transition-all"
+            onClick={() => setShowAISummary(true)}
+            title="Summarize with AI"
+          >
+            <SparklesIcon className="h-4 w-4" />
+            <span className="text-xs sm:text-sm font-medium">Summarize</span>
+          </button>
         </div>
       </div>
 
@@ -465,6 +480,14 @@ const PostCard = memo(function PostCard(props) {
           </div>
         </div>
       )}
+
+      {/* AI SUMMARY MODAL */}
+      <AISummaryModal
+        isOpen={showAISummary}
+        onClose={() => setShowAISummary(false)}
+        postId={id}
+        postTitle={currentTitle}
+      />
     </>
   );
 });
