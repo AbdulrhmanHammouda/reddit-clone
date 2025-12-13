@@ -174,20 +174,20 @@ export default function ChatSidebar({ open = false, onClose = () => {} }) {
         onClick={onClose} 
       />
 
-      {/* Floating Window: Premium Shadow & Borders */}
+      {/* Floating Window: Fullscreen on mobile, floating on desktop */}
       <div
         ref={containerRef}
-        className="fixed right-8 top-20 bottom-8 z-[1300] w-[750px] max-w-[90vw] rounded-2xl bg-white dark:bg-[#1A1A1B] border border-gray-200 dark:border-[#343536] shadow-2xl flex flex-col overflow-hidden font-sans animation-slide-up"
+        className="fixed inset-0 sm:inset-auto sm:right-4 md:right-8 sm:top-16 md:top-20 sm:bottom-4 md:bottom-8 z-[1300] w-full sm:w-[400px] md:w-[500px] lg:w-[750px] sm:max-w-[90vw] sm:rounded-2xl bg-white dark:bg-[#1A1A1B] sm:border border-gray-200 dark:border-[#343536] shadow-2xl flex flex-col overflow-hidden font-sans animation-slide-up"
       >
         {/* GLOBAL HEADER */}
-        <div className="h-14 flex items-center justify-between px-5 bg-white dark:bg-[#1A1A1B] border-b border-gray-100 dark:border-[#343536] shrink-0">
+        <div className="h-14 flex items-center justify-between px-4 sm:px-5 bg-white dark:bg-[#1A1A1B] border-b border-gray-100 dark:border-[#343536] shrink-0">
           <div className="flex items-center gap-3">
              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-400 to-red-600 flex items-center justify-center text-white font-bold shadow-sm">
                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" /></svg>
              </div>
              <span className="font-bold text-lg text-gray-900 dark:text-gray-100 tracking-tight">Chats</span>
           </div>
-          <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+          <div className="flex items-center gap-1 sm:gap-2 text-gray-500 dark:text-gray-400">
             <button 
               onClick={() => { onClose(); navigate("/chat"); }} 
               className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-[#272729] transition-colors"
@@ -204,7 +204,7 @@ export default function ChatSidebar({ open = false, onClose = () => {} }) {
             </button>
             <button 
               onClick={onClose}
-              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-[#272729] transition-colors ml-2"
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-[#272729] transition-colors ml-1 sm:ml-2"
             >
               <XMarkIcon className="w-6 h-6" />
             </button>
@@ -214,8 +214,8 @@ export default function ChatSidebar({ open = false, onClose = () => {} }) {
         {/* BODY */}
         <div className="flex flex-1 min-h-0 bg-white dark:bg-[#1A1A1B]">
           
-          {/* LEFT SIDEBAR: THREADS */}
-          <aside className="w-[320px] flex flex-col border-r border-gray-100 dark:border-[#343536]">
+          {/* LEFT SIDEBAR: THREADS - Hidden on mobile when in chat */}
+          <aside className={`${panel === 'chat' && selectedConvo ? 'hidden lg:flex' : 'flex'} w-full lg:w-[280px] xl:w-[320px] flex-col lg:border-r border-gray-100 dark:border-[#343536]`}>
             
             {/* Search within sidebar? Optional, but fits "premium" */}
             <div className="p-3">
@@ -290,24 +290,24 @@ export default function ChatSidebar({ open = false, onClose = () => {} }) {
             </div>
           </aside>
 
-          {/* RIGHT PANEL: CONTENT */}
-          <section className="flex-1 flex flex-col min-w-0 bg-white dark:bg-[#1A1A1B]">
+          {/* RIGHT PANEL: CONTENT - Hidden on mobile when showing threads list */}
+          <section className={`${panel === 'threads' && !selectedConvo ? 'hidden lg:flex' : 'flex'} flex-1 flex-col min-w-0 bg-white dark:bg-[#1A1A1B]`}>
             
             {/* VIEW: New Chat */}
             {panel === "new" && (
-               <div className="flex-1 flex flex-col p-6 animate-fade-in">
-                 <div className="flex items-center gap-3 mb-8">
+               <div className="flex-1 flex flex-col p-4 sm:p-6 animate-fade-in">
+                 <div className="flex items-center gap-3 mb-6 sm:mb-8">
                    <button onClick={() => setPanel("threads")} className="p-2 hover:bg-gray-100 dark:hover:bg-[#272729] rounded-full transition">
                      <ArrowLeftIcon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                    </button>
-                   <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">New Message</h2>
+                   <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">New Message</h2>
                  </div>
 
                  <div className="relative mb-6">
                     <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">To:</label>
                     <input
                       autoFocus
-                      className="w-full text-lg bg-transparent border-b-2 border-gray-200 dark:border-[#343536] py-2 outline-none focus:border-blue-500 dark:focus:border-blue-400 text-gray-900 dark:text-white placeholder-gray-400 transition-colors"
+                      className="w-full text-base sm:text-lg bg-transparent border-b-2 border-gray-200 dark:border-[#343536] py-2 outline-none focus:border-blue-500 dark:focus:border-blue-400 text-gray-900 dark:text-white placeholder-gray-400 transition-colors"
                       placeholder="Type a username..."
                       value={usersInput}
                       onChange={(e) => setUsersInput(e.target.value)}
@@ -321,7 +321,7 @@ export default function ChatSidebar({ open = false, onClose = () => {} }) {
                         <div 
                           key={u._id}
                           onClick={() => handleStartNewChat(u)}
-                          className="flex items-center gap-4 p-3 hover:bg-gray-50 dark:hover:bg-[#272729] rounded-xl cursor-pointer transition-colors"
+                          className="flex items-center gap-3 sm:gap-4 p-3 hover:bg-gray-50 dark:hover:bg-[#272729] rounded-xl cursor-pointer transition-colors"
                         >
                           <img src={u.avatar || defaultProfileImg} className="w-10 h-10 rounded-full object-cover" />
                           <div className="flex flex-col">
@@ -343,49 +343,56 @@ export default function ChatSidebar({ open = false, onClose = () => {} }) {
               <div className="flex flex-col h-full relative">
                 
                 {/* Chat Header */}
-                <div className="h-16 px-6 border-b border-gray-100 dark:border-[#343536] flex items-center justify-between bg-white/80 dark:bg-[#1A1A1B]/90 backdrop-blur -mt-[1px] z-10">
-                   <div className="flex items-center gap-3">
+                <div className="h-14 sm:h-16 px-3 sm:px-6 border-b border-gray-100 dark:border-[#343536] flex items-center justify-between bg-white/80 dark:bg-[#1A1A1B]/90 backdrop-blur -mt-[1px] z-10">
+                   <div className="flex items-center gap-2 sm:gap-3">
+                     {/* Back button for mobile */}
+                     <button 
+                       onClick={() => { setSelectedConvo(null); setPanel("threads"); }} 
+                       className="lg:hidden p-2 -ml-1 hover:bg-gray-100 dark:hover:bg-[#272729] rounded-full transition"
+                     >
+                       <ArrowLeftIcon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                     </button>
                      <div className="relative">
-                       <img src={selectedConvo.participant.avatar || defaultProfileImg} className="w-10 h-10 rounded-full object-cover ring-2 ring-gray-100 dark:ring-[#343536]" />
-                       <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-[#1A1A1B]"></div>
+                       <img src={selectedConvo.participant.avatar || defaultProfileImg} className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover ring-2 ring-gray-100 dark:ring-[#343536]" />
+                       <div className="absolute bottom-0 right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full border-2 border-white dark:border-[#1A1A1B]"></div>
                      </div>
                      <div className="flex flex-col">
-                       <span className="font-bold text-gray-900 dark:text-gray-100 text-base">{selectedConvo.participant.username}</span>
+                       <span className="font-bold text-gray-900 dark:text-gray-100 text-sm sm:text-base">{selectedConvo.participant.username}</span>
                        <span className="text-xs text-green-600 dark:text-green-500 font-medium">Online now</span>
                      </div>
                    </div>
                    <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2">
-                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                     <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                    </button>
                 </div>
 
                 {/* Messages Feed */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-[#0f0f0f]">
-                  <div className="flex flex-col items-center justify-center my-6 space-y-2 opacity-60">
-                     <img src={selectedConvo.participant.avatar || defaultProfileImg} className="w-16 h-16 rounded-full object-cover mb-2" />
-                     <p className="text-sm text-gray-500 text-center">This is the beginning of your chat history with <span className="font-bold">{selectedConvo.participant.username} asd</span>.</p>
+                <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 bg-gray-50 dark:bg-[#0f0f0f]">
+                  <div className="flex flex-col items-center justify-center my-4 sm:my-6 space-y-2 opacity-60">
+                     <img src={selectedConvo.participant.avatar || defaultProfileImg} className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover mb-2" />
+                     <p className="text-xs sm:text-sm text-gray-500 text-center px-4">This is the beginning of your chat history with <span className="font-bold">{selectedConvo.participant.username}</span>.</p>
                   </div>
 
                   {messages.map((m, i) => {
                     const isMe = m.sender._id === user?._id || m.sender === user?._id;
-                    const showAvatar = !isMe && (i === messages.length - 1 || messages[i + 1]?.sender._id === user?._id); // Simple logic for now
+                    const showAvatar = !isMe && (i === messages.length - 1 || messages[i + 1]?.sender._id === user?._id);
 
                     return (
                       <div key={i} className={`flex w-full ${isMe ? "justify-end" : "justify-start"} group`}>
-                         <div className={`flex max-w-[70%] ${isMe ? "flex-row-reverse" : "flex-row"} gap-2`}>
+                         <div className={`flex max-w-[85%] sm:max-w-[70%] ${isMe ? "flex-row-reverse" : "flex-row"} gap-2`}>
                             
                             {/* Avatar for 'Them' */}
                             {!isMe && (
-                               <div className="w-8 shrink-0 flex items-end">
+                               <div className="w-7 sm:w-8 shrink-0 flex items-end">
                                  {showAvatar ? (
-                                   <img src={selectedConvo.participant.avatar || defaultProfileImg} className="w-8 h-8 rounded-full object-cover" />
-                                 ) : <div className="w-8" />}
+                                   <img src={selectedConvo.participant.avatar || defaultProfileImg} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover" />
+                                 ) : <div className="w-7 sm:w-8" />}
                                </div>
                             )}
 
                             <div className="flex flex-col gap-1">
                                <div 
-                                 className={`px-4 py-2.5 shadow-sm text-[15px] leading-relaxed break-words ${
+                                 className={`px-3 sm:px-4 py-2 sm:py-2.5 shadow-sm text-sm sm:text-[15px] leading-relaxed break-words ${
                                     isMe 
                                     ? "bg-blue-600 dark:bg-blue-600 text-white rounded-2xl rounded-tr-sm" 
                                     : "bg-white dark:bg-[#272729] text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-[#343536] rounded-2xl rounded-tl-sm"
@@ -406,18 +413,18 @@ export default function ChatSidebar({ open = false, onClose = () => {} }) {
                 </div>
 
                 {/* Input Area */}
-                <div className="p-4 bg-white dark:bg-[#1A1A1B] border-t border-gray-100 dark:border-[#343536]">
+                <div className="p-2 sm:p-4 bg-white dark:bg-[#1A1A1B] border-t border-gray-100 dark:border-[#343536]">
                    <form 
                      onSubmit={handleSendMessage}
-                     className="flex items-end gap-2 bg-gray-100 dark:bg-[#272729] p-2 rounded-3xl border border-transparent focus-within:border-blue-500 focus-within:bg-white dark:focus-within:bg-[#1A1A1B] transition-all ring-offset-2 ring-offset-white dark:ring-offset-[#1A1A1B]"
+                     className="flex items-end gap-1 sm:gap-2 bg-gray-100 dark:bg-[#272729] p-1.5 sm:p-2 rounded-full sm:rounded-3xl border border-transparent focus-within:border-blue-500 focus-within:bg-white dark:focus-within:bg-[#1A1A1B] transition-all"
                    >
-                     <button type="button" className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full transition-colors">
-                       <PlusIcon className="w-6 h-6" />
+                     <button type="button" className="hidden sm:block p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full transition-colors">
+                       <PlusIcon className="w-5 h-5 sm:w-6 sm:h-6" />
                      </button>
                      
-                     <div className="flex-1 py-2">
+                     <div className="flex-1 py-1.5 sm:py-2 px-2 sm:px-0">
                        <input 
-                         className="w-full bg-transparent border-none outline-none text-gray-900 dark:text-gray-100 placeholder-gray-500 max-h-32 resize-none"
+                         className="w-full bg-transparent border-none outline-none text-sm sm:text-base text-gray-900 dark:text-gray-100 placeholder-gray-500"
                          placeholder="Message"
                          value={newMessage}
                          onChange={(e) => setNewMessage(e.target.value)}
@@ -428,9 +435,9 @@ export default function ChatSidebar({ open = false, onClose = () => {} }) {
                      <button 
                        type="button"
                        disabled={!newMessage.trim()} 
-                       className="p-2 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors disabled:opacity-50"
+                       className="hidden sm:block p-2 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors disabled:opacity-50"
                      >
-                       <FaceSmileIcon className="w-6 h-6" />
+                       <FaceSmileIcon className="w-5 h-5 sm:w-6 sm:h-6" />
                      </button>
                      
                      <button 
@@ -438,11 +445,11 @@ export default function ChatSidebar({ open = false, onClose = () => {} }) {
                        disabled={!newMessage.trim()} 
                        className={`p-2 rounded-full transition-all duration-200 ${
                          newMessage.trim() 
-                         ? "bg-blue-600 text-white shadow-md hover:bg-blue-700 transform hover:scale-105" 
+                         ? "bg-blue-600 text-white shadow-md hover:bg-blue-700" 
                          : "bg-gray-200 dark:bg-[#343536] text-gray-400 cursor-not-allowed"
                        }`}
                      >
-                       <PaperAirplaneIcon className="w-5 h-5 -rotate-45 translate-x-[-1px] translate-y-[1px]" />
+                       <PaperAirplaneIcon className="w-4 h-4 sm:w-5 sm:h-5 -rotate-45 translate-x-[-1px] translate-y-[1px]" />
                      </button>
                    </form>
                 </div>
