@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  PaperAirplaneIcon, 
-  FaceSmileIcon, 
+import {
+  PaperAirplaneIcon,
+  FaceSmileIcon,
   PlusIcon,
   MagnifyingGlassIcon,
   ArrowLeftIcon
@@ -10,6 +10,7 @@ import {
 import useAuth from "../hooks/useAuth";
 import api from "../api/axios";
 import defaultProfileImg from "../assets/default_profile.jpeg";
+import EmojiPicker from "emoji-picker-react";
 
 export default function ChatPage() {
   const { user } = useAuth();
@@ -25,9 +26,13 @@ export default function ChatPage() {
   const [searchResults, setSearchResults] = useState([]);
   const [showMobileSidebar, setShowMobileSidebar] = useState(true);
   const [loading, setLoading] = useState(true);
-  
+
   // Refs
   const messagesEndRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  // Emoji picker state
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -59,9 +64,9 @@ export default function ChatPage() {
       if (res.data.success) {
         setMessages(res.data.data);
         // Mark read local
-        setConversations(prev => 
-          prev.map(c => 
-            c.participant._id === selectedUser._id 
+        setConversations(prev =>
+          prev.map(c =>
+            c.participant._id === selectedUser._id
               ? { ...c, unreadCount: 0 }
               : c
           )
@@ -134,7 +139,7 @@ export default function ChatPage() {
     setSelectedUser(targetUser);
     setShowNewChat(false);
     setSearchQuery("");
-    
+
     const existing = conversations.find(c => c.participant._id === targetUser._id);
     if (!existing) {
       setConversations(prev => [{ participant: targetUser, lastMessage: null, unreadCount: 0 }, ...prev]);
@@ -142,28 +147,28 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#0B1416] text-gray-100 flex flex-col md:flex-row font-sans">
-      
+    <div className="fixed inset-0 z-50 bg-reddit-page dark:bg-reddit-dark_bg text-reddit-text dark:text-reddit-dark_text flex flex-col md:flex-row font-sans">
+
       {/* 1. LEFT SIDEBAR */}
-      <div className={`${selectedUser && !showMobileSidebar ? 'hidden' : 'flex'} md:flex w-full md:w-[300px] lg:w-[350px] border-r border-[#1e2324] bg-[#0f1112] flex-col`}>
+      <div className={`${selectedUser && !showMobileSidebar ? 'hidden' : 'flex'} md:flex w-full md:w-[300px] lg:w-[350px] border-r border-reddit-border dark:border-reddit-dark_divider bg-reddit-card dark:bg-reddit-dark_card flex-col`}>
         {/* Header */}
         <div className="h-14 md:h-16 px-4 md:px-5 flex items-center justify-between border-b border-[#1e2324] shrink-0">
-           <h2 className="font-bold text-lg md:text-xl tracking-tight">Chats</h2>
-           <button 
-             onClick={() => setShowNewChat(true)} 
-             className="p-2 hover:bg-[#1e2324] rounded-full transition-colors"
-             title="New Chat"
-           >
-             <PlusIcon className="w-5 h-5 md:w-6 md:h-6 text-gray-400" />
-           </button>
+          <h2 className="font-bold text-lg md:text-xl tracking-tight">Chats</h2>
+          <button
+            onClick={() => setShowNewChat(true)}
+            className="p-2 hover:bg-reddit-hover dark:bg-reddit-dark_hover rounded-full transition-colors"
+            title="New Chat"
+          >
+            <PlusIcon className="w-5 h-5 md:w-6 md:h-6 text-reddit-text_secondary" />
+          </button>
         </div>
-        
+
         {/* List */}
         <div className="flex-1 overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-gray-800">
           {conversations.length === 0 && !loading && (
-             <div className="text-center mt-10 text-gray-500">
-               <p>No conversations yet.</p>
-             </div>
+            <div className="text-center mt-10 text-reddit-text_secondary">
+              <p>No conversations yet.</p>
+            </div>
           )}
           {conversations.map((convo) => {
             const isActive = selectedUser?._id === convo.participant._id;
@@ -174,26 +179,27 @@ export default function ChatPage() {
                   setSelectedUser(convo.participant);
                   setShowMobileSidebar(false);
                 }}
-                className={`group flex items-center gap-3 md:gap-4 p-2.5 md:p-3 rounded-xl cursor-pointer transition-all duration-200 ${
-                  isActive ? 'bg-[#2A3437]' : 'hover:bg-[#191C1D]'
-                }`}
+                className={`group flex items-center gap-3 md:gap-4 p-2.5 md:p-3 rounded-xl cursor-pointer transition-all duration-200 ${isActive
+                  ? 'bg-gray-200 dark:bg-reddit-dark_hover'
+                  : 'hover:bg-gray-100 dark:hover:bg-reddit-dark_hover'
+                  }`}
               >
                 <div className="relative">
-                  <img src={convo.participant.avatar || defaultProfileImg} className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover ring-2 ring-[#0f1112]" />
-                  {convo.unreadCount > 0 && <div className="absolute bottom-0 right-0 w-3 h-3 md:w-3.5 md:h-3.5 bg-red-500 rounded-full border-2 border-[#0f1112]" />}
+                  <img src={convo.participant.avatar || defaultProfileImg} className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover ring-2 ring-gray-100 dark:ring-[#0f1112]" />
+                  {convo.unreadCount > 0 && <div className="absolute bottom-0 right-0 w-3 h-3 md:w-3.5 md:h-3.5 bg-red-500 rounded-full border-2 border-white dark:border-[#0f1112]" />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline mb-1">
-                    <span className={`font-semibold truncate ${isActive ? 'text-white' : 'text-gray-300'}`}>
+                    <span className={`font-semibold truncate ${isActive ? 'text-black dark:text-white' : 'text-gray-900 dark:text-gray-100'}`}>
                       {convo.participant.username}
                     </span>
                     {convo.lastMessage && (
-                       <span className="text-xs text-gray-500 font-medium">{new Date(convo.lastMessage.createdAt).toLocaleDateString()}</span>
+                      <span className="text-xs text-reddit-text_secondary font-medium">{new Date(convo.lastMessage.createdAt).toLocaleDateString()}</span>
                     )}
                   </div>
-                  <div className={`text-sm truncate ${convo.unreadCount > 0 ? 'text-white font-bold' : 'text-gray-500'}`}>
-                     {convo.lastMessage?.sender === user?._id && "You: "}
-                     {convo.lastMessage?.content || "No messages yet"}
+                  <div className={`text-sm truncate ${convo.unreadCount > 0 ? 'text-reddit-dark_text font-bold' : 'text-reddit-text_secondary'}`}>
+                    {String(convo.lastMessage?.sender) === String(user?.id || user?._id) && "You: "}
+                    {convo.lastMessage?.content || "No messages yet"}
                   </div>
                 </div>
               </div>
@@ -203,7 +209,7 @@ export default function ChatPage() {
       </div>
 
       {/* 2. MAIN CHAT AREA */}
-      <div className={`${!selectedUser || showMobileSidebar ? 'hidden' : 'flex'} md:flex flex-1 flex-col bg-[#0B1416] relative`}>
+      <div className={`${!selectedUser || showMobileSidebar ? 'hidden' : 'flex'} md:flex flex-1 flex-col bg-reddit-page dark:bg-reddit-dark_bg relative`}>
         {selectedUser ? (
           <>
             {/* Header */}
@@ -211,17 +217,17 @@ export default function ChatPage() {
               {/* Back button for mobile */}
               <button
                 onClick={() => setShowMobileSidebar(true)}
-                className="md:hidden p-2 -ml-2 rounded-full hover:bg-[#1e2324] transition-colors"
+                className="md:hidden p-2 -ml-2 rounded-full hover:bg-reddit-hover dark:bg-reddit-dark_hover transition-colors"
               >
-                <ArrowLeftIcon className="w-5 h-5 text-gray-400" />
+                <ArrowLeftIcon className="w-5 h-5 text-reddit-text_secondary" />
               </button>
               <div className="relative">
-                 <img src={selectedUser.avatar || defaultProfileImg} className="w-9 h-9 md:w-10 md:h-10 rounded-full object-cover ring-2 ring-[#1e2324]" />
-                 <div className="absolute bottom-0 right-0 w-2.5 h-2.5 md:w-3 md:h-3 bg-green-500 rounded-full border-2 border-[#0B1416]"></div>
+                <img src={selectedUser.avatar || defaultProfileImg} className="w-9 h-9 md:w-10 md:h-10 rounded-full object-cover ring-2 ring-[#1e2324]" />
+                <div className="absolute bottom-0 right-0 w-2.5 h-2.5 md:w-3 md:h-3 bg-green-500 rounded-full border-2 border-[#0B1416]"></div>
               </div>
               <div className="flex flex-col">
-                 <span className="font-bold text-base md:text-lg leading-tight">{selectedUser.username}</span>
-                 <span className="text-xs text-green-500 font-medium">Online</span>
+                <span className="font-bold text-base md:text-lg leading-tight">{selectedUser.username}</span>
+                <span className="text-xs text-reddit-text_secondary font-medium">u/{selectedUser.username}</span>
               </div>
             </div>
 
@@ -229,30 +235,31 @@ export default function ChatPage() {
             <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6">
               <div className="flex flex-col items-center justify-center my-6 md:my-10 space-y-2 md:space-y-3 opacity-50">
                 <img src={selectedUser.avatar || defaultProfileImg} className="w-16 h-16 md:w-24 md:h-24 rounded-full object-cover" />
-                <p className="text-gray-400 text-sm md:text-base text-center">This is the start of your history with <span className="font-bold text-white">{selectedUser.username}</span></p>
+                <p className="text-reddit-text_secondary text-sm md:text-base text-center">This is the start of your history with <span className="font-bold text-gray-900 dark:text-white">{selectedUser.username}</span></p>
               </div>
 
               {messages.map((msg, idx) => {
-                const isMe = msg.sender._id === user?._id || msg.sender === user?._id;
+                const senderId = msg.sender?._id || msg.sender;
+                const currentUserId = user?.id || user?._id;
+                const isMe = String(senderId) === String(currentUserId);
                 return (
                   <div key={idx} className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'} group`}>
                     <div className={`flex max-w-[85%] md:max-w-[65%] gap-2 md:gap-3 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
-                       {!isMe && (
-                         <img src={selectedUser.avatar || defaultProfileImg} className="w-7 h-7 md:w-8 md:h-8 rounded-full object-cover self-end mb-1" />
-                       )}
-                       
-                       <div className="flex flex-col gap-1">
-                          <div className={`px-4 py-2.5 md:px-5 md:py-3 text-sm md:text-[15px] leading-relaxed shadow-sm break-words ${
-                            isMe 
-                            ? 'bg-blue-600 text-white rounded-2xl rounded-tr-sm' 
-                            : 'bg-[#1e2324] text-gray-100 border border-[#2A3437] rounded-2xl rounded-tl-sm'
+                      {!isMe && (
+                        <img src={selectedUser.avatar || defaultProfileImg} className="w-7 h-7 md:w-8 md:h-8 rounded-full object-cover self-end mb-1" />
+                      )}
+
+                      <div className="flex flex-col gap-1">
+                        <div className={`px-4 py-2.5 md:px-5 md:py-3 text-sm md:text-[15px] leading-relaxed shadow-sm break-words ${isMe
+                          ? 'bg-blue-600 text-reddit-dark_text rounded-2xl rounded-tr-sm'
+                          : 'bg-reddit-hover dark:bg-reddit-dark_hover text-reddit-text dark:text-reddit-dark_text border border-reddit-border dark:border-reddit-dark_border rounded-2xl rounded-tl-sm'
                           }`}>
-                            {msg.content}
-                          </div>
-                          <span className={`text-[10px] text-gray-500 px-1 ${isMe ? 'text-right' : 'text-left'} opacity-0 group-hover:opacity-100 transition-opacity`}>
-                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                       </div>
+                          {msg.content}
+                        </div>
+                        <span className={`text-[10px] text-reddit-text_secondary px-1 ${isMe ? 'text-right' : 'text-left'} opacity-0 group-hover:opacity-100 transition-opacity`}>
+                          {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 );
@@ -261,42 +268,82 @@ export default function ChatPage() {
             </div>
 
             {/* Input Area */}
-            <div className="p-6 pt-2">
-               <form onSubmit={handleSendMessage} className="bg-[#1e2324] p-2 rounded-3xl flex items-end gap-2 border border-transparent focus-within:border-gray-600 transition-colors">
-                  <button type="button" className="p-2 text-gray-400 hover:text-white rounded-full transition-colors">
-                    <PlusIcon className="w-6 h-6" />
-                  </button>
-                  <div className="flex-1 py-2">
-                    <input 
-                       className="w-full bg-transparent border-none outline-none text-white placeholder-gray-500" 
-                       placeholder="Message..."
-                       value={newMessage}
-                       onChange={(e) => setNewMessage(e.target.value)}
-                    />
-                  </div>
-                  <button type="button" className="p-2 text-gray-400 hover:text-blue-400 rounded-full transition-colors">
-                     <FaceSmileIcon className="w-6 h-6" />
-                  </button>
-                  <button 
-                     type="submit" 
-                     disabled={!newMessage.trim()} 
-                     className={`p-2 rounded-full transition-transform ${newMessage.trim() ? "bg-blue-600 text-white hover:scale-105" : "bg-[#2A3437] text-gray-500"}`}
-                  >
-                     <PaperAirplaneIcon className="w-5 h-5 -rotate-45 translate-x-[-1px] translate-y-[1px]" />
-                  </button>
-               </form>
-            </div>
+            <div className="p-4 md:p-6 pt-2 relative">
+              {/* Hidden file input */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*,video/*,.pdf,.doc,.docx"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    alert(`Selected: ${file.name} (File upload coming soon!)`);
+                    e.target.value = '';
+                  }
+                }}
+              />
+
+              {/* Emoji Picker Popup */}
+              {showEmojiPicker && (
+                <div className="absolute bottom-20 right-4 z-50">
+                  <EmojiPicker
+                    onEmojiClick={(emojiData) => {
+                      setNewMessage(prev => prev + emojiData.emoji);
+                      setShowEmojiPicker(false);
+                    }}
+                    theme="dark"
+                    width={300}
+                    height={400}
+                  />
+                </div>
+              )}
+
+              <form onSubmit={handleSendMessage} className="bg-reddit-hover dark:bg-reddit-dark_hover p-2 rounded-3xl flex items-end gap-2 border border-transparent focus-within:border-reddit-blue transition-colors">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-2 text-reddit-text_secondary hover:text-reddit-text dark:hover:text-reddit-dark_text rounded-full transition-colors"
+                  title="Attach file"
+                >
+                  <PlusIcon className="w-6 h-6" />
+                </button>
+                <div className="flex-1 py-2">
+                  <input
+                    className="w-full bg-transparent border-none outline-none text-reddit-text dark:text-reddit-dark_text placeholder-reddit-text_secondary"
+                    placeholder="Message..."
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  className={`p-2 rounded-full transition-colors ${showEmojiPicker ? 'text-reddit-blue' : 'text-reddit-text_secondary hover:text-reddit-blue'}`}
+                  title="Add emoji"
+                >
+                  <FaceSmileIcon className="w-6 h-6" />
+                </button>
+                <button
+                  type="submit"
+                  disabled={!newMessage.trim()}
+                  className={`p-2 rounded-full transition-transform ${newMessage.trim() ? "bg-blue-600 text-reddit-dark_text hover:scale-105" : "bg-reddit-border dark:bg-reddit-dark_border text-reddit-text_secondary cursor-not-allowed"}`}
+                >
+                  <PaperAirplaneIcon className="w-5 h-5 -rotate-45 translate-x-[-1px] translate-y-[1px]" />
+                </button>
+              </form>
+            </div>"
           </>
         ) : (
-          <div className="hidden md:flex flex-1 flex-col items-center justify-center p-8 text-center bg-[#0B1416]">
-             <div className="w-24 h-24 md:w-32 md:h-32 bg-[#1e2324] rounded-full flex items-center justify-center mb-6 shadow-inner">
-                <PaperAirplaneIcon className="w-12 h-12 md:w-16 md:h-16 text-gray-600" />
-             </div>
-             <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">Welcome to your inbox</h2> 
-             <p className="text-gray-400 max-w-md text-base md:text-lg">Select a chat from the left or start a new conversation to begin messaging effortlessly.</p>
-             <button onClick={() => setShowNewChat(true)} className="mt-8 px-6 md:px-8 py-2.5 md:py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-full transition-all">
-                Start New Chat
-             </button>
+          <div className="hidden md:flex flex-1 flex-col items-center justify-center p-8 text-center bg-reddit-page dark:bg-reddit-dark_bg">
+            <div className="w-24 h-24 md:w-32 md:h-32 bg-reddit-hover dark:bg-reddit-dark_hover rounded-full flex items-center justify-center mb-6 shadow-inner">
+              <PaperAirplaneIcon className="w-12 h-12 md:w-16 md:h-16 text-reddit-text_secondary" />
+            </div>
+            <h2 className="text-2xl md:text-3xl font-bold text-reddit-text dark:text-reddit-dark_text mb-3">Welcome to your inbox</h2>
+            <p className="text-reddit-text_secondary max-w-md text-base md:text-lg">Select a chat from the left or start a new conversation to begin messaging effortlessly.</p>
+            <button onClick={() => setShowNewChat(true)} className="mt-8 px-6 md:px-8 py-2.5 md:py-3 bg-blue-600 hover:bg-blue-700 text-reddit-dark_text font-bold rounded-full transition-all">
+              Start New Chat
+            </button>
           </div>
         )}
       </div>
@@ -304,22 +351,22 @@ export default function ChatPage() {
       {/* 3. NEW CHAT MODAL */}
       {showNewChat && (
         <div className="absolute inset-0 z-[60] bg-black/80 backdrop-blur-sm flex justify-center items-start pt-10 md:pt-32 px-4" onClick={() => setShowNewChat(false)}>
-          <div className="w-full max-w-[500px] h-[80vh] md:h-[600px] bg-[#1a1a1b] rounded-2xl border border-[#343536] shadow-2xl flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="px-6 py-5 border-b border-[#343536] flex items-center gap-4">
+          <div className="w-full max-w-[500px] h-[80vh] md:h-[600px] bg-reddit-card dark:bg-reddit-dark_card rounded-2xl border border-reddit-border dark:border-reddit-dark_divider shadow-2xl flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-5 border-b border-reddit-border dark:border-reddit-dark_divider flex items-center gap-4">
               <h3 className="text-xl font-bold flex-1">New Message</h3>
               <button onClick={() => setShowNewChat(false)} className="p-1 hover:bg-[#272729] rounded-full">
-                <XMarkIcon className="w-6 h-6 text-gray-400" /> {/* Corrected Icon Name if needed, reusing XMark from context or adding import */}
+                <XMarkIcon className="w-6 h-6 text-reddit-text_secondary" /> {/* Corrected Icon Name if needed, reusing XMark from context or adding import */}
               </button>
             </div>
-            
+
             <div className="p-6">
               <div className="relative mb-6">
-                <MagnifyingGlassIcon className="absolute left-0 top-3 w-5 h-5 text-gray-500" />
+                <MagnifyingGlassIcon className="absolute left-0 top-3 w-5 h-5 text-reddit-text_secondary" />
                 <input
                   autoFocus
                   type="text"
                   placeholder="Search people..."
-                  className="w-full bg-transparent border-b border-[#343536] pl-8 py-2 text-lg outline-none focus:border-blue-500 text-white placeholder-gray-600"
+                  className="w-full bg-transparent border-b border-[#343536] pl-8 py-2 text-lg outline-none focus:border-blue-500 text-reddit-dark_text placeholder-gray-600"
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
                 />
@@ -330,20 +377,20 @@ export default function ChatPage() {
                   <div key={u._id} onClick={() => { startNewChat(u); setShowMobileSidebar(false); }} className="flex items-center gap-3 md:gap-4 p-2.5 md:p-3 hover:bg-[#272729] rounded-xl cursor-pointer">
                     <img src={u.avatar || defaultProfileImg} className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover" />
                     <div>
-                      <div className="font-bold text-gray-100">{u.username}</div>
-                      <div className="text-sm text-gray-500">u/{u.username}</div>
+                      <div className="font-bold text-reddit-dark_text">{u.username}</div>
+                      <div className="text-sm text-reddit-text_secondary">u/{u.username}</div>
                     </div>
                   </div>
                 ))}
-                {searchQuery && searchResults.length === 0 && <div className="text-center text-gray-500 mt-10">No users found</div>}
+                {searchQuery && searchResults.length === 0 && <div className="text-center text-reddit-text_secondary mt-10">No users found</div>}
               </div>
             </div>
           </div>
         </div>
       )}
-      
+
       {/* Close button */}
-      <button className="absolute top-4 right-4 md:top-6 md:right-6 text-gray-500 hover:text-white p-2 rounded-full hover:bg-[#1e2324] transition-colors" onClick={() => navigate("/")}>
+      <button className="absolute top-4 right-4 md:top-6 md:right-6 text-reddit-text_secondary hover:text-reddit-dark_text p-2 rounded-full hover:bg-reddit-hover dark:bg-reddit-dark_hover transition-colors" onClick={() => navigate("/")}>
         <div className="sr-only">Close</div>
         <svg className="w-6 h-6 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
       </button>
@@ -351,7 +398,7 @@ export default function ChatPage() {
   );
 }
 
-function XMarkIcon({className}) {
+function XMarkIcon({ className }) {
   return <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
   </svg>

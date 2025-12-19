@@ -21,6 +21,7 @@
     "@tiptap/starter-kit": "^3.13.0",
     "axios": "^1.13.2",
     "dotenv": "^17.2.3",
+    "emoji-picker-react": "^4.16.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-fontawesome": "^1.7.1",
