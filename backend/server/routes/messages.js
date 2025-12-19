@@ -2,16 +2,23 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/authMiddleware');
 const validateObjectId = require('../middleware/validateObjectId');
+const upload = require('../middleware/upload');
 const Message = require('../models/Message');
 const User = require('../models/User');
-const createNotification = require('../utils/createNotification'); // 👈 added for notifications
+const createNotification = require('../utils/createNotification');
 
-// POST /api/messages - Send a new message
-router.post('/', auth, async (req, res) => {
+// POST /api/messages - Send a new message (with optional attachment)
+router.post('/', auth, upload.single('attachment'), async (req, res) => {
   try {
     const { receiverId, content } = req.body;
-    if (!receiverId || !content) {
-      return res.status(400).json({ success: false, data: null, error: 'Receiver ID and content are required' });
+
+    if (!receiverId) {
+      return res.status(400).json({ success: false, data: null, error: 'Receiver ID is required' });
+    }
+
+    // Need either content or attachment
+    if (!content && !req.file) {
+      return res.status(400).json({ success: false, data: null, error: 'Content or attachment is required' });
     }
 
     const receiver = await User.findById(receiverId);
@@ -21,20 +28,36 @@ router.post('/', auth, async (req, res) => {
 
     // Check if receiver allows direct messages
     if (receiver.settings?.allowDirectMessages === false) {
-      return res.status(403).json({ 
-        success: false, 
-        data: null, 
-        error: 'This user does not accept direct messages' 
+      return res.status(403).json({
+        success: false,
+        data: null,
+        error: 'This user does not accept direct messages'
       });
     }
 
-    const message = await Message.create({
+    // Prepare message data
+    const messageData = {
       sender: req.user._id,
       receiver: receiverId,
-      content,
-    });
+      content: content || '',
+    };
 
-    // 🔔 Create notification for receiver only if they have enabled chatMessageNotifications
+    // Handle attachment if uploaded
+    if (req.file) {
+      const fileType = req.file.mimetype.startsWith('image/') ? 'image'
+        : req.file.mimetype.startsWith('video/') ? 'video'
+          : 'file';
+
+      messageData.attachment = {
+        url: req.file.path, // Cloudinary returns the URL in path
+        type: fileType,
+        filename: req.file.originalname,
+      };
+    }
+
+    const message = await Message.create(messageData);
+
+    // Create notification for receiver only if they have enabled chatMessageNotifications
     if (receiver.settings?.chatMessageNotifications !== false) {
       await createNotification({
         user: receiverId,
@@ -45,6 +68,7 @@ router.post('/', auth, async (req, res) => {
 
     res.status(201).json({ success: true, data: message, error: null });
   } catch (err) {
+    console.error('Message send error:', err);
     res.status(500).json({ success: false, data: null, error: err.message });
   }
 });
@@ -68,8 +92,8 @@ router.get('/:receiverId', auth, validateObjectId('receiverId'), async (req, res
       ],
     })
       .sort({ createdAt: 1 })
-      .populate('sender', 'username')
-      .populate('receiver', 'username');
+      .populate('sender', 'username avatar')
+      .populate('receiver', 'username avatar');
 
     res.status(200).json({ success: true, data: messages, error: null });
   } catch (err) {
@@ -123,6 +147,7 @@ router.get('/', auth, async (req, res) => {
             createdAt: '$lastMessage.createdAt',
             sender: '$lastMessage.sender',
             read: '$lastMessage.read',
+            attachment: '$lastMessage.attachment',
           },
         },
       },

@@ -45,12 +45,24 @@ const PostCard = memo(function PostCard(props) {
       : incoming.author ?? {};
   const author = authorObj.username ?? authorObj.name ?? "user";
 
-  const createdAgo = incoming.createdAt
-    ? new Intl.DateTimeFormat("en-US", {
-        month: "short",
-        day: "numeric",
-      }).format(new Date(incoming.createdAt))
-    : "recently";
+  const createdAgo = (() => {
+    if (!incoming.createdAt) return "recently";
+    const postDate = new Date(incoming.createdAt);
+    const today = new Date();
+    const isToday = postDate.toDateString() === today.toDateString();
+    
+    if (isToday) {
+      return new Intl.DateTimeFormat("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      }).format(postDate);
+    }
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+    }).format(postDate);
+  })();
 
   const videoUrl = incoming.videoUrl ?? null;
   const images =
