@@ -32,9 +32,9 @@ function timeWindowMatch(time) {
   return { createdAt: { $gte: new Date(Date.now() - ms) } };
 }
 
-// 🚀 Create Community (Owner)
+
 // backend/routes/communities.js
-// backend/routes/communities.js
+
 router.post("/", auth, writeLimiter, async (req, res) => {
   try {
     const { name, title, description, isPrivate, rules, interests } = req.body;

@@ -133,20 +133,11 @@ router.get('/me/settings', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('settings email displayName bio avatar');
     
-    // Return default settings if none exist
+    // Return default settings if none exist (only functional settings)
     const settings = user.settings || {
       allowFollowers: true,
-      showOnlineStatus: true,
       allowDirectMessages: true,
-      showInSearchResults: true,
-      showNSFW: false,
-      blurNSFW: true,
-      autoplayMedia: true,
-      reduceMotion: false,
-      showRecommendations: true,
-      emailNotifications: true,
       commentReplyNotifications: true,
-      mentionNotifications: true,
       upvoteNotifications: false,
       newFollowerNotifications: true,
       chatMessageNotifications: true
@@ -171,11 +162,11 @@ router.get('/me/settings', auth, async (req, res) => {
 // PATCH /api/users/me/settings → update user settings
 router.patch('/me/settings', auth, writeLimiter, async (req, res) => {
   try {
+    // Only functional settings that are used in the frontend
     const allowedSettings = [
-      'allowFollowers', 'showOnlineStatus', 'allowDirectMessages', 'showInSearchResults',
-      'showNSFW', 'blurNSFW', 'autoplayMedia', 'reduceMotion', 'showRecommendations',
-      'emailNotifications', 'commentReplyNotifications', 'mentionNotifications',
-      'upvoteNotifications', 'newFollowerNotifications', 'chatMessageNotifications'
+      'allowFollowers', 'allowDirectMessages',
+      'commentReplyNotifications', 'upvoteNotifications',
+      'newFollowerNotifications', 'chatMessageNotifications'
     ];
     
     const allowedProfile = ['displayName', 'bio'];

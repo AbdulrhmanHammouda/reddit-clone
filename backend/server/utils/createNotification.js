@@ -24,7 +24,6 @@ async function createNotification({
     'comment_reply': settings.commentReplyNotifications !== false,
     'reply': settings.commentReplyNotifications !== false,
     'comment': settings.commentReplyNotifications !== false,
-    'mention': settings.mentionNotifications !== false,
     'upvote': settings.upvoteNotifications !== false,
     'post_upvote': settings.upvoteNotifications !== false,
     'comment_upvote': settings.upvoteNotifications !== false,

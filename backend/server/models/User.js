@@ -12,25 +12,14 @@ banner: { type: String },
 displayName: { type: String },
 createdAt: { type: Date, default: Date.now },
 
-// Settings subdocument
+// Settings subdocument (only functional settings)
 settings: {
   // Privacy
   allowFollowers: { type: Boolean, default: true },
-  showOnlineStatus: { type: Boolean, default: true },
   allowDirectMessages: { type: Boolean, default: true },
-  showInSearchResults: { type: Boolean, default: true },
-  
-  // Content Preferences
-  showNSFW: { type: Boolean, default: false },
-  blurNSFW: { type: Boolean, default: true },
-  autoplayMedia: { type: Boolean, default: true },
-  reduceMotion: { type: Boolean, default: false },
-  showRecommendations: { type: Boolean, default: true },
   
   // Notifications
-  emailNotifications: { type: Boolean, default: true },
   commentReplyNotifications: { type: Boolean, default: true },
-  mentionNotifications: { type: Boolean, default: true },
   upvoteNotifications: { type: Boolean, default: false },
   newFollowerNotifications: { type: Boolean, default: true },
   chatMessageNotifications: { type: Boolean, default: true }

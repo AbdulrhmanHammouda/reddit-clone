@@ -11,7 +11,6 @@ const TABS = [
   { key: "account", label: "Account" },
   { key: "profile", label: "Profile" },
   { key: "privacy", label: "Privacy" },
-  { key: "preferences", label: "Preferences" },
   { key: "notifications", label: "Notifications" },
 ];
 
@@ -444,92 +443,10 @@ export default function SettingsPage() {
               />
             </SettingsRow>
 
-            <div className="border-t border-reddit-border dark:border-reddit-dark_divider" />
-            
-            <SectionHeader title="Discoverability" />
-            <SettingsRow
-              label="Show up in search results"
-              description="Allow search engines to link to your profile"
-            >
-              <Toggle
-                checked={settings.showInSearchResults}
-                onChange={(v) => updateSetting("showInSearchResults", v)}
-                disabled={saving}
-              />
-            </SettingsRow>
-            <SettingsRow
-              label="Show online status"
-              description="Let others see when you're active on Reddit"
-            >
-              <Toggle
-                checked={settings.showOnlineStatus}
-                onChange={(v) => updateSetting("showOnlineStatus", v)}
-                disabled={saving}
-              />
-            </SettingsRow>
           </div>
         )}
 
-        {/* Preferences Tab */}
-        {activeTab === "preferences" && settings && (
-          <div>
-            <SectionHeader title="Content" />
-            <SettingsRow
-              label="Show mature content (I'm over 18)"
-              description="See NSFW content in your feeds and search results"
-            >
-              <Toggle
-                checked={settings.showNSFW}
-                onChange={(v) => updateSetting("showNSFW", v)}
-                disabled={saving}
-              />
-            </SettingsRow>
-            <SettingsRow
-              label="Blur mature (18+) images and media"
-              description="Blur NSFW images until you click on them"
-            >
-              <Toggle
-                checked={settings.blurNSFW}
-                onChange={(v) => updateSetting("blurNSFW", v)}
-                disabled={saving}
-              />
-            </SettingsRow>
-            <SettingsRow
-              label="Show recommendations in home feed"
-              description="Get personalized content recommendations"
-            >
-              <Toggle
-                checked={settings.showRecommendations}
-                onChange={(v) => updateSetting("showRecommendations", v)}
-                disabled={saving}
-              />
-            </SettingsRow>
 
-            <div className="border-t border-reddit-border dark:border-reddit-dark_divider" />
-            
-            <SectionHeader title="Accessibility" />
-            <SettingsRow
-              label="Autoplay media"
-              description="Automatically play videos and GIFs"
-            >
-              <Toggle
-                checked={settings.autoplayMedia}
-                onChange={(v) => updateSetting("autoplayMedia", v)}
-                disabled={saving}
-              />
-            </SettingsRow>
-            <SettingsRow
-              label="Reduce motion"
-              description="Reduce animations and motion effects"
-            >
-              <Toggle
-                checked={settings.reduceMotion}
-                onChange={(v) => updateSetting("reduceMotion", v)}
-                disabled={saving}
-              />
-            </SettingsRow>
-          </div>
-        )}
 
         {/* Notifications Tab */}
         {activeTab === "notifications" && settings && (
@@ -560,16 +477,6 @@ export default function SettingsPage() {
               />
             </SettingsRow>
             <SettingsRow
-              label="Username mentions"
-              description="Notify when someone mentions your username"
-            >
-              <Toggle
-                checked={settings.mentionNotifications}
-                onChange={(v) => updateSetting("mentionNotifications", v)}
-                disabled={saving}
-              />
-            </SettingsRow>
-            <SettingsRow
               label="Upvotes on your posts"
               description="Notify when someone upvotes your posts"
             >
@@ -590,19 +497,6 @@ export default function SettingsPage() {
               />
             </SettingsRow>
 
-            <div className="border-t border-reddit-border dark:border-reddit-dark_divider" />
-            
-            <SectionHeader title="Email" />
-            <SettingsRow
-              label="Email notifications"
-              description="Receive important updates via email"
-            >
-              <Toggle
-                checked={settings.emailNotifications}
-                onChange={(v) => updateSetting("emailNotifications", v)}
-                disabled={saving}
-              />
-            </SettingsRow>
           </div>
         )}
       </div>
