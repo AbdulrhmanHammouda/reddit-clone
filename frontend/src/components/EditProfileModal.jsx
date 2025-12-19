@@ -92,7 +92,7 @@ export default function EditProfileModal({ profile, onClose, onUpdated }) {
       />
 
       {/* Modal */}
-      <div className="relative z-60 w-full max-w-lg bg-reddit-card dark:bg-reddit-dark_card rounded-2xl overflow-hidden border border-reddit-border dark:border-reddit-dark_divider shadow-2xl">
+      <div className="relative z-[60] w-full max-w-lg bg-reddit-card dark:bg-reddit-dark_card rounded-2xl overflow-hidden border border-reddit-border dark:border-reddit-dark_divider shadow-2xl">
         {/* Banner Section */}
         <div className="relative h-28 bg-gradient-to-r from-reddit-blue to-purple-600">
           <img
@@ -100,14 +100,18 @@ export default function EditProfileModal({ profile, onClose, onUpdated }) {
             alt="Profile banner"
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-black/20" />
+          <div className="absolute inset-0 bg-black/20 pointer-events-none" />
           
           {/* Banner Upload Button */}
           <button
             type="button"
-            onClick={() => bannerInputRef.current?.click()}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              bannerInputRef.current?.click();
+            }}
             disabled={bannerUploading}
-            className="absolute bottom-2 right-2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/50 text-white text-xs font-medium hover:bg-black/70 transition-colors"
+            className="absolute bottom-2 right-2 z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/50 text-white text-xs font-medium hover:bg-black/70 transition-colors cursor-pointer"
           >
             <CameraIcon className="h-4 w-4" />
             {bannerUploading ? "Uploading..." : "Change Banner"}
@@ -123,7 +127,7 @@ export default function EditProfileModal({ profile, onClose, onUpdated }) {
           {/* Close Button */}
           <button
             onClick={() => !saving && onClose()}
-            className="absolute top-2 right-2 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+            className="absolute top-2 right-2 z-10 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
           >
             <XMarkIcon className="h-5 w-5" />
           </button>

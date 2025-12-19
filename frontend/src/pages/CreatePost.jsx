@@ -138,7 +138,8 @@ export default function CreatePost() {
           });
 
           toast.success("Video post created! Processing...");
-          navigate(-1);
+          // Navigate to community page with new post at top
+          navigate(`/r/${selectedCommunity.name}?sort=new&t=${Date.now()}`, { replace: true });
         } else {
           const fd = new FormData();
           fd.append("title", title.trim());
@@ -154,7 +155,8 @@ export default function CreatePost() {
             throw new Error(res.data?.error || "Failed to create image post");
           }
           toast.success("Post created!");
-          navigate(-1);
+          // Navigate to community page with new post at top
+          navigate(`/r/${selectedCommunity.name}?sort=new&t=${Date.now()}`, { replace: true });
         }
       } else {
         const payload = {
@@ -169,7 +171,8 @@ export default function CreatePost() {
           throw new Error(res.data?.error || "Failed to create post");
         }
         toast.success("Post created!");
-        navigate(-1);
+        // Navigate to community page with new post at top
+        navigate(`/r/${selectedCommunity.name}?sort=new&t=${Date.now()}`, { replace: true });
       }
     } catch (err) {
       console.error("create post error", err);

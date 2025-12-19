@@ -9,12 +9,19 @@ import {
   ChatBubbleBottomCenterTextIcon,
   EllipsisHorizontalIcon,
   ShareIcon as ShareOutline,
+  PencilIcon,
+  XMarkIcon,
+  SparklesIcon,
 } from "@heroicons/react/24/outline";
 import useAuth from "../hooks/useAuth";
 import ImageCarousel from "./ImageCarousel";
 import FullscreenImageViewer from "./FullscreenImageViewer";
+import RichTextEditor from "./RichTextEditor";
+import { toast } from "react-hot-toast";
+import AISummaryModal from "./AISummaryModal";
+import defaultProfileImg from "../assets/default_profile.jpeg";
 
-export default function PostCardFull({ post: incomingProp, postId: propPostId }) {
+export default function PostCardFull({ post: incomingProp, postId: propPostId, onPostUpdate }) {
   const params = useParams(); // from /post/:id
   const navigate = useNavigate();
   const { token, user } = useAuth();
@@ -29,6 +36,17 @@ export default function PostCardFull({ post: incomingProp, postId: propPostId })
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
   const menuRef = useRef(null);
+
+  // Edit post state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editTitle, setEditTitle] = useState(incoming.title || "");
+  const [editBody, setEditBody] = useState(incoming.body || "");
+  const [editLoading, setEditLoading] = useState(false);
+  const [currentTitle, setCurrentTitle] = useState(incoming.title || "");
+  const [currentBody, setCurrentBody] = useState(incoming.body || "");
+
+  // AI Summary state
+  const [showAISummary, setShowAISummary] = useState(false);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -48,6 +66,8 @@ export default function PostCardFull({ post: incomingProp, postId: propPostId })
     setIsMember(incoming.community?.isMember || false);
     setIsMod(incoming.community?.isMod || false);
     setViewerIndex(0);
+    setCurrentTitle(incoming.title || "");
+    setCurrentBody(incoming.body || "");
   }, [incoming]);
 
   async function toggleSave() {
@@ -100,6 +120,36 @@ export default function PostCardFull({ post: incomingProp, postId: propPostId })
     }
   }
 
+  function onEditClick() {
+    setEditTitle(currentTitle);
+    setEditBody(currentBody);
+    setShowEditModal(true);
+    setMenuOpen(false);
+  }
+
+  async function onEditSave() {
+    if (!token || !editTitle.trim()) return;
+    setEditLoading(true);
+    try {
+      const res = await api.patch(`/posts/${id}`, {
+        title: editTitle.trim(),
+        body: editBody,
+      });
+      if (res.data?.success) {
+        setCurrentTitle(editTitle.trim());
+        setCurrentBody(editBody);
+        setShowEditModal(false);
+        toast.success("Post updated!");
+        onPostUpdate?.({ title: editTitle.trim(), body: editBody });
+      }
+    } catch (err) {
+      console.error("Edit error:", err);
+      toast.error(err.response?.data?.error || "Failed to update post");
+    } finally {
+      setEditLoading(false);
+    }
+  }
+
   if (!incoming || !id) return null;
 
   const videoUrl = incoming.videoUrl ?? null;
@@ -129,9 +179,10 @@ export default function PostCardFull({ post: incomingProp, postId: propPostId })
       <header className="flex items-start gap-3">
         <Link to={`/r/${community}`} className="h-10 w-10 block">
           <img
-            src={incoming.community?.icon}
+            src={(incoming.community?.icon && incoming.community.icon.trim()) || defaultProfileImg}
             className="h-full w-full rounded-full object-cover"
             alt="community icon"
+            onError={(e) => { e.target.src = defaultProfileImg; }}
           />
         </Link>
 
@@ -154,7 +205,7 @@ export default function PostCardFull({ post: incomingProp, postId: propPostId })
           </div>
 
           <h1 className="mt-2 text-2xl font-bold text-reddit-text dark:text-reddit-dark_text leading-7">
-            {incoming.title}
+            {currentTitle}
           </h1>
         </div>
 
@@ -196,6 +247,18 @@ export default function PostCardFull({ post: incomingProp, postId: propPostId })
                 </button>
               )}
 
+              {user && user._id === incoming.author?._id && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEditClick();
+                  }}
+                  className="w-full text-left px-3 py-2 text-reddit-text dark:text-reddit-dark_text hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover transition-colors flex items-center gap-2"
+                >
+                  <PencilIcon className="h-4 w-4" /> Edit
+                </button>
+              )}
+
               {user && (user._id === incoming.author?._id || isMod) && (
                 <button
                   onClick={(e) => {
@@ -214,10 +277,10 @@ export default function PostCardFull({ post: incomingProp, postId: propPostId })
       </header>
 
       {/* BODY */}
-      {incoming.body && (
+      {currentBody && (
         <div
           className="mt-4 text-reddit-text_light dark:text-reddit-dark_text_light whitespace-pre-wrap leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: incoming.body }}
+          dangerouslySetInnerHTML={{ __html: currentBody }}
         />
       )}
 
@@ -268,6 +331,16 @@ export default function PostCardFull({ post: incomingProp, postId: propPostId })
           <ShareOutline className="h-4 w-4" />
           <span>Share</span>
         </button>
+
+        {/* AI Summarize */}
+        <button
+          className="flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-purple-500/10 to-indigo-500/10 hover:from-purple-500/20 hover:to-indigo-500/20 border border-purple-500/20 text-purple-600 dark:text-purple-400 text-sm cursor-pointer flex-shrink-0 transition-all"
+          onClick={() => setShowAISummary(true)}
+          title="Summarize with AI"
+        >
+          <SparklesIcon className="h-4 w-4" />
+          <span className="font-medium">Summarize</span>
+        </button>
       </div>
 
       {viewerOpen && (
@@ -277,6 +350,72 @@ export default function PostCardFull({ post: incomingProp, postId: propPostId })
           onClose={() => setViewerOpen(false)}
         />
       )}
+
+      {/* EDIT MODAL */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-reddit-card dark:bg-reddit-dark_card p-4 sm:p-6 rounded-2xl w-full max-w-[600px] relative text-reddit-text dark:text-reddit-dark_text max-h-[90vh] overflow-y-auto">
+            <button className="absolute top-3 right-3 p-1 hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover rounded-full" onClick={() => setShowEditModal(false)}>
+              <XMarkIcon className="h-5 w-5" />
+            </button>
+
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <PencilIcon className="h-5 w-5 text-reddit-blue" />
+              Edit Post
+            </h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Title</label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-reddit-hover dark:bg-reddit-dark_hover border border-reddit-border dark:border-reddit-dark_divider focus:border-reddit-blue outline-none transition-colors"
+                  placeholder="Post title..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Body</label>
+                <RichTextEditor value={editBody} onChange={setEditBody} />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button 
+                className="px-5 py-2 rounded-full bg-reddit-hover dark:bg-reddit-dark_hover hover:bg-reddit-border dark:hover:bg-reddit-dark_border transition-colors" 
+                onClick={() => setShowEditModal(false)}
+                disabled={editLoading}
+              >
+                Cancel
+              </button>
+              <button 
+                className="px-5 py-2 rounded-full bg-reddit-blue hover:bg-reddit-blue_hover text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                onClick={onEditSave}
+                disabled={editLoading || !editTitle.trim()}
+              >
+                {editLoading ? (
+                  <span className="flex items-center gap-2">
+                    <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Saving...
+                  </span>
+                ) : (
+                  "Save Changes"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AI SUMMARY MODAL */}
+      <AISummaryModal
+        isOpen={showAISummary}
+        onClose={() => setShowAISummary(false)}
+        postId={incoming._id}
+        postTitle={currentTitle}
+      />
     </article>
   );
 }

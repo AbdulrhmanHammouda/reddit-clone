@@ -90,12 +90,13 @@ function ProfileCard({
           onMouseLeave={() => setHover(false)}
           disabled={followLoading}
           aria-pressed={isFollowing}
-          className={`w-full mb-4 py-1.5 rounded-full transition text-[13px] font-semibold focus:outline-none focus:ring-0 ${followLoading
-            ? "opacity-60 cursor-not-allowed"
-            : isFollowing
+          className={`w-full mb-4 py-1.5 rounded-full transition text-[13px] font-semibold focus:outline-none focus:ring-0 ${
+            followLoading
+              ? "opacity-60 cursor-not-allowed"
+              : isFollowing
               ? "bg-transparent border border-reddit-border text-reddit-text dark:text-white hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
               : "bg-reddit-blue text-white"
-            }`}
+          }`}
         >
           {isFollowing ? (hover ? "Unfollow" : "Following") : "Follow"}
         </button>
@@ -153,9 +154,10 @@ function ProfileCard({
               >
                 <div className="flex items-center gap-2">
                   <img
-                    src={c.icon || defaultProfileImg}
+                    src={c.icon && c.icon.trim() ? c.icon : defaultProfileImg}
                     className="h-7 w-7 rounded-full object-cover"
                     alt="community"
+                    onError={(e) => { e.target.src = defaultProfileImg; }}
                   />
                   <div className="flex flex-col">
                     <span className="text-reddit-text dark:text-reddit-dark_text">
@@ -382,7 +384,7 @@ export default function ProfilePage() {
       }
       // rollback
       setIsFollowing(currentlyFollowing);
-      setProfile((p) => ({ ...p, followersCount: Math.max(0, (p.followersCount || 0) + (currentlyFollowing ? 1 : -1)) }));
+      setProfile((p) => ({ ...p, followersCount: Math.max(0, (p.followersCount||0) + (currentlyFollowing ? 1 : -1)) }));
     } finally {
       if (mountedRef.current) setFollowLoading(false);
     }
@@ -419,9 +421,9 @@ export default function ProfilePage() {
 
   return (
     <div className="w-full flex justify-center">
-      <div className="w-full max-w-6xl px-4 md:px-6 pb-10">
+      <div className="w-full max-w-6xl px-2 sm:px-4 md:px-6 pb-10">
         {/* Banner Section */}
-        <div className="w-full h-24 sm:h-32 rounded-xl overflow-hidden bg-gradient-to-r from-reddit-blue to-purple-600 relative">
+        <div className="w-full h-20 sm:h-28 md:h-32 rounded-lg sm:rounded-xl overflow-hidden bg-gradient-to-r from-reddit-blue to-purple-600 relative">
           <img
             src={profile.banner || defaultBanner}
             alt="Profile banner"
@@ -432,27 +434,27 @@ export default function ProfilePage() {
         </div>
 
         {/* Profile Info Section */}
-        <div className="px-2 sm:px-4 -mt-10 sm:-mt-12 relative">
-          <div className="flex flex-col md:flex-row md:items-end gap-3 sm:gap-4">
+        <div className="px-1 sm:px-4 -mt-8 sm:-mt-10 md:-mt-12 relative z-10">
+          <div className="flex flex-col sm:flex-row sm:items-end gap-2 sm:gap-4">
             {/* Avatar */}
-            <div className="bg-reddit-card dark:bg-reddit-dark_card border-4 border-reddit-card dark:border-reddit-dark_card rounded-full shadow-lg flex-shrink-0">
+            <div className="shrink-0">
               <img
                 src={profile.avatar || defaultProfileImg}
                 alt={profile.username}
-                className="h-20 w-20 sm:h-24 sm:w-24 rounded-full object-cover"
+                className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 rounded-full object-cover ring-4 ring-reddit-page dark:ring-reddit-dark_bg shadow-lg"
               />
             </div>
 
             {/* Info */}
-            <div className="flex-1 pb-2 pt-12">
-              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-reddit-text dark:text-reddit-dark_text">
+            <div className="flex-1 min-w-0 pb-1 sm:pb-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-reddit-text dark:text-reddit-dark_text truncate">
                   {profile.displayName || profile.username}
                 </h1>
                 {isOwn && (
                   <button
                     onClick={() => setEditOpen(true)}
-                    className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-full border border-reddit-border dark:border-reddit-dark_divider hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover transition-colors"
+                    className="px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm rounded-full border border-reddit-border dark:border-reddit-dark_divider hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover transition-colors shrink-0"
                   >
                     Edit
                   </button>
@@ -462,7 +464,7 @@ export default function ProfilePage() {
                 u/{profile.username}
               </p>
               {profile.bio && (
-                <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-reddit-text dark:text-reddit-dark_text max-w-xl">
+                <p className="mt-1 text-xs sm:text-sm text-reddit-text dark:text-reddit-dark_text line-clamp-2 sm:line-clamp-none max-w-xl">
                   {profile.bio}
                 </p>
               )}
@@ -473,10 +475,11 @@ export default function ProfilePage() {
               <button
                 onClick={handleFollowToggle}
                 disabled={followLoading}
-                className={`px-6 py-2 rounded-full text-sm font-semibold transition-all ${isFollowing
-                  ? "border border-reddit-border dark:border-reddit-dark_divider bg-reddit-card dark:bg-reddit-dark_card hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
-                  : "bg-reddit-blue text-white hover:bg-reddit-blue_hover"
-                  } ${followLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+                className={`px-6 py-2 rounded-full text-sm font-semibold transition-all ${
+                  isFollowing
+                    ? "border border-reddit-border dark:border-reddit-dark_divider bg-reddit-card dark:bg-reddit-dark_card hover:bg-reddit-hover dark:hover:bg-reddit-dark_hover"
+                    : "bg-reddit-blue text-white hover:bg-reddit-blue_hover"
+                } ${followLoading ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {followLoading ? "..." : isFollowing ? "Following" : "Follow"}
               </button>
@@ -484,31 +487,31 @@ export default function ProfilePage() {
           </div>
 
           {/* Stats Bar */}
-          <div className="flex flex-wrap gap-3 sm:gap-6 mt-3 sm:mt-4 py-2 sm:py-3 border-b border-reddit-border dark:border-reddit-dark_divider text-xs sm:text-sm">
+          <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-6 mt-3 sm:mt-4 py-2 sm:py-3 border-b border-reddit-border dark:border-reddit-dark_divider text-xs sm:text-sm">
             <div className="flex items-center gap-1 sm:gap-2">
               <UserGroupIcon className="h-4 w-4 sm:h-5 sm:w-5 text-reddit-text_secondary" />
               <span className="font-semibold text-reddit-text dark:text-reddit-dark_text">
                 {profile.followersCount ?? 0}
               </span>
-              <span className="text-sm text-reddit-text_secondary">followers</span>
+              <span className="text-xs sm:text-sm text-reddit-text_secondary">followers</span>
             </div>
-            <div className="flex items-center gap-2">
-              <SparklesIcon className="h-5 w-5 text-reddit-text_secondary" />
+            <div className="flex items-center gap-1 sm:gap-2">
+              <SparklesIcon className="h-4 w-4 sm:h-5 sm:w-5 text-reddit-text_secondary" />
               <span className="font-semibold text-reddit-text dark:text-reddit-dark_text">
                 {(profile.karma ?? 0).toLocaleString()}
               </span>
-              <span className="text-sm text-reddit-text_secondary">karma</span>
+              <span className="text-xs sm:text-sm text-reddit-text_secondary">karma</span>
             </div>
-            <div className="flex items-center gap-2">
-              <DocumentTextIcon className="h-5 w-5 text-reddit-text_secondary" />
+            <div className="flex items-center gap-1 sm:gap-2">
+              <DocumentTextIcon className="h-4 w-4 sm:h-5 sm:w-5 text-reddit-text_secondary" />
               <span className="font-semibold text-reddit-text dark:text-reddit-dark_text">
                 {profile.contributions ?? 0}
               </span>
-              <span className="text-sm text-reddit-text_secondary">contributions</span>
+              <span className="text-xs sm:text-sm text-reddit-text_secondary">contributions</span>
             </div>
             {profile.createdAt && (
-              <div className="flex items-center gap-2 text-sm text-reddit-text_secondary">
-                <CalendarIcon className="h-4 w-4" />
+              <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-reddit-text_secondary">
+                <CalendarIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 <span>
                   Joined{" "}
                   {new Date(profile.createdAt).toLocaleDateString("en-US", {
@@ -524,85 +527,43 @@ export default function ProfilePage() {
 
         {/* Content Grid */}
         <div className="mt-4 sm:mt-6 flex flex-col lg:flex-row gap-4 sm:gap-6">
-          <section className="flex-1 lg:flex-[2]">
+        <section className="flex-1 lg:flex-[2]">
 
-            <ProfileTabs
-              tabs={isOwn ? [...PUBLIC_TABS, ...PRIVATE_TABS] : PUBLIC_TABS}
-              active={activeTab}
-              onChange={setActiveTab}
-            />
+          <ProfileTabs 
+            tabs={isOwn ? [...PUBLIC_TABS, ...PRIVATE_TABS] : PUBLIC_TABS} 
+            active={activeTab} 
+            onChange={setActiveTab} 
+          />
 
-            <div className="flex items-center gap-3 mb-4">
-              <SortMenu value={sort} onChange={setSort} />
-            </div>
+          <div className="flex items-center gap-3 mb-4">
+            <SortMenu value={sort} onChange={setSort} />
+          </div>
 
-            <div>
-              {tabLoading && (
-                <div className="text-sm text-reddit-text_secondary">Loading...</div>
-              )}
-              {tabError && (
-                <div className="text-sm text-red-500">Error: {tabError}</div>
-              )}
+          <div>
+            {tabLoading && (
+              <div className="text-sm text-reddit-text_secondary">Loading...</div>
+            )}
+            {tabError && (
+              <div className="text-sm text-red-500">Error: {tabError}</div>
+            )}
 
-              {!tabLoading && !tabError && (
-                <>
-                  {activeTab === "comments" ? (
-                    tabComments.length ? (
-                      <CommentsList comments={tabComments} onDeleteComment={handleCommentDelete} />
-                    ) : (
-                      <div className="text-sm text-reddit-text_secondary">No comments yet.</div>
-                    )
-                  ) : activeTab === "overview" ? (
-                    <div className="space-y-6">
-                      <div>
-                        <h3 className="text-sm font-semibold text-reddit-text dark:text-reddit-dark_text mb-2">
-                          Recent Posts
-                        </h3>
-                        {tabPosts.length ? (
-                          <div className="space-y-3">
-                            {tabPosts.map((post) => (
-                              <PostCard
-                                key={post._id}
-                                post={post}
-                                onToggleSave={handlePostCardToggleSave}
-                                onDelete={handlePostDelete}
-                              />
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-sm text-reddit-text_secondary">No posts yet.</div>
-                        )}
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-semibold text-reddit-text dark:text-reddit-dark_text mb-2">
-                          Recent Comments
-                        </h3>
-                        {tabComments.length ? (
-                          <CommentsList comments={tabComments} onDeleteComment={handleCommentDelete} />
-                        ) : (
-                          <div className="text-sm text-reddit-text_secondary">No comments yet.</div>
-                        )}
-                      </div>
-                    </div>
+            {!tabLoading && !tabError && (
+              <>
+                {activeTab === "comments" ? (
+                  tabComments.length ? (
+                    <CommentsList comments={tabComments} onDeleteComment={handleCommentDelete} />
                   ) : (
-                    <div className="space-y-4">
-                      {sortedPosts.length === 0 ? (
-                        <div className="text-sm text-reddit-text_secondary">
-                          {activeTab === "saved"
-                            ? "No saved posts yet."
-                            : activeTab === "history"
-                              ? "No history yet."
-                              : activeTab === "hidden"
-                                ? "No hidden posts."
-                                : activeTab === "upvoted"
-                                  ? "No upvoted posts yet."
-                                  : activeTab === "downvoted"
-                                    ? "No downvoted posts yet."
-                                    : "No posts yet."}
-                        </div>
-                      ) : (
+                    <div className="text-sm text-reddit-text_secondary">No comments yet.</div>
+                  )
+                ) : activeTab === "overview" ? (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-sm font-semibold text-reddit-text dark:text-reddit-dark_text mb-2">
+                        Recent Posts
+                      </h3>
+                      {tabPosts.length ? (
                         <div className="space-y-3">
-                          {sortedPosts.map((post) => (
+                          {tabPosts.map((post) => (
                             <PostCard
                               key={post._id}
                               post={post}
@@ -611,25 +572,67 @@ export default function ProfilePage() {
                             />
                           ))}
                         </div>
+                      ) : (
+                        <div className="text-sm text-reddit-text_secondary">No posts yet.</div>
                       )}
                     </div>
-                  )}
-                </>
-              )}
-            </div>
-          </section>
+                    <div>
+                      <h3 className="text-sm font-semibold text-reddit-text dark:text-reddit-dark_text mb-2">
+                        Recent Comments
+                      </h3>
+                      {tabComments.length ? (
+                        <CommentsList comments={tabComments} onDeleteComment={handleCommentDelete} />
+                      ) : (
+                        <div className="text-sm text-reddit-text_secondary">No comments yet.</div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {sortedPosts.length === 0 ? (
+                      <div className="text-sm text-reddit-text_secondary">
+                        {activeTab === "saved"
+                          ? "No saved posts yet."
+                          : activeTab === "history"
+                          ? "No history yet."
+                          : activeTab === "hidden"
+                          ? "No hidden posts."
+                          : activeTab === "upvoted"
+                          ? "No upvoted posts yet."
+                          : activeTab === "downvoted"
+                          ? "No downvoted posts yet."
+                          : "No posts yet."}
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {sortedPosts.map((post) => (
+                          <PostCard
+                            key={post._id}
+                            post={post}
+                            onToggleSave={handlePostCardToggleSave}
+                            onDelete={handlePostDelete}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </section>
 
-          <aside className="w-full lg:w-80">
-            <ProfileCard
-              profile={profile}
-              onFollowToggle={handleFollowToggle}
-              isFollowing={isFollowing}
-              followLoading={followLoading}
-              loggedInUser={authUser}
-              moderatedCommunities={moderatedCommunities}
-              onEdit={() => setEditOpen(true)}
-            />
-          </aside>
+        <aside className="hidden lg:block w-full lg:w-80">
+          <ProfileCard
+            profile={profile}
+            onFollowToggle={handleFollowToggle}
+            isFollowing={isFollowing}
+            followLoading={followLoading}
+            loggedInUser={authUser}
+            moderatedCommunities={moderatedCommunities}
+            onEdit={() => setEditOpen(true)}
+          />
+        </aside>
         </div>
       </div>
 

@@ -430,7 +430,7 @@ export default function Navbar({ onToggleSidebar }) {
 
             {/* Notifications Dropdown */}
             {notificationsOpen && (
-              <div className="absolute right-0 sm:right-0 mt-2 w-[calc(100vw-1rem)] sm:w-80 max-w-sm bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider rounded-xl shadow-xl z-50 overflow-hidden -right-2">
+              <div className="fixed sm:absolute inset-x-2 sm:inset-x-auto top-16 sm:top-auto sm:right-0 sm:mt-2 w-auto sm:w-80 max-w-[calc(100vw-1rem)] bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider rounded-xl shadow-xl z-[60] overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-reddit-border dark:border-reddit-dark_divider">
                   <h3 className="font-semibold text-reddit-text dark:text-reddit-dark_text">Notifications</h3>
                   {unreadCount > 0 && (
@@ -443,7 +443,7 @@ export default function Navbar({ onToggleSidebar }) {
                   )}
                 </div>
 
-                <div className="max-h-[400px] overflow-y-auto">
+                <div className="max-h-[60vh] sm:max-h-[400px] overflow-y-auto">
                   {notificationsLoading ? (
                     <div className="p-4 text-center text-reddit-text_secondary">
                       Loading...

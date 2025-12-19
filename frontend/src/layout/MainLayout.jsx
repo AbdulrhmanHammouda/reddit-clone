@@ -27,8 +27,8 @@ export default function MainLayout({ children, noRightSidebar = false }) {
       <Sidebar sidebarOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Main scrolling area */}
-      <div className={`${desktopShiftClass} transition-all duration-300 z-0 relative`}>
-        <div className="flex gap-6 px-4 lg:px-8 pt-6">
+      <div className={`${desktopShiftClass} transition-all duration-300 z-0 relative overflow-x-hidden`}>
+        <div className="flex gap-4 lg:gap-6 px-2 sm:px-4 lg:px-8 pt-4 sm:pt-6">
           {/* Floating Sidebar Toggle Button */}
           <div
             className={`hidden lg:flex items-center justify-center h-8 w-7 rounded-full bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_border shadow fixed top-24 ${sidebarOpen ? "left-[240px]" : "left-[58px]"} transition-all duration-300 z-70`}
@@ -38,7 +38,7 @@ export default function MainLayout({ children, noRightSidebar = false }) {
           </div>
 
           {/* Page content */}
-          <main className="flex-1 flex justify-center">
+          <main className="flex-1 min-w-0 flex justify-center">
             <div className={`w-full ${noRightSidebar ? "max-w-[1100px]" : "max-w-[740px]"}`}>
               {children}
             </div>
