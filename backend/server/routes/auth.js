@@ -13,7 +13,7 @@ router.post('/signup', writeLimiter, async (req, res) => { // Added writeLimiter
 		const { email, password } = req.body;
 		const username = req.body.username.trim();
 		if (!username || !email || !password) return res.status(400).json({ success: false, data: null, error: 'Missing fields' });
-
+ 
 		const exists = await User.findOne({ $or: [{ email }, { username }] });
 		if (exists) return res.status(400).json({ success: false, data: null, error: 'User already exists' });
 
