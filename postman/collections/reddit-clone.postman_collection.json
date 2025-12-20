@@ -1,0 +1,1882 @@
+{
+  "info": {
+    "_postman_id": "d3ac9f98-4ef0-430f-993e-d3935ca22ad7",
+    "name": "reddit-clone",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Communities",
+      "item": [
+        {
+          "name": "Create Community",
+          "id": "94778bf8-b573-4d72-8749-0064f85fd619",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\":\"webdev\",\"title\":\"Web Development\",\"description\":\"A community for web developers to share knowledge, tips, and projects\",\"isPrivate\":false,\"rules\":[\"Be respectful\",\"No spam\",\"Stay on topic\"],\"interests\":[\"JavaScript\",\"CSS\",\"HTML\",\"React\",\"Node.js\"]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/communities",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "communities"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Communities",
+          "id": "3ae8f8e2-218f-4208-8bd2-4744141a871b",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/communities",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "communities"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Trending Communities",
+          "id": "b4ba8729-fd7a-4cd8-90a6-216e45a0e466",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/communities/trending?limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "communities",
+                "trending"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Explore Communities",
+          "id": "6a182ebf-b257-4955-8898-ef2a63ca3849",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/communities/explore?category=technology&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "communities",
+                "explore"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "technology"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Community Details",
+          "id": "ca1325f3-9aa3-4611-89ba-c309c9aca6b0",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/communities/trst",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "communities",
+                "trst"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Community",
+          "id": "965fd741-4712-451a-a78f-ec3b2d429fe7",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\":\"Web Development Hub\",\"description\":\"The ultimate community for web developers\",\"rules\":[\"Be respectful\",\"No spam\",\"Stay on topic\",\"No self-promotion without permission\"]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/communities/webdev",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "communities",
+                "webdev"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Community Icon",
+          "id": "af336503-e733-4070-ba06-d8d6b90d3b6b",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "icon",
+                  "type": "file",
+                  "src": "/C:/Users/Lenovo/Downloads/Twitter header.jpeg"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/communities/webdev/icon",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "communities",
+                "webdev",
+                "icon"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Community Banner",
+          "id": "864a43fa-186b-4246-af95-079d2eaf1627",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "banner",
+                  "type": "file",
+                  "src": "/C:/Users/Lenovo/Downloads/download (3).jpeg"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/communities/webdev/banner",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "communities",
+                "webdev",
+                "banner"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Join Community",
+          "id": "605a91e8-34ae-43dd-995c-e53e9aa8ab49",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/communities/webdev/join",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "communities",
+                "webdev",
+                "join"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Leave Community",
+          "id": "db9b6318-60e3-4e1d-88de-5ff0e4c4c243",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/communities/webdev/leave",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "communities",
+                "webdev",
+                "leave"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Join Requests",
+          "id": "a4e470bd-98cf-4ade-94a9-79d3a3c3d5fd",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/communities/privateclub/join-requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "communities",
+                "privateclub",
+                "join-requests"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "88117420-ee1f-41eb-b913-fbc3d5943d9c"
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get My Settings",
+          "id": "d7463d9e-0731-46af-8c2c-65debace7f03",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me",
+                "settings"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Banner",
+          "id": "8ab6f63a-1122-4ea7-9c72-f73a9ec2aab4",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": "/C:/Users/Lenovo/Downloads/WhatsApp Image 2025-12-08 at 20.58.53_cde5ee1f.jpg"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/upload-banner",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "upload-banner"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Avatar",
+          "id": "affdd64b-82b7-4453-96b7-dd39b578693e",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": "/C:/Users/Lenovo/Downloads/pexels-eberhardgross-1301976.jpg"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/upload-avatar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "upload-avatar"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update My Profile",
+          "id": "fb25f0e0-e773-47b3-8194-6a8aecdece2d",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"bio\":\"Senior Full-stack Developer | React & Node.js Expert\",\"displayName\":\"Tech Guru\",\"avatar\":\"https://i.imgur.com/newavatar.jpg\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Profile",
+          "id": "d27d860d-3644-4940-b55b-e8ed2d4804c2",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/abdo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "abdo"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update My Settings",
+          "id": "d0262707-3bd8-43fd-a2c0-233ebca9d764",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"allowFollowers\":true,\"commentReplyNotifications\":false,\"upvoteNotifications\":true}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me",
+                "settings"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password",
+          "id": "a45b8f37-1e47-4473-87b8-7f524b98baff",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"currentPassword\":\"123\",\"newPassword\":\"NewSecurePass456!\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/change-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me",
+                "change-password"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Email",
+          "id": "935cc491-aabb-4d79-964b-0f10cd763562",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"newEmail\":\"newemail@example.com\",\"password\":\"SecurePass123!\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/email",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me",
+                "email"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Account",
+          "id": "69b80370-44ba-4674-95b9-b878c3ac4ce6",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"password\":\"SecurePass123!\",\"confirmText\":\"DELETE\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/account",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me",
+                "account"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Follow User",
+          "id": "049473cd-30e0-4c37-b120-471bee394a9a",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/test/follow",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "test",
+                "follow"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Unfollow User",
+          "id": "0f5c3eec-038a-4c06-82d5-036081316b4d",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/coding_wizard/follow",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "coding_wizard",
+                "follow"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Posts",
+          "id": "2de3c194-0482-4f5c-a8df-f720f2e334fb",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/islam/posts?sort=top&page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "islam",
+                "posts"
+              ],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "top"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Comments",
+          "id": "ca7cde51-9f3d-4781-a3f2-e66d53c7149c",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/islam/comments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "islam",
+                "comments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Saved Items",
+          "id": "c023310f-da45-400d-b2c9-4572880da7ed",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/abdo/saved",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "abdo",
+                "saved"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Upvoted Items",
+          "id": "728d01af-5340-4f5a-9030-d846da9b302e",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/tech_enthusiast/upvoted",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "tech_enthusiast",
+                "upvoted"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Downvoted Items",
+          "id": "1605cf10-4e9f-4cd5-b8a3-e10be1e7801b",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/tech_enthusiast/downvoted",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "tech_enthusiast",
+                "downvoted"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "9d80a74b-f2b9-4cde-b931-9f8273871e2c"
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "0ea60471-edc2-466c-995b-bb84cd4833f1",
+                "exec": [
+                  "const res = pm.response.json();\r",
+                  "\r",
+                  "if (res?.data?.token) {\r",
+                  "    pm.environment.set(\"authToken\", res.data.token);\r",
+                  "}\r",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "id": "3cfe1d74-d09e-4d56-bf46-08aaf8fb0797",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"emailOrUsername\":\"abdo\",\"password\":\"123\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Signup",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "ce2da151-8cca-4eef-b369-809ea54c42cc",
+                "exec": [
+                  "const res = pm.response.json();\r",
+                  "\r",
+                  "if (res?.data?.token) {\r",
+                  "    pm.environment.set(\"authToken\", res.data.token);\r",
+                  "}\r",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "id": "3622812d-7711-4078-b517-cbc6b1cb2113",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\":\"tech_enthusiast\",\"email\":\"tech@example.com\",\"password\":\"SecurePass123!\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/signup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "signup"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "55d50bbb-cbc0-4cd4-a689-0090712a5f82"
+    },
+    {
+      "name": "Posts",
+      "item": [
+        {
+          "name": "Home feed",
+          "id": "de90cc7c-fe8f-49dd-b5ab-0c644cd64348",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/posts?sort=best&time=all&page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "posts"
+              ],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "best"
+                },
+                {
+                  "key": "time",
+                  "value": "all"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Popular Feed",
+          "id": "541c1912-5735-43e0-86b1-dcb43e67d085",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/posts/popular?sort=hot&time=day&page=1&limit=20\n",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "posts",
+                "popular"
+              ],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "hot"
+                },
+                {
+                  "key": "time",
+                  "value": "day"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20\n"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "All Feed",
+          "id": "cb925ffa-4329-466d-ab52-a96f6cc75833",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/posts/all?sort=hot&time=day&page=1&limit=20\n",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "posts",
+                "all"
+              ],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "hot"
+                },
+                {
+                  "key": "time",
+                  "value": "day"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20\n"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Single Post",
+          "id": "bfd13bd3-3f5c-4bae-ad8c-a270ad72b22e",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/posts/694544281c1408ed231de44c",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "posts",
+                "694544281c1408ed231de44c"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Text Post",
+          "id": "bd799cb4-0de5-4bdb-a3d6-5803b688e83b",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"title\": \"My First Post\",\r\n  \"body\": \"<p>This is the post content</p>\",\r\n  \"communityName\": \"webdev\",\r\n  \"url\": \"\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/posts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "posts"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Image Post",
+          "id": "4f504ca8-31b3-4c89-8cf0-80c699a0944f",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "title",
+                  "value": "Check out this image",
+                  "type": "text"
+                },
+                {
+                  "key": "body ",
+                  "value": "ma body",
+                  "type": "text"
+                },
+                {
+                  "key": "communityName",
+                  "value": "asas",
+                  "type": "text"
+                },
+                {
+                  "key": "images",
+                  "type": "file",
+                  "src": "/C:/Users/Lenovo/Downloads/Dream avatars_ __.jpeg"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/posts/image",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "posts",
+                "image"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Edit Post",
+          "id": "a8c06754-579f-44cb-be1d-6803da320d08",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/posts/69456a46f84f8dcde6c57eae",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "posts",
+                "69456a46f84f8dcde6c57eae"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE Post",
+          "id": "2d787bab-7171-454b-9b86-c2c695c28744",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/posts/69456a46f84f8dcde6c57eae",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "posts",
+                "69456a46f84f8dcde6c57eae"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vote on Post",
+          "id": "a7051811-f425-4f7f-8a78-dd5272a466e7",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"value\": 1\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/posts/69456ae1f84f8dcde6c57ec1/vote",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "posts",
+                "69456ae1f84f8dcde6c57ec1",
+                "vote"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Save Post",
+          "id": "03adb4ed-0673-41f3-93f4-dcffe0950555",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/posts/69456ae1f84f8dcde6c57ec1/save",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "posts",
+                "69456ae1f84f8dcde6c57ec1",
+                "save"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Unsave Post",
+          "id": "4cd0262a-5316-4063-963c-ae670b08fba1",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/posts/69456ae1f84f8dcde6c57ec1/save",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "posts",
+                "69456ae1f84f8dcde6c57ec1",
+                "save"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Hide Post",
+          "id": "aba072ff-31f9-4fa4-aa3c-7cdbc52d3ebe",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/posts/69456ae1f84f8dcde6c57ec1/hide",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "posts",
+                "69456ae1f84f8dcde6c57ec1",
+                "hide"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Unhide Post",
+          "id": "68b0ee58-38c5-4706-a5bc-6914f2e68b4b",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/posts/69456ae1f84f8dcde6c57ec1/hide",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "posts",
+                "69456ae1f84f8dcde6c57ec1",
+                "hide"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "04f43750-1327-47b4-95a8-a12bd5cb6f60"
+    },
+    {
+      "name": "Comments",
+      "item": [
+        {
+          "name": "Create Comment",
+          "id": "463ac6e8-e9b7-4631-be70-3bb013c4d64c",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "postId",
+                  "value": "69456ae1f84f8dcde6c57ec1",
+                  "type": "text"
+                },
+                {
+                  "key": "body",
+                  "value": "This is my comment!",
+                  "type": "text"
+                },
+                {
+                  "key": "parent",
+                  "value": "",
+                  "type": "text"
+                },
+                {
+                  "key": "images",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/comments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "comments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get comment",
+          "id": "10731345-c3d1-45fc-aa41-cc220ca31d6a",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/comments/post/69456ae1f84f8dcde6c57ec1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "comments",
+                "post",
+                "69456ae1f84f8dcde6c57ec1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Edit Comment",
+          "id": "7376a83d-4817-448d-8dba-c1901d1377c1",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"body\": \"Updated comment text\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/comments/694578b6f84f8dcde6c57ed8",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "comments",
+                "694578b6f84f8dcde6c57ed8"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Comment",
+          "id": "7787494f-4f32-4401-a4a4-37624d328056",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/comments/694579e3f84f8dcde6c57ef1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "comments",
+                "694579e3f84f8dcde6c57ef1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vote on Comment",
+          "id": "179faf02-988a-4f62-94e3-fa1f2aa947ea",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"value\": 1\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/comments/694578b6f84f8dcde6c57ed8/vote",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "comments",
+                "694578b6f84f8dcde6c57ed8",
+                "vote"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "save Comment",
+          "id": "bef34a36-8943-4663-a5f2-6e668de268cd",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/comments/694578b6f84f8dcde6c57ed8/save",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "comments",
+                "694578b6f84f8dcde6c57ed8",
+                "save"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "b06015c0-1af1-40e6-ac8b-e82d54dba109"
+    },
+    {
+      "name": "AI",
+      "item": [
+        {
+          "name": "Summarize Post",
+          "id": "914888ea-5d6c-4dbf-8739-31ce58798601",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/ai/:postId/summarize",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ai",
+                ":postId",
+                "summarize"
+              ],
+              "variable": [
+                {
+                  "key": "postId",
+                  "value": "6934141afed3ca69afc5203b"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "d9c81cb6-e0ec-48f6-a14e-947d9ef0f209"
+    },
+    {
+      "name": "Search",
+      "item": [
+        {
+          "name": "Search",
+          "id": "b7d91b46-2c45-48c6-8825-6bb7f97b3d44",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/search?q=test",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "test"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "a87f50e2-9268-4032-8cf1-883f7346bbca"
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Unread Count",
+          "id": "b53f0bcc-ec96-4a0a-993c-75f457b2cd13",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/unread-count",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "unread-count"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Notifications",
+          "id": "69e5bd79-37dc-45dc-8225-d7235317a840",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Mark All Read",
+          "id": "32ac52b4-143b-4cff-a5a0-46f3a3b3243a",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/read-all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "read-all"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Mark One Read",
+          "id": "6a37e89b-1430-4ccd-8f06-bc761bb69f46",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/:id/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                ":id",
+                "read"
+              ],
+              "variable": [
+                {
+                  "key": "id"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "f2b39203-f08a-49dc-a197-ecd9e3807873"
+    },
+    {
+      "name": "Messages",
+      "item": [
+        {
+          "name": "Send Message",
+          "id": "b74daa88-6de1-4e95-87ef-3e410f8beef7",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"receiverId\": \"6933ec013702bbf2b8354c8f\", \"content\": \"Hello!\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/messages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "messages"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Messages",
+          "id": "af8dca20-b801-4a85-9fee-73fa4cb8fc26",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/messages/:receiverId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "messages",
+                ":receiverId"
+              ],
+              "variable": [
+                {
+                  "key": "receiverId",
+                  "value": "6933ec013702bbf2b8354c8f"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Conversations",
+          "id": "27c74c02-7a6c-4898-ae84-be950f7950e8",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/messages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "messages"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "cec02fb9-7c0c-439a-a1ef-7b26d6487d4f"
+    }
+  ]
+}
