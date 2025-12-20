@@ -20,6 +20,30 @@ import {
   PencilIcon,
 } from "@heroicons/react/24/outline";
 
+// Helper function to convert URLs in text to clickable links
+function linkifyText(text) {
+  if (!text) return text;
+  const urlPattern = /(https?:\/\/[^\s<]+)/g;
+  const parts = text.split(urlPattern);
+  return parts.map((part, index) => {
+    if (part.match(urlPattern)) {
+      return (
+        <a
+          key={index}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-reddit-blue hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+}
+
 export default function Comment({ comment, postId, onDelete }) {
   const { token, user } = useAuth(); // Destructure user from useAuth
 
@@ -241,7 +265,7 @@ async function handleReply(text, images = []) {
 
           {/* Comment text */}
           <div className="mt-2 whitespace-pre-wrap text-reddit-text_light dark:text-reddit-dark_text_light">
-            {currentBody}
+            {linkifyText(currentBody)}
           </div>
 
           {/* Images */}

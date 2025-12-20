@@ -227,6 +227,44 @@
   opacity: 0.8;
 }
 
+/* Post body content styles (mirrors ProseMirror for rendered HTML) */
+.post-content ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+.post-content ul li {
+  margin: 0.25rem 0;
+}
+
+.post-content ul ul {
+  list-style-type: circle;
+}
+
+.post-content ul ul ul {
+  list-style-type: square;
+}
+
+.post-content ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+.post-content ol li {
+  margin: 0.25rem 0;
+}
+
+.post-content a {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+
+.post-content a:hover {
+  opacity: 0.8;
+}
+
 /* Placeholder */
 .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);

@@ -207,6 +207,19 @@ export default function PostCardFull({ post: incomingProp, postId: propPostId, o
           <h1 className="mt-2 text-2xl font-bold text-reddit-text dark:text-reddit-dark_text leading-7">
             {currentTitle}
           </h1>
+          
+          {/* LINK URL */}
+          {incoming.url && (
+            <a
+              href={incoming.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 text-sm text-reddit-blue hover:underline flex items-center gap-1"
+              onClick={(e) => e.stopPropagation()}
+            >
+              🔗 {incoming.url}
+            </a>
+          )}
         </div>
 
         {/* 3-dot menu */}
@@ -279,7 +292,7 @@ export default function PostCardFull({ post: incomingProp, postId: propPostId, o
       {/* BODY */}
       {currentBody && (
         <div
-          className="mt-4 text-reddit-text_light dark:text-reddit-dark_text_light whitespace-pre-wrap leading-relaxed"
+          className="post-content mt-4 text-reddit-text_light dark:text-reddit-dark_text_light whitespace-pre-wrap leading-relaxed"
           dangerouslySetInnerHTML={{ __html: currentBody }}
         />
       )}

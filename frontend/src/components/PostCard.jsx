@@ -73,6 +73,7 @@ const PostCard = memo(function PostCard(props) {
     incoming.imageUrl && Array.isArray(incoming.imageUrl)
       ? incoming.imageUrl
       : incoming.images || [];
+  const postUrl = incoming.url ?? null; // Link post URL
 
   if (!incoming || typeof incoming !== "object") return null;
 
@@ -99,7 +100,10 @@ const PostCard = memo(function PostCard(props) {
   // AI Summary state
   const [showAISummary, setShowAISummary] = useState(false);
 
+  // Smart menu positioning
+  const [menuOpenUp, setMenuOpenUp] = useState(false);
   const menuRef = useRef(null);
+  const menuBtnRef = useRef(null);
 
   useEffect(() => {
     function onDocDown(e) {
@@ -281,12 +285,24 @@ const PostCard = memo(function PostCard(props) {
             })()}
 
             <div className="relative" ref={menuRef}>
-              <button onClick={() => setMenuOpen(v => !v)} className="p-1 rounded-full hover:bg-[#e8e9eb] dark:hover:bg-[#2c2d2f]">
+              <button 
+                ref={menuBtnRef}
+                onClick={() => {
+                  // Smart positioning: check if menu should open upward
+                  if (menuBtnRef.current) {
+                    const rect = menuBtnRef.current.getBoundingClientRect();
+                    const spaceBelow = window.innerHeight - rect.bottom;
+                    setMenuOpenUp(spaceBelow < 200); // Open up if less than 200px below
+                  }
+                  setMenuOpen(v => !v);
+                }} 
+                className="p-1 rounded-full hover:bg-[#e8e9eb] dark:hover:bg-[#2c2d2f]"
+              >
                 <EllipsisHorizontalIcon className="h-5 w-5 text-reddit-icon dark:text-reddit-dark_icon" />
               </button>
 
               {menuOpen && (
-                <div className="absolute right-0 mt-2 w-44 bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider rounded shadow-lg z-50">
+                <div className={`absolute right-0 w-44 bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider rounded shadow-lg z-50 ${menuOpenUp ? 'bottom-full mb-2' : 'mt-2'}`}>
                   <button onClick={handleShare} className="w-full text-left px-3 py-2 hover:bg-[#e8e9eb] dark:hover:bg-[#2c2d2f] flex items-center gap-2">
                     <ShareOutline className="h-4 w-4" /> Share
                   </button>
@@ -334,10 +350,23 @@ const PostCard = memo(function PostCard(props) {
           {currentTitle}
         </h2>
 
+        {/* LINK URL */}
+        {postUrl && (
+          <a
+            href={postUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 text-sm text-reddit-blue hover:underline flex items-center gap-1 truncate"
+            onClick={(e) => e.stopPropagation()}
+          >
+            🔗 {postUrl}
+          </a>
+        )}
+
         {/* BODY */}
         {currentBody && (
           <div
-            className="mt-3 text-[14px] sm:text-[15px] text-reddit-text_light dark:text-reddit-dark_text_light whitespace-pre-wrap break-words overflow-hidden line-clamp-4 sm:line-clamp-6"
+            className="post-content mt-3 text-[14px] sm:text-[15px] text-reddit-text_light dark:text-reddit-dark_text_light whitespace-pre-wrap break-words overflow-hidden line-clamp-4 sm:line-clamp-6"
             dangerouslySetInnerHTML={{ __html: currentBody }}
           />
         )}
