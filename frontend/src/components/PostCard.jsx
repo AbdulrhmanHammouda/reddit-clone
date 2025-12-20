@@ -228,7 +228,7 @@ const PostCard = memo(function PostCard(props) {
 
   return (
     <>
-      <div className="w-full bg-reddit-card dark:bg-reddit-dark_card rounded-xl p-3 sm:p-4 border border-reddit-border dark:border-reddit-dark_divider shadow-sm transition-colors overflow-hidden">
+      <div className="w-full bg-reddit-card dark:bg-reddit-dark_card rounded-xl p-3 sm:p-4 border border-reddit-border dark:border-reddit-dark_divider shadow-sm transition-colors">
 
         {/* HEADER */}
         <div className="flex items-center justify-between text-[12px] sm:text-[13px] text-reddit-text_secondary dark:text-reddit-dark_text_secondary">
@@ -286,7 +286,7 @@ const PostCard = memo(function PostCard(props) {
               </button>
 
               {menuOpen && (
-                <div className="absolute right-0 mt-2 w-44 bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider rounded shadow-lg z-30">
+                <div className="absolute right-0 mt-2 w-44 bg-reddit-card dark:bg-reddit-dark_card border border-reddit-border dark:border-reddit-dark_divider rounded shadow-lg z-50">
                   <button onClick={handleShare} className="w-full text-left px-3 py-2 hover:bg-[#e8e9eb] dark:hover:bg-[#2c2d2f] flex items-center gap-2">
                     <ShareOutline className="h-4 w-4" /> Share
                   </button>
