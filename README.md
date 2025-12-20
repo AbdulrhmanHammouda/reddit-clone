@@ -29,7 +29,7 @@ A full-featured Reddit-style social media platform built with React and Node.js.
 
 ---
 
-## 📊 Database Schema
+## 📊simble Database Schema
 
 ```mermaid
 erDiagram
@@ -83,3 +83,4 @@ npm run dev
 --- 
 GitHub: [@AbdulrhmanHammouda](https://github.com/AbdulrhmanHammouda)  
 Repository: [reddit-clone](https://github.com/AbdulrhmanHammouda/reddit-clone)
+
